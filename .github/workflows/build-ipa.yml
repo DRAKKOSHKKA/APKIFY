@@ -93,36 +93,12 @@ jobs:
 
             - name: 🔨 Pre-build ExpoModulesJSI xcframework
               run: |
-                  PACKAGE_SWIFT="node_modules/expo-modules-jsi/apple/Package.swift"
-                  if [ -f "$PACKAGE_SWIFT" ]; then
-                    echo "Patching Package.swift for Swift compatibility..."
-                    INSTALLED_SWIFT=$(swift --version | grep -o 'Swift version [0-9]\.[0-9]' | awk '{print $3}' || echo "6.0")
-                    echo "Detected Swift compiler: $INSTALLED_SWIFT"
-                    sed -i '' "s/swift-tools-version: 6.2/swift-tools-version: ${INSTALLED_SWIFT}/g" "$PACKAGE_SWIFT"
-                    sed -i '' 's/\.enableUpcomingFeature/\/\/\.enableUpcomingFeature/g' "$PACKAGE_SWIFT"
-                  fi
+                  node scripts/patch-expo-modules-jsi.js
 
-                  echo "Patching ExpoModulesJSI Swift 6.2 syntax for Swift 6.0/6.1 compatibility..."
-                  # 1. Заменяем 'weak let' на 'weak var' во всех Swift файлах
-                  find node_modules/expo-modules-jsi/apple/Sources -name "*.swift" -exec sed -i '' 's/weak let/weak var/g' {} +
-                  
-                  # 2. Убираем висящую запятую в кортеже параметров AsyncFunctionClosure
-                  sed -i '' 's/_ arguments: consuming JavaScriptValuesBuffer,/_ arguments: consuming JavaScriptValuesBuffer/g' node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/JavaScriptRuntime.swift
-                  
-                  # 3. Убираем аннотацию SWIFT_RETURNS_RETAINED у конструкторов RuntimeScheduler
-                  sed -i '' 's/SWIFT_RETURNS_RETAINED RuntimeScheduler/RuntimeScheduler/g' node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI-Cxx/include/RuntimeScheduler.h
-
-                  SCRIPT_PATH="node_modules/expo-modules-jsi/apple/scripts/build-xcframework.sh"
-                  if [ -f "$SCRIPT_PATH" ]; then
-                    echo "Patching ExpoModulesJSI build script to disable code signing..."
-                    sed -i '' 's/CLANG_COVERAGE_MAPPING=NO/CLANG_COVERAGE_MAPPING=NO CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""/g' "$SCRIPT_PATH"
-                    sed -i '' 's/-quiet//g' "$SCRIPT_PATH"
-
-                    echo "Pre-compiling ExpoModulesJSI.xcframework for iphoneos..."
-                    cd node_modules/expo-modules-jsi/apple
-                    PODS_ROOT="$GITHUB_WORKSPACE/ios/Pods" RN_ROOT="$GITHUB_WORKSPACE/node_modules/react-native" PLATFORM_NAME=iphoneos ./scripts/build-xcframework.sh
-                    cd ../../..
-                  fi
+                  echo "Pre-compiling ExpoModulesJSI.xcframework for iphoneos..."
+                  cd node_modules/expo-modules-jsi/apple
+                  PODS_ROOT="$GITHUB_WORKSPACE/ios/Pods" RN_ROOT="$GITHUB_WORKSPACE/node_modules/react-native" PLATFORM_NAME=iphoneos ./scripts/build-xcframework.sh
+                  cd ../../..
 
             - name: 🍏 Compile iOS App (Unsigned)
               run: |
