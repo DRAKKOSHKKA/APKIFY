@@ -12,6 +12,9 @@ on:
         tags:
             - "v*"
 
+permissions:
+    contents: write
+
 jobs:
     build-ios:
         name: Build Unsigned IPA on macOS
@@ -44,8 +47,11 @@ jobs:
 
             - name: 🍏 Compile Xcode Archive (Unsigned)
               run: |
-                  xcodebuild -workspace ios/apkify.xcworkspace \
-                    -scheme apkify \
+                  WORKSPACE=$(ls -d ios/*.xcworkspace | head -n 1)
+                  SCHEME=$(xcodebuild -workspace "$WORKSPACE" -list | awk '/Schemes:/{flag=1;next}/^$/{flag=0}flag' | tr -d ' ' | head -n 1)
+                  echo "Found workspace: $WORKSPACE, scheme: $SCHEME"
+                  xcodebuild -workspace "$WORKSPACE" \
+                    -scheme "$SCHEME" \
                     -configuration Release \
                     -sdk iphoneos \
                     -archivePath build/Apkify.xcarchive \
@@ -57,7 +63,9 @@ jobs:
             - name: 📦 Package .ipa file
               run: |
                   mkdir -p build/Payload
-                  cp -r "build/Apkify.xcarchive/Products/Applications/Apkify.app" build/Payload/
+                  APP_PATH=$(find build/Apkify.xcarchive/Products/Applications -name "*.app" -maxdepth 1)
+                  echo "Found application bundle at: $APP_PATH"
+                  cp -r "$APP_PATH" build/Payload/
                   cd build
                   zip -r Apkify.ipa Payload
                   cd ..
