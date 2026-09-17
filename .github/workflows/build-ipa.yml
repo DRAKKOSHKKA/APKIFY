@@ -82,6 +82,20 @@ jobs:
                   sed -i '' 's/DEVELOPMENT_TEAM = [^;]*;/DEVELOPMENT_TEAM = "";/g' ios/*.xcodeproj/project.pbxproj 2>/dev/null || true
                   find ios/Pods -name "*.xcconfig" -exec sed -i '' 's/CODE_SIGNING_ALLOWED = YES/CODE_SIGNING_ALLOWED = NO/g' {} + 2>/dev/null || true
 
+            - name: 🔨 Pre-build ExpoModulesJSI xcframework
+              run: |
+                  SCRIPT_PATH="node_modules/expo-modules-jsi/apple/scripts/build-xcframework.sh"
+                  if [ -f "$SCRIPT_PATH" ]; then
+                    echo "Patching ExpoModulesJSI build script to disable code signing..."
+                    sed -i '' 's/CLANG_COVERAGE_MAPPING=NO/CLANG_COVERAGE_MAPPING=NO CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""/g' "$SCRIPT_PATH"
+                    sed -i '' 's/-quiet//g' "$SCRIPT_PATH"
+
+                    echo "Pre-compiling ExpoModulesJSI.xcframework for iphoneos..."
+                    cd node_modules/expo-modules-jsi/apple
+                    PODS_ROOT="$GITHUB_WORKSPACE/ios/Pods" RN_ROOT="$GITHUB_WORKSPACE/node_modules/react-native" PLATFORM_NAME=iphoneos ./scripts/build-xcframework.sh
+                    cd ../../..
+                  fi
+
             - name: 🍏 Compile iOS App (Unsigned)
               run: |
                   WORKSPACE="ios/Apkify.xcworkspace"
