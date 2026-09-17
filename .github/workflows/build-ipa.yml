@@ -19,6 +19,8 @@ jobs:
     build-ios:
         name: Build Unsigned IPA on macOS
         runs-on: macos-15
+        env:
+            DEVELOPER_DIR: /Applications/Xcode_16.2.app/Contents/Developer
 
         steps:
             - name: 📥 Checkout repository
@@ -26,11 +28,13 @@ jobs:
 
             - name: 🍏 Select Xcode 16
               run: |
-                  if [ -d "/Applications/Xcode_16.2.app" ]; then
-                    sudo xcode-select -s /Applications/Xcode_16.2.app
-                  elif [ -d "/Applications/Xcode_16.1.app" ]; then
-                    sudo xcode-select -s /Applications/Xcode_16.1.app
+                  XCODE_PATH="/Applications/Xcode_16.2.app"
+                  if [ ! -d "$XCODE_PATH" ]; then
+                    XCODE_PATH=$(ls -d /Applications/Xcode_16*.app | head -n 1)
                   fi
+                  echo "Selected Xcode: $XCODE_PATH"
+                  sudo xcode-select -s "$XCODE_PATH/Contents/Developer"
+                  echo "DEVELOPER_DIR=$XCODE_PATH/Contents/Developer" >> $GITHUB_ENV
                   xcodebuild -version
 
             - name: 🟢 Setup Node.js 22 LTS
