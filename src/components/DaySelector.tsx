@@ -9,11 +9,13 @@ import {
 import * as Haptics from "expo-haptics";
 import { DaySchedule } from "../types/schedule";
 import { ThemeColors } from "../theme/colors";
+import { RADIUS } from "../theme/tokens";
 
 interface DaySelectorProps {
 	days: DaySchedule[];
 	selectedIndex: number;
 	theme: ThemeColors;
+	mockDate?: Date | null;
 	onSelectIndex: (index: number) => void;
 }
 
@@ -21,6 +23,7 @@ export const DaySelector: React.FC<DaySelectorProps> = ({
 	days,
 	selectedIndex,
 	theme,
+	mockDate = null,
 	onSelectIndex,
 }) => {
 	const getShortDay = (dayName: string) => {
@@ -120,9 +123,14 @@ export const DaySelector: React.FC<DaySelectorProps> = ({
 								{dayNum}
 							</Text>
 
-							{/* Точка текущего дня (сегодня) */}
+							{/* Точка текущего дня (сегодня или симуляция) */}
 							<View style={styles.dotContainer}>
-								{day.isToday && (
+								{(mockDate
+									? (mockDate.getDay() === 0
+											? 0
+											: mockDate.getDay() -
+												1) === idx
+									: day.isToday) && (
 									<View
 										style={[
 											styles.todayDot,
@@ -157,7 +165,7 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 		paddingVertical: 10,
 		paddingHorizontal: 12,
-		borderRadius: 20,
+		borderRadius: RADIUS.card,
 		minWidth: 46,
 	},
 	dayChipSelected: {

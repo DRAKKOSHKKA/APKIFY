@@ -37,6 +37,7 @@ import { ProfileScreen } from "./src/screens/ProfileScreen";
 import { SearchModal } from "./src/components/SearchModal";
 import { WeekModal } from "./src/components/WeekModal";
 import { CallsScheduleModal } from "./src/components/CallsScheduleModal";
+import { DebugModal } from "./src/components/DebugModal";
 
 export default function App() {
 	const systemColorScheme = useColorScheme();
@@ -80,6 +81,15 @@ export default function App() {
 		useState<boolean>(false);
 	const [isCallsOpen, setIsCallsOpen] =
 		useState<boolean>(false);
+	const [isDebugOpen, setIsDebugOpen] =
+		useState<boolean>(false);
+
+	// Автономность и симуляция Debug
+	const [isScheduleUpdated, setIsScheduleUpdated] =
+		useState<boolean>(false);
+	const [mockDate, setMockDate] = useState<Date | null>(null);
+	const [customSchedule, setCustomSchedule] =
+		useState<ScheduleData | null>(null);
 
 	// Таймер для периодического обновления статуса пар ("Идёт сейчас")
 	const [, setTick] = useState<number>(0);
@@ -145,6 +155,15 @@ export default function App() {
 					targetEntity,
 					targetWeek
 				);
+
+				if (
+					cached &&
+					JSON.stringify(cached.days) !==
+						JSON.stringify(freshData.days)
+				) {
+					setIsScheduleUpdated(true);
+				}
+
 				setSchedule(freshData);
 				setIsOffline(false);
 				await saveCachedSchedule(freshData);
@@ -244,6 +263,86 @@ export default function App() {
 		setFavorites(updatedFavorites);
 	};
 
+	/**
+	 * Стресс-тест расписания для проверки верстки (Debug)
+	 */
+	const handleInjectTestSchedule = () => {
+		const base = schedule;
+		if (!base) return;
+		const stressDay = {
+			dayName: "Понедельник",
+			dayDate: "14.09.2026",
+			isToday: true,
+			lessons: [
+				{
+					id: "stress-1",
+					pairIndex: 2, // Проверка уведомления: первой пары нет!
+					time: "09:30 - 10:50",
+					subject:
+						"МДК 02.01 Разработка, внедрение и адаптация программного обеспечения отраслевой направленности с углубленным изучением распределенных систем",
+					teacher:
+						"Хайруллин Рамиль Миннефакилевич-Закиров",
+					room: "312а лаб.",
+					group: "21 нмо (2 подгруппа)",
+				},
+				{
+					id: "stress-2",
+					pairIndex: 3,
+					time: "11:20 - 12:40",
+					subject:
+						"Архитектура аппаратных средств и микропроцессорных систем вычислительной техники",
+					teacher: "Смирнова Елена Александровна",
+					room: "204",
+					group: "21 нмо",
+				},
+				{
+					id: "stress-3",
+					pairIndex: 4,
+					time: "12:50 - 14:10",
+					subject:
+						"Основы проектирования баз данных и систем управления реляционными структурами данных",
+					teacher: "Закиров Ильдар Рафаэлевич",
+					room: "108 ауд.",
+					group: "21 нмо (1 подгруппа)",
+				},
+			],
+		};
+
+		setCustomSchedule({
+			...base,
+			days: [stressDay, ...base.days.slice(1)],
+		});
+	};
+
+	const handleResetSchedule = () => {
+		setCustomSchedule(null);
+	};
+
+	const handleSetMockDate = (date: Date | null) => {
+		setMockDate(date);
+		const targetSchedule = customSchedule || schedule;
+		if (date && targetSchedule) {
+			const dayOfWeek = date.getDay(); // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+			const targetDayIndex =
+				dayOfWeek === 0 ? 0 : dayOfWeek - 1;
+			if (targetDayIndex < targetSchedule.days.length) {
+				setSelectedDayIndex(targetDayIndex);
+			}
+		}
+	};
+
+	const handleResetMockDate = () => {
+		setMockDate(null);
+		const targetSchedule = customSchedule || schedule;
+		if (targetSchedule) {
+			setSelectedDayIndex(
+				pickTodayIndex(targetSchedule.days)
+			);
+		}
+	};
+
+	const activeSchedule = customSchedule || schedule;
+
 	return (
 		<SafeAreaProvider>
 			<SafeAreaView
@@ -261,13 +360,15 @@ export default function App() {
 				{currentTab === "schedule" && (
 					<ScheduleScreen
 						entity={entity}
-						schedule={schedule}
+						schedule={activeSchedule}
 						selectedDayIndex={selectedDayIndex}
 						selectedWeekId={selectedWeekId}
 						isFav={isFav}
 						isLoading={isLoading}
 						isRefreshing={isRefreshing}
 						isOffline={isOffline}
+						isScheduleUpdated={isScheduleUpdated}
+						mockDate={mockDate}
 						errorMessage={errorMessage}
 						settings={settings}
 						theme={theme}
@@ -288,6 +389,10 @@ export default function App() {
 						onRetry={() =>
 							loadSchedule(entity, selectedWeekId)
 						}
+						onDismissUpdateNotice={() =>
+							setIsScheduleUpdated(false)
+						}
+						onResetMockTime={handleResetMockDate}
 					/>
 				)}
 
@@ -303,6 +408,9 @@ export default function App() {
 						onOpenCallsModal={() =>
 							setIsCallsOpen(true)
 						}
+						onOpenDebugModal={() =>
+							setIsDebugOpen(true)
+						}
 					/>
 				)}
 
@@ -310,6 +418,7 @@ export default function App() {
 				<TabBar
 					currentTab={currentTab}
 					theme={theme}
+					glassEffect={settings.glassEffect}
 					onSelectTab={setCurrentTab}
 				/>
 
@@ -324,9 +433,11 @@ export default function App() {
 
 				<WeekModal
 					visible={isWeeksOpen}
-					weeks={schedule?.weeks || []}
+					weeks={activeSchedule?.weeks || []}
 					currentWeekId={
-						schedule?.weekId || selectedWeekId || ""
+						activeSchedule?.weekId ||
+						selectedWeekId ||
+						""
 					}
 					theme={theme}
 					onSelectWeek={handleSelectWeek}
@@ -337,6 +448,28 @@ export default function App() {
 					visible={isCallsOpen}
 					theme={theme}
 					onClose={() => setIsCallsOpen(false)}
+				/>
+
+				{/* Детальный системный инспектор (Debug меню) */}
+				<DebugModal
+					visible={isDebugOpen}
+					schedule={activeSchedule}
+					settings={settings}
+					theme={theme}
+					mockDate={mockDate}
+					onSetMockDate={handleSetMockDate}
+					onInjectTestSchedule={
+						handleInjectTestSchedule
+					}
+					onResetSchedule={handleResetSchedule}
+					onRefreshLive={() =>
+						loadSchedule(
+							entity,
+							selectedWeekId,
+							true
+						)
+					}
+					onClose={() => setIsDebugOpen(false)}
 				/>
 			</SafeAreaView>
 		</SafeAreaProvider>

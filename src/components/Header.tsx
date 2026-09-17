@@ -59,7 +59,7 @@ export const Header: React.FC<HeaderProps> = ({
 				/>
 			</TouchableOpacity>
 
-			{/* Правая часть: кнопка недели и поиск */}
+			{/* Правая часть: кнопка недели (поиск открывается по тапу на название со стрелочкой) */}
 			<View style={styles.rightActions}>
 				{/* Кнопка недели */}
 				<TouchableOpacity
@@ -89,32 +89,6 @@ export const Header: React.FC<HeaderProps> = ({
 						{weekNum ? `${weekNum} нед.` : "Неделя"}
 					</Text>
 				</TouchableOpacity>
-
-				{/* Кнопка поиска */}
-				<TouchableOpacity
-					style={[
-						styles.iconButton,
-						{
-							backgroundColor:
-								theme.chipBackground,
-						},
-					]}
-					activeOpacity={0.7}
-					onPress={() => {
-						try {
-							Haptics.impactAsync(
-								Haptics.ImpactFeedbackStyle.Light
-							);
-						} catch {}
-						onOpenSearch();
-					}}
-				>
-					<Ionicons
-						name="search"
-						size={17}
-						color={theme.text}
-					/>
-				</TouchableOpacity>
 			</View>
 		</View>
 	);
@@ -132,7 +106,7 @@ const styles = StyleSheet.create({
 	entityRow: {
 		flexDirection: "row",
 		alignItems: "center",
-		maxWidth: "65%",
+		maxWidth: "75%",
 	},
 	title: {
 		fontSize: 26,
@@ -146,22 +120,14 @@ const styles = StyleSheet.create({
 	rightActions: {
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 8,
 	},
 	weekPill: {
-		paddingHorizontal: 12,
+		paddingHorizontal: 13,
 		paddingVertical: 7,
 		borderRadius: 18,
 	},
 	weekPillText: {
 		fontSize: 13,
 		fontWeight: "600",
-	},
-	iconButton: {
-		width: 34,
-		height: 34,
-		borderRadius: 17,
-		alignItems: "center",
-		justifyContent: "center",
 	},
 });

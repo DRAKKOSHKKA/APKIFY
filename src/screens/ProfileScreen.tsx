@@ -5,6 +5,7 @@ import {
 	View,
 	ScrollView,
 	TouchableOpacity,
+	Switch,
 	Alert,
 	Linking,
 } from "react-native";
@@ -17,6 +18,8 @@ import {
 } from "../types/schedule";
 import { clearScheduleCache } from "../services/storage";
 import { ThemeColors } from "../theme/colors";
+import { RADIUS } from "../theme/tokens";
+import { APP_CONFIG } from "../constants/appInfo";
 
 interface ProfileScreenProps {
 	settings: AppSettings;
@@ -24,6 +27,7 @@ interface ProfileScreenProps {
 	onUpdateSettings: (partial: Partial<AppSettings>) => void;
 	onOpenGroupPicker: () => void;
 	onOpenCallsModal: () => void;
+	onOpenDebugModal: () => void;
 }
 
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({
@@ -32,8 +36,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 	onUpdateSettings,
 	onOpenGroupPicker,
 	onOpenCallsModal,
+	onOpenDebugModal,
 }) => {
 	const [clearing, setClearing] = useState(false);
+	const [debugTaps, setDebugTaps] = useState<number>(0);
+	const [lastTapTime, setLastTapTime] = useState<number>(0);
 
 	const triggerLight = () => {
 		try {
@@ -41,6 +48,35 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 				Haptics.ImpactFeedbackStyle.Light
 			);
 		} catch {}
+	};
+
+	// Скрытое открытие Debug Menu по 7 нажатиям на версию
+	const handleVersionPress = () => {
+		const now = Date.now();
+		const newCount =
+			now - lastTapTime < 2500 ? debugTaps + 1 : 1;
+		setLastTapTime(now);
+		setDebugTaps(newCount);
+
+		if (newCount === 7) {
+			try {
+				Haptics.notificationAsync(
+					Haptics.NotificationFeedbackType.Success
+				);
+			} catch {}
+			setDebugTaps(0);
+			onOpenDebugModal();
+		} else if (newCount >= 4) {
+			try {
+				Haptics.impactAsync(
+					Haptics.ImpactFeedbackStyle.Light
+				);
+			} catch {}
+		} else {
+			try {
+				Haptics.selectionAsync();
+			} catch {}
+		}
 	};
 
 	const handleClear = async () => {
@@ -72,7 +108,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 			contentContainerStyle={styles.scrollContent}
 			showsVerticalScrollIndicator={false}
 		>
-			{/* Заголовок экрана */}
+			{/* Крупный заголовок в стиле Apple iOS */}
 			<View style={styles.header}>
 				<Text
 					style={[
@@ -84,7 +120,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 				</Text>
 			</View>
 
-			{/* СЕКЦИЯ 1: ГРУППА И ПОДГРУППА */}
+			{/* СЕКЦИЯ 1: РАСПИСАНИЕ И ГРУППА */}
 			<View style={styles.section}>
 				<Text
 					style={[
@@ -92,13 +128,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 						{ color: theme.textSecondary },
 					]}
 				>
-					УЧЁБА
+					РАСПИСАНИЕ И ГРУППА
 				</Text>
 				<View
 					style={[
 						styles.card,
 						{
-							backgroundColor: theme.card,
+							backgroundColor: theme.groupedCell,
 							borderColor: theme.border,
 						},
 					]}
@@ -120,7 +156,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 						>
 							<Ionicons
 								name="people"
-								size={16}
+								size={17}
 								color="#FFFFFF"
 							/>
 						</View>
@@ -130,7 +166,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 								{ color: theme.text },
 							]}
 						>
-							Группа
+							Моя группа
 						</Text>
 						<Text
 							style={[
@@ -145,15 +181,15 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 						</Text>
 						<Ionicons
 							name="chevron-forward"
-							size={16}
-							color={theme.textSecondary}
+							size={17}
+							color={theme.separator}
 						/>
 					</TouchableOpacity>
 
 					<View
 						style={[
 							styles.divider,
-							{ backgroundColor: theme.border },
+							{ backgroundColor: theme.separator },
 						]}
 					/>
 
@@ -171,7 +207,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 							>
 								<Ionicons
 									name="person"
-									size={16}
+									size={17}
 									color="#FFFFFF"
 								/>
 							</View>
@@ -268,7 +304,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 					style={[
 						styles.card,
 						{
-							backgroundColor: theme.card,
+							backgroundColor: theme.groupedCell,
 							borderColor: theme.border,
 						},
 					]}
@@ -286,7 +322,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 							>
 								<Ionicons
 									name="moon"
-									size={16}
+									size={17}
 									color="#FFFFFF"
 								/>
 							</View>
@@ -296,7 +332,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 									{ color: theme.text },
 								]}
 							>
-								Тема
+								Тема оформления
 							</Text>
 						</View>
 
@@ -368,10 +404,78 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 							})}
 						</View>
 					</View>
+
+					<View
+						style={[
+							styles.divider,
+							{ backgroundColor: theme.separator },
+						]}
+					/>
+
+					{/* Переключатель Liquid Glass */}
+					<View style={styles.switchRow}>
+						<View style={styles.labelRowCompact}>
+							<View
+								style={[
+									styles.iconSquare,
+									{
+										backgroundColor:
+											"#5AC8FA",
+									},
+								]}
+							>
+								<Ionicons
+									name="sparkles"
+									size={17}
+									color="#FFFFFF"
+								/>
+							</View>
+							<View style={styles.textColumn}>
+								<Text
+									style={[
+										styles.rowLabel,
+										{ color: theme.text },
+									]}
+								>
+									Эффект Liquid Glass
+								</Text>
+								<Text
+									style={[
+										styles.rowSubLabel,
+										{
+											color: theme.textSecondary,
+										},
+									]}
+								>
+									Полупрозрачные акриловые
+									подложки iOS
+								</Text>
+							</View>
+						</View>
+						<Switch
+							value={settings.glassEffect}
+							onValueChange={(val) => {
+								try {
+									Haptics.selectionAsync();
+								} catch {}
+								onUpdateSettings({
+									glassEffect: val,
+								});
+							}}
+							trackColor={{
+								false: theme.chipBackground,
+								true: theme.success,
+							}}
+							thumbColor="#FFFFFF"
+							ios_backgroundColor={
+								theme.chipBackground
+							}
+						/>
+					</View>
 				</View>
 			</View>
 
-			{/* СЕКЦИЯ 3: ИНФОРМАЦИЯ И ЗВОНКИ */}
+			{/* СЕКЦИЯ 3: СПРАВОЧНИК И ЗВОНКИ */}
 			<View style={styles.section}>
 				<Text
 					style={[
@@ -379,13 +483,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 						{ color: theme.textSecondary },
 					]}
 				>
-					СПРАВОЧНИК
+					СПРАВОЧНИК И ЗВОНКИ
 				</Text>
 				<View
 					style={[
 						styles.card,
 						{
-							backgroundColor: theme.card,
+							backgroundColor: theme.groupedCell,
 							borderColor: theme.border,
 						},
 					]}
@@ -407,7 +511,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 						>
 							<Ionicons
 								name="notifications"
-								size={16}
+								size={17}
 								color="#FFFFFF"
 							/>
 						</View>
@@ -419,17 +523,25 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 						>
 							Расписание звонков
 						</Text>
+						<Text
+							style={[
+								styles.rowValue,
+								{ color: theme.textSecondary },
+							]}
+						>
+							Пн—Пт и Сб
+						</Text>
 						<Ionicons
 							name="chevron-forward"
-							size={16}
-							color={theme.textSecondary}
+							size={17}
+							color={theme.separator}
 						/>
 					</TouchableOpacity>
 
 					<View
 						style={[
 							styles.divider,
-							{ backgroundColor: theme.border },
+							{ backgroundColor: theme.separator },
 						]}
 					/>
 
@@ -439,7 +551,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 						activeOpacity={0.6}
 						onPress={() => {
 							Linking.openURL(
-								"https://it-institut.ru/SearchString/Index/37"
+								APP_CONFIG.websiteUrl
 							);
 						}}
 					>
@@ -451,7 +563,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 						>
 							<Ionicons
 								name="globe-outline"
-								size={16}
+								size={17}
 								color="#FFFFFF"
 							/>
 						</View>
@@ -461,24 +573,40 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 								{ color: theme.text },
 							]}
 						>
-							Портал колледжа
+							Сайт колледжа
+						</Text>
+						<Text
+							style={[
+								styles.rowValue,
+								{ color: theme.textSecondary },
+							]}
+						>
+							it-institut.ru
 						</Text>
 						<Ionicons
 							name="open-outline"
 							size={16}
-							color={theme.textSecondary}
+							color={theme.separator}
 						/>
 					</TouchableOpacity>
 				</View>
 			</View>
 
-			{/* СЕКЦИЯ 4: ПАМЯТЬ */}
+			{/* СЕКЦИЯ 4: ХРАНИЛИЩЕ ДАННЫХ */}
 			<View style={styles.section}>
+				<Text
+					style={[
+						styles.sectionTitle,
+						{ color: theme.textSecondary },
+					]}
+				>
+					ХРАНИЛИЩЕ ДАННЫХ
+				</Text>
 				<View
 					style={[
 						styles.card,
 						{
-							backgroundColor: theme.card,
+							backgroundColor: theme.groupedCell,
 							borderColor: theme.border,
 						},
 					]}
@@ -497,7 +625,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 						>
 							<Ionicons
 								name="trash-outline"
-								size={16}
+								size={17}
 								color="#FFFFFF"
 							/>
 						</View>
@@ -513,7 +641,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 				</View>
 			</View>
 
-			{/* Футер */}
+			{/* Футер: единая версия из APP_CONFIG + 7 тапов для открытия Debug */}
 			<View style={styles.footer}>
 				<Text
 					style={[
@@ -521,16 +649,30 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 						{ color: theme.textSecondary },
 					]}
 				>
-					Альметьевский профессиональный колледж
+					{APP_CONFIG.collegeName}
 				</Text>
-				<Text
-					style={[
-						styles.footerSub,
-						{ color: theme.textSecondary },
-					]}
+				<TouchableOpacity
+					activeOpacity={0.7}
+					onPress={handleVersionPress}
+					hitSlop={{
+						top: 12,
+						bottom: 16,
+						left: 24,
+						right: 24,
+					}}
 				>
-					Версия 1.0.0
-				</Text>
+					<Text
+						style={[
+							styles.footerSub,
+							{ color: theme.textSecondary },
+						]}
+					>
+						{APP_CONFIG.name} v{APP_CONFIG.version}
+						{debugTaps >= 4
+							? ` (ещё ${7 - debugTaps} до Debug)`
+							: ""}
+					</Text>
+				</TouchableOpacity>
 			</View>
 		</ScrollView>
 	);
@@ -551,30 +693,36 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 4,
 	},
 	largeTitle: {
-		fontSize: 32,
+		fontSize: 34,
 		fontWeight: "800",
-		letterSpacing: -0.6,
+		letterSpacing: -0.8,
 	},
 	section: {
-		marginBottom: 22,
+		marginBottom: 24,
 	},
 	sectionTitle: {
-		fontSize: 12,
-		fontWeight: "600",
-		letterSpacing: 0.3,
-		marginBottom: 6,
-		marginLeft: 8,
+		fontSize: 13,
+		fontWeight: "400",
+		letterSpacing: -0.08,
+		marginBottom: 7,
+		marginLeft: 16,
 	},
 	card: {
-		borderRadius: 18,
+		borderRadius: RADIUS.card,
 		borderWidth: StyleSheet.hairlineWidth,
 		overflow: "hidden",
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 1 },
+		shadowOpacity: 0.03,
+		shadowRadius: 4,
+		elevation: 1,
 	},
 	row: {
 		flexDirection: "row",
 		alignItems: "center",
 		paddingHorizontal: 16,
-		paddingVertical: 13,
+		minHeight: 48,
+		paddingVertical: 11,
 	},
 	columnRow: {
 		paddingHorizontal: 16,
@@ -586,25 +734,50 @@ const styles = StyleSheet.create({
 		marginBottom: 10,
 	},
 	iconSquare: {
-		width: 28,
-		height: 28,
-		borderRadius: 7,
+		width: 30,
+		height: 30,
+		borderRadius: RADIUS.iconSquare,
 		alignItems: "center",
 		justifyContent: "center",
 		marginRight: 12,
 	},
 	rowLabel: {
-		fontSize: 16,
-		fontWeight: "500",
+		fontSize: 17,
+		letterSpacing: -0.4,
+		fontWeight: "400",
 		flex: 1,
 	},
+	rowSubLabel: {
+		fontSize: 13,
+		letterSpacing: -0.2,
+		marginTop: 2,
+	},
+	textColumn: {
+		flex: 1,
+		justifyContent: "center",
+	},
+	switchRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		paddingHorizontal: 16,
+		minHeight: 48,
+		paddingVertical: 10,
+	},
+	labelRowCompact: {
+		flexDirection: "row",
+		alignItems: "center",
+		flex: 1,
+		marginRight: 12,
+	},
 	rowValue: {
-		fontSize: 15,
+		fontSize: 17,
+		letterSpacing: -0.4,
 		marginRight: 6,
 	},
 	divider: {
 		height: StyleSheet.hairlineWidth,
-		marginLeft: 56,
+		marginLeft: 58,
 	},
 	segmented: {
 		flexDirection: "row",
@@ -621,23 +794,25 @@ const styles = StyleSheet.create({
 	segmentBtnActive: {
 		shadowColor: "#000",
 		shadowOffset: { width: 0, height: 1 },
-		shadowOpacity: 0.1,
+		shadowOpacity: 0.12,
 		shadowRadius: 2,
 		elevation: 2,
 	},
 	segmentBtnText: {
 		fontSize: 13,
+		letterSpacing: -0.2,
 	},
 	footer: {
 		alignItems: "center",
-		paddingVertical: 16,
+		paddingVertical: 18,
 	},
 	footerText: {
-		fontSize: 12,
-		fontWeight: "500",
-		marginBottom: 2,
+		fontSize: 13,
+		fontWeight: "400",
+		marginBottom: 4,
 	},
 	footerSub: {
-		fontSize: 11,
+		fontSize: 12,
+		fontWeight: "500",
 	},
 });

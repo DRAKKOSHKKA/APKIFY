@@ -1,23 +1,30 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { Lesson } from "../types/schedule";
 import { getLessonStatus } from "../utils/timeUtils";
 import { ThemeColors } from "../theme/colors";
+import { RADIUS } from "../theme/tokens";
 
 interface LessonCardProps {
 	lesson: Lesson;
 	isToday: boolean;
 	theme: ThemeColors;
+	glassEffect?: boolean;
+	mockDate?: Date | null;
 }
 
 export const LessonCard: React.FC<LessonCardProps> = ({
 	lesson,
 	isToday,
 	theme,
+	glassEffect = true,
+	mockDate = null,
 }) => {
 	const { status, badgeText } = getLessonStatus(
 		lesson.time,
-		isToday
+		isToday,
+		mockDate
 	);
 
 	const isCurrent = status === "current";
@@ -30,12 +37,65 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 	const startTime = timeParts[0] || lesson.time;
 	const endTime = timeParts[1] || "";
 
-	// Формируем чистую строку деталей
-	const metaParts: string[] = [];
-	if (lesson.room) metaParts.push(`каб. ${lesson.room}`);
-	if (lesson.teacher) metaParts.push(lesson.teacher);
-	if (lesson.group) metaParts.push(lesson.group);
-	const metaLine = metaParts.join(" • ");
+	const cardBg = isCurrent
+		? glassEffect
+			? theme.glassActiveCard
+			: theme.successSubtle
+		: glassEffect
+			? theme.glassCard
+			: theme.card;
+
+	const cardBorder = isCurrent
+		? theme.success
+		: glassEffect
+			? theme.glassBorder
+			: "transparent";
+
+	// Нормализуем номер кабинета
+	const formattedRoom = lesson.room
+		? lesson.room.toLowerCase().startsWith("каб")
+			? lesson.room
+			: `каб. ${lesson.room}`
+		: "";
+
+	// Отображаем подгруппу ТОЛЬКО если предмет поделен на подгруппы (название группы не показываем)
+	const getSubgroupTitle = (
+		rawGroup?: string
+	): string | null => {
+		if (!rawGroup) return null;
+		const lower = rawGroup.toLowerCase();
+
+		if (
+			lower.includes("1 подгруппа") ||
+			lower.includes("1-я подгруппа") ||
+			lower.includes("1 п/г") ||
+			lower.includes("1п/г") ||
+			lower.includes("(1)")
+		) {
+			return "1-я подгруппа";
+		}
+		if (
+			lower.includes("2 подгруппа") ||
+			lower.includes("2-я подгруппа") ||
+			lower.includes("2 п/г") ||
+			lower.includes("2п/г") ||
+			lower.includes("(2)")
+		) {
+			return "2-я подгруппа";
+		}
+		if (
+			lower.includes("3 подгруппа") ||
+			lower.includes("3-я подгруппа") ||
+			lower.includes("3 п/г") ||
+			lower.includes("3п/г")
+		) {
+			return "3-я подгруппа";
+		}
+
+		return null;
+	};
+
+	const subgroupBadge = getSubgroupTitle(lesson.group);
 
 	return (
 		<View
@@ -75,15 +135,10 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 				style={[
 					styles.card,
 					{
-						backgroundColor: theme.card,
-						borderColor: isCurrent
-							? theme.success
-							: "transparent",
+						backgroundColor: cardBg,
+						borderColor: cardBorder,
 					},
-					isCurrent && [
-						styles.cardCurrent,
-						{ backgroundColor: theme.successSubtle },
-					],
+					isCurrent && styles.cardCurrent,
 				]}
 			>
 				{/* Верхняя строка: пара и статус (если идет) */}
@@ -133,7 +188,7 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 					)}
 				</View>
 
-				{/* Название предмета */}
+				{/* Название предмета (без обрезки, аккуратный перенос) */}
 				<Text
 					style={[
 						styles.subject,
@@ -147,18 +202,97 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 					{lesson.subject}
 				</Text>
 
-				{/* Преподаватель и кабинет в одну спокойную строку */}
-				{metaLine ? (
-					<Text
-						style={[
-							styles.metaText,
-							{ color: theme.textSecondary },
-						]}
-						numberOfLines={1}
-					>
-						{metaLine}
-					</Text>
-				) : null}
+				{/* Детали: кабинет, преподаватель, группа в виде адаптивных плашек */}
+				<View style={styles.metaRow}>
+					{formattedRoom ? (
+						<View
+							style={[
+								styles.metaBadge,
+								{
+									backgroundColor:
+										theme.chipBackground,
+								},
+							]}
+						>
+							<Ionicons
+								name="location-outline"
+								size={12}
+								color={theme.accent}
+								style={styles.metaIcon}
+							/>
+							<Text
+								style={[
+									styles.metaBadgeText,
+									{ color: theme.text },
+								]}
+							>
+								{formattedRoom}
+							</Text>
+						</View>
+					) : null}
+
+					{lesson.teacher ? (
+						<View
+							style={[
+								styles.metaBadge,
+								{
+									backgroundColor:
+										theme.chipBackground,
+								},
+							]}
+						>
+							<Ionicons
+								name="person-outline"
+								size={12}
+								color={theme.textSecondary}
+								style={styles.metaIcon}
+							/>
+							<Text
+								style={[
+									styles.metaBadgeText,
+									{ color: theme.text },
+								]}
+							>
+								{lesson.teacher}
+							</Text>
+						</View>
+					) : null}
+
+					{subgroupBadge ? (
+						<View
+							style={[
+								styles.metaBadge,
+								styles.subgroupBadge,
+								{
+									backgroundColor: theme.isDark
+										? "rgba(10, 132, 255, 0.18)"
+										: "rgba(0, 122, 255, 0.12)",
+									borderColor: theme.isDark
+										? "rgba(10, 132, 255, 0.35)"
+										: "rgba(0, 122, 255, 0.25)",
+								},
+							]}
+						>
+							<Ionicons
+								name="people"
+								size={12}
+								color={theme.accent}
+								style={styles.metaIcon}
+							/>
+							<Text
+								style={[
+									styles.metaBadgeText,
+									{
+										color: theme.accent,
+										fontWeight: "700",
+									},
+								]}
+							>
+								{subgroupBadge}
+							</Text>
+						</View>
+					) : null}
+				</View>
 			</View>
 		</View>
 	);
@@ -167,14 +301,16 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 const styles = StyleSheet.create({
 	container: {
 		flexDirection: "row",
-		paddingHorizontal: 16,
-		marginBottom: 10,
+		paddingHorizontal: 18,
+		marginBottom: 12,
+		alignItems: "flex-start",
 	},
 	containerCompleted: {
 		opacity: 0.55,
 	},
 	timeColumn: {
-		width: 52,
+		width: 48,
+		marginRight: 10,
 		paddingTop: 8,
 		alignItems: "flex-start",
 	},
@@ -192,8 +328,8 @@ const styles = StyleSheet.create({
 		flex: 1,
 		paddingVertical: 14,
 		paddingHorizontal: 16,
-		borderRadius: 18,
-		borderWidth: 1.5,
+		borderRadius: RADIUS.card,
+		borderWidth: 1,
 		shadowColor: "#000",
 		shadowOffset: { width: 0, height: 2 },
 		shadowOpacity: 0.04,
@@ -202,7 +338,7 @@ const styles = StyleSheet.create({
 	},
 	cardCurrent: {
 		shadowColor: "#34C759",
-		shadowOpacity: 0.15,
+		shadowOpacity: 0.18,
 		shadowRadius: 8,
 		elevation: 3,
 	},
@@ -223,7 +359,7 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		paddingHorizontal: 7,
 		paddingVertical: 2,
-		borderRadius: 8,
+		borderRadius: RADIUS.badge,
 	},
 	pulseDot: {
 		width: 5,
@@ -239,13 +375,34 @@ const styles = StyleSheet.create({
 	subject: {
 		fontSize: 16,
 		fontWeight: "700",
-		lineHeight: 21,
-		marginBottom: 6,
+		lineHeight: 22,
+		marginBottom: 8,
 		letterSpacing: -0.3,
 	},
-	metaText: {
-		fontSize: 13,
-		fontWeight: "500",
+	metaRow: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		alignItems: "center",
+		gap: 6,
+		marginTop: 2,
+	},
+	metaBadge: {
+		flexDirection: "row",
+		alignItems: "center",
+		paddingHorizontal: 8,
+		paddingVertical: 4,
+		borderRadius: RADIUS.badge,
+		maxWidth: "100%",
+	},
+	subgroupBadge: {
+		borderWidth: StyleSheet.hairlineWidth,
+	},
+	metaIcon: {
+		marginRight: 4,
+	},
+	metaBadgeText: {
+		fontSize: 12,
+		fontWeight: "600",
 		letterSpacing: -0.1,
 	},
 });

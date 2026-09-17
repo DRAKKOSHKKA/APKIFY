@@ -23,6 +23,12 @@ export interface ThemeColors {
 	headerBackground: string;
 	tabBarBackground: string;
 	groupedCell: string;
+	// Liquid Glass свойства
+	glassCard: string;
+	glassBorder: string;
+	glassBar: string;
+	glassActiveCard: string;
+	blurTint: "light" | "dark";
 }
 
 export const lightTheme: ThemeColors = {
@@ -46,8 +52,14 @@ export const lightTheme: ThemeColors = {
 	modalBackground: "#F2F2F7",
 	searchBarBackground: "#EFEFF0",
 	headerBackground: "#FFFFFF",
-	tabBarBackground: "rgba(255, 255, 255, 0.94)",
+	tabBarBackground: "rgba(255, 255, 255, 0.82)",
 	groupedCell: "#FFFFFF",
+	// Liquid Glass (iOS 27 Tinted Glass)
+	glassCard: "rgba(255, 255, 255, 0.85)",
+	glassBorder: "rgba(255, 255, 255, 0.95)",
+	glassBar: "rgba(242, 242, 247, 0.82)",
+	glassActiveCard: "rgba(52, 199, 89, 0.14)",
+	blurTint: "light",
 };
 
 export const darkTheme: ThemeColors = {
@@ -71,8 +83,14 @@ export const darkTheme: ThemeColors = {
 	modalBackground: "#1C1C1E",
 	searchBarBackground: "#2C2C2E",
 	headerBackground: "#121214",
-	tabBarBackground: "rgba(18, 18, 20, 0.94)",
+	tabBarBackground: "rgba(18, 18, 20, 0.82)",
 	groupedCell: "#1C1C1E",
+	// Liquid Glass (iOS 27 Tinted Glass)
+	glassCard: "rgba(28, 28, 30, 0.82)",
+	glassBorder: "rgba(255, 255, 255, 0.18)",
+	glassBar: "rgba(0, 0, 0, 0.78)",
+	glassActiveCard: "rgba(48, 209, 88, 0.20)",
+	blurTint: "dark",
 };
 
 export function getActiveTheme(

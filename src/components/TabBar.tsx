@@ -4,8 +4,10 @@ import {
 	Text,
 	View,
 	TouchableOpacity,
+	Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BlurView } from "expo-blur";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { ThemeColors } from "../theme/colors";
@@ -15,12 +17,14 @@ export type TabType = "schedule" | "profile";
 interface TabBarProps {
 	currentTab: TabType;
 	theme: ThemeColors;
+	glassEffect?: boolean;
 	onSelectTab: (tab: TabType) => void;
 }
 
 export const TabBar: React.FC<TabBarProps> = ({
 	currentTab,
 	theme,
+	glassEffect = true,
 	onSelectTab,
 }) => {
 	const insets = useSafeAreaInsets();
@@ -45,14 +49,16 @@ export const TabBar: React.FC<TabBarProps> = ({
 		},
 	];
 
-	return (
+	const content = (
 		<View
 			style={[
-				styles.bar,
+				styles.innerContainer,
 				{
-					backgroundColor: theme.tabBarBackground,
+					paddingBottom: Math.max(insets.bottom, 14),
+					backgroundColor: glassEffect
+						? "transparent"
+						: theme.tabBarBackground,
 					borderTopColor: theme.border,
-					paddingBottom: Math.max(insets.bottom, 12),
 				},
 			]}
 		>
@@ -103,22 +109,41 @@ export const TabBar: React.FC<TabBarProps> = ({
 			})}
 		</View>
 	);
+
+	if (glassEffect && Platform.OS === "ios") {
+		return (
+			<BlurView
+				intensity={theme.isDark ? 55 : 85}
+				tint={theme.blurTint}
+				style={styles.blurWrapper}
+			>
+				{content}
+			</BlurView>
+		);
+	}
+
+	return <View style={styles.solidWrapper}>{content}</View>;
 };
 
 const styles = StyleSheet.create({
-	bar: {
-		flexDirection: "row",
-		borderTopWidth: StyleSheet.hairlineWidth,
-		paddingTop: 8,
+	blurWrapper: {
 		position: "absolute",
 		bottom: 0,
 		left: 0,
 		right: 0,
-		elevation: 8,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: -2 },
-		shadowOpacity: 0.05,
-		shadowRadius: 6,
+		borderTopWidth: StyleSheet.hairlineWidth,
+		borderColor: "rgba(255, 255, 255, 0.15)",
+	},
+	solidWrapper: {
+		position: "absolute",
+		bottom: 0,
+		left: 0,
+		right: 0,
+	},
+	innerContainer: {
+		flexDirection: "row",
+		borderTopWidth: StyleSheet.hairlineWidth,
+		paddingTop: 8,
 	},
 	tabButton: {
 		flex: 1,

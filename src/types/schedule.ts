@@ -33,6 +33,15 @@ export interface WeekItem {
 	isCurrent: boolean;
 }
 
+export interface DebugStats {
+	lastUrl: string;
+	httpStatus: number;
+	latencyMs: number;
+	htmlSizeBytes: number;
+	timestamp: number;
+	weekIdFormula: string;
+}
+
 export interface ScheduleData {
 	entity: SearchResultItem;
 	weekId: string;
@@ -41,6 +50,7 @@ export interface ScheduleData {
 	weeks: WeekItem[];
 	days: DaySchedule[];
 	lastUpdated: number;
+	debugStats?: DebugStats;
 }
 
 export interface FavoriteItem extends SearchResultItem {
@@ -54,6 +64,7 @@ export interface AppSettings {
 	themeMode: ThemeMode;
 	subgroup: SubgroupFilter;
 	compactView: boolean;
+	glassEffect: boolean;
 	notificationsEnabled: boolean;
 	defaultEntity: SearchResultItem;
 }

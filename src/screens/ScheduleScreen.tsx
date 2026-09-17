@@ -33,6 +33,8 @@ if (
 	UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
+import { RADIUS } from "../theme/tokens";
+
 interface ScheduleScreenProps {
 	entity: SearchResultItem;
 	schedule: ScheduleData | null;
@@ -42,6 +44,8 @@ interface ScheduleScreenProps {
 	isLoading: boolean;
 	isRefreshing: boolean;
 	isOffline: boolean;
+	isScheduleUpdated?: boolean;
+	mockDate?: Date | null;
 	errorMessage: string | null;
 	settings: AppSettings;
 	theme: ThemeColors;
@@ -52,6 +56,8 @@ interface ScheduleScreenProps {
 	onToggleFav: () => void;
 	onRefresh: () => void;
 	onRetry: () => void;
+	onDismissUpdateNotice?: () => void;
+	onResetMockTime?: () => void;
 }
 
 export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
@@ -61,6 +67,8 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 	isLoading,
 	isRefreshing,
 	isOffline,
+	isScheduleUpdated = false,
+	mockDate = null,
 	errorMessage,
 	settings,
 	theme,
@@ -69,6 +77,8 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 	onOpenWeeks,
 	onRefresh,
 	onRetry,
+	onDismissUpdateNotice,
+	onResetMockTime,
 }) => {
 	const selectedDay = schedule?.days[selectedDayIndex];
 
@@ -109,6 +119,13 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 		? filterLessons(selectedDay.lessons)
 		: [];
 
+	const firstLesson =
+		displayedLessons.length > 0 ? displayedLessons[0] : null;
+	const firstPairNum = firstLesson ? firstLesson.pairIndex : 1;
+	const firstStartTime = firstLesson
+		? firstLesson.time.split(/[-—]/)[0].trim()
+		: "";
+
 	return (
 		<View
 			style={[
@@ -125,12 +142,127 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 				onOpenWeeks={onOpenWeeks}
 			/>
 
+			{/* Уведомление об обновлении расписания */}
+			{isScheduleUpdated && (
+				<View
+					style={[
+						styles.updatedBanner,
+						{
+							backgroundColor: theme.accentSubtle,
+							borderColor: theme.accent,
+						},
+					]}
+				>
+					<Ionicons
+						name="checkmark-circle"
+						size={15}
+						color={theme.accent}
+						style={{ marginRight: 6 }}
+					/>
+					<Text
+						style={[
+							styles.updatedBannerText,
+							{ color: theme.accent },
+						]}
+					>
+						Расписание обновилось
+					</Text>
+					{onDismissUpdateNotice && (
+						<TouchableOpacity
+							onPress={onDismissUpdateNotice}
+							hitSlop={{
+								top: 8,
+								bottom: 8,
+								left: 8,
+								right: 8,
+							}}
+							style={{ marginLeft: 8 }}
+						>
+							<Ionicons
+								name="close"
+								size={15}
+								color={theme.accent}
+							/>
+						</TouchableOpacity>
+					)}
+				</View>
+			)}
+
+			{/* Баннер активной симуляции времени */}
+			{mockDate && (
+				<View
+					style={[
+						styles.timeTravelBanner,
+						{
+							backgroundColor: theme.isDark
+								? "rgba(255, 159, 10, 0.16)"
+								: "#FFF8E6",
+							borderColor: theme.warning,
+						},
+					]}
+				>
+					<View style={styles.timeTravelInfo}>
+						<Ionicons
+							name="time"
+							size={15}
+							color={theme.warning}
+							style={{ marginRight: 6 }}
+						/>
+						<Text
+							style={[
+								styles.timeTravelText,
+								{ color: theme.warning },
+							]}
+						>
+							Симуляция:{" "}
+							{mockDate.toLocaleDateString(
+								"ru-RU",
+								{
+									weekday: "short",
+									day: "numeric",
+									month: "short",
+								}
+							)}
+							,{" "}
+							{mockDate.toLocaleTimeString(
+								"ru-RU",
+								{
+									hour: "2-digit",
+									minute: "2-digit",
+								}
+							)}
+						</Text>
+					</View>
+					{onResetMockTime && (
+						<TouchableOpacity
+							style={[
+								styles.timeTravelResetBtn,
+								{
+									backgroundColor:
+										theme.warning,
+								},
+							]}
+							onPress={onResetMockTime}
+						>
+							<Text
+								style={
+									styles.timeTravelResetText
+								}
+							>
+								Сброс
+							</Text>
+						</TouchableOpacity>
+					)}
+				</View>
+			)}
+
 			{/* Полоска дней */}
 			{schedule?.days && schedule.days.length > 0 && (
 				<DaySelector
 					days={schedule.days}
 					selectedIndex={selectedDayIndex}
 					theme={theme}
+					mockDate={mockDate}
 					onSelectIndex={handleSelectDay}
 				/>
 			)}
@@ -230,16 +362,58 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 							)}
 						</View>
 
+						{/* Уведомление серым текстом: если нужно прийти к n-й паре */}
+						{firstPairNum > 1 && (
+							<View style={styles.lateStartRow}>
+								<Ionicons
+									name="alarm-outline"
+									size={14}
+									color={theme.textSecondary}
+									style={{ marginRight: 6 }}
+								/>
+								<Text
+									style={[
+										styles.lateStartText,
+										{
+											color: theme.textSecondary,
+										},
+									]}
+								>
+									Первой пары нет — ко{" "}
+									{firstPairNum}-й паре (к{" "}
+									{firstStartTime})
+								</Text>
+							</View>
+						)}
+
 						{/* Карточки занятий */}
 						{displayedLessons.length > 0 ? (
-							displayedLessons.map((lesson) => (
-								<LessonCard
-									key={lesson.id}
-									lesson={lesson}
-									isToday={selectedDay.isToday}
-									theme={theme}
-								/>
-							))
+							displayedLessons.map((lesson) => {
+								const isDayCurrentlyToday =
+									mockDate
+										? (mockDate.getDay() ===
+											0
+												? 0
+												: mockDate.getDay() -
+													1) ===
+											selectedDayIndex
+										: selectedDay.isToday;
+
+								return (
+									<LessonCard
+										key={lesson.id}
+										lesson={lesson}
+										isToday={
+											isDayCurrentlyToday
+										}
+										theme={theme}
+										glassEffect={
+											settings.glassEffect
+										}
+										mockDate={mockDate}
+									/>
+								);
+							})
 						) : (
 							<EmptyDay
 								dayName={selectedDay.dayName}
@@ -292,6 +466,66 @@ const styles = StyleSheet.create({
 		fontSize: 18,
 		fontWeight: "700",
 		letterSpacing: -0.3,
+	},
+	lateStartRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		paddingHorizontal: 20,
+		marginBottom: 12,
+		marginTop: -4,
+	},
+	lateStartText: {
+		fontSize: 13,
+		fontWeight: "500",
+		letterSpacing: -0.2,
+	},
+	updatedBanner: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		marginHorizontal: 16,
+		marginBottom: 6,
+		paddingVertical: 8,
+		paddingHorizontal: 14,
+		borderRadius: 14,
+		borderWidth: 1,
+	},
+	updatedBannerText: {
+		fontSize: 13,
+		fontWeight: "600",
+		letterSpacing: -0.2,
+	},
+	timeTravelBanner: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		marginHorizontal: 16,
+		marginBottom: 8,
+		paddingVertical: 7,
+		paddingHorizontal: 12,
+		borderRadius: RADIUS.button,
+		borderWidth: 1,
+	},
+	timeTravelInfo: {
+		flexDirection: "row",
+		alignItems: "center",
+		flex: 1,
+	},
+	timeTravelText: {
+		fontSize: 13,
+		fontWeight: "600",
+		letterSpacing: -0.2,
+	},
+	timeTravelResetBtn: {
+		paddingHorizontal: 10,
+		paddingVertical: 4,
+		borderRadius: RADIUS.badge,
+		marginLeft: 8,
+	},
+	timeTravelResetText: {
+		color: "#FFFFFF",
+		fontSize: 11,
+		fontWeight: "700",
 	},
 	subgroupNotice: {
 		fontSize: 12,

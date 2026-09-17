@@ -25,6 +25,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	themeMode: "system",
 	subgroup: "all",
 	compactView: false,
+	glassEffect: true,
 	notificationsEnabled: true,
 	defaultEntity: DEFAULT_ENTITY,
 };

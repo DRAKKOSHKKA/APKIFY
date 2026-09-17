@@ -54,6 +54,45 @@ export const CALLS_SCHEDULE = [
 	},
 ];
 
+export const SATURDAY_CALLS_SCHEDULE = [
+	{
+		pair: 1,
+		start: "08:00",
+		end: "09:00",
+		breakText: "перемена 5 мин",
+	},
+	{
+		pair: 2,
+		start: "09:05",
+		end: "10:05",
+		breakText: "большая перемена 15 мин",
+	},
+	{
+		pair: 3,
+		start: "10:20",
+		end: "11:20",
+		breakText: "перемена 5 мин",
+	},
+	{
+		pair: 4,
+		start: "11:25",
+		end: "12:25",
+		breakText: "перемена 5 мин",
+	},
+	{
+		pair: 5,
+		start: "12:30",
+		end: "13:30",
+		breakText: "перемена 5 мин",
+	},
+	{
+		pair: 6,
+		start: "13:35",
+		end: "14:35",
+		breakText: "конец занятий",
+	},
+];
+
 /**
  * Парсинг строки вида "8:00 - 9:20" в минуты
  */
@@ -87,12 +126,13 @@ export type LessonStatus =
 
 export function getLessonStatus(
 	timeStr: string,
-	isToday: boolean
+	isToday: boolean,
+	mockDate?: Date | null
 ): {
 	status: LessonStatus;
 	badgeText?: string;
 } {
-	if (!isToday) {
+	if (!isToday && !mockDate) {
 		return { status: "none" };
 	}
 
@@ -101,9 +141,9 @@ export function getLessonStatus(
 		return { status: "none" };
 	}
 
-	const now = new Date();
+	const refDate = mockDate || new Date();
 	const currentMinutes =
-		now.getHours() * 60 + now.getMinutes();
+		refDate.getHours() * 60 + refDate.getMinutes();
 
 	if (
 		currentMinutes >= range.startMinutes &&

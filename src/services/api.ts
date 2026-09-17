@@ -5,6 +5,7 @@ import {
 	WeekItem,
 	DaySchedule,
 	Lesson,
+	DebugStats,
 } from "../types/schedule";
 
 export const BASE_URL = "https://it-institut.ru";
@@ -13,17 +14,13 @@ export const DEFAULT_WEEK_ID = "14810"; // 3-я неделя (14.09.2026 - 20.09
 
 /**
  * Генератор списка недель семестра 2026-2027 с точными датами
- * 1 неделя = WeekId 14808 (31.08.2026 - 06.09.2026)
- * 2 неделя = WeekId 14809 (07.09.2026 - 13.09.2026)
- * 3 неделя = WeekId 14810 (14.09.2026 - 20.09.2026)
- * ...
  */
 export function getSemesterWeeks(
 	activeWeekId: string
 ): WeekItem[] {
 	const weeks: WeekItem[] = [];
 	const baseWeekId = 14808; // 1 неделя
-	const baseStart = new Date(2026, 7, 31); // 31 августа 2026 (Понедельник)
+	const baseStart = new Date(2026, 7, 31); // 31 августа 2026
 
 	for (let num = 1; num <= 17; num++) {
 		const weekId = String(baseWeekId + (num - 1));
@@ -125,9 +122,7 @@ export async function searchEntities(
 }
 
 /**
- * Загрузка и парсинг расписания с сайта.
- * ВНИМАНИЕ: Если WeekId не передан, мы ВСЕГДА запрашиваем актуальный WeekId (например 14810),
- * чтобы сервер не сбрасывал дату в пустую 01.01.0001!
+ * Загрузка расписания с замером метрик для Debug меню
  */
 export async function fetchSchedule(
 	entity: SearchResultItem,
@@ -140,12 +135,15 @@ export async function fetchSchedule(
 
 	const url = `${BASE_URL}/Raspisanie/SearchedRaspisanie?OwnerId=${entity.OwnerId}&SearchId=${entity.SearchId}&SearchString=${encodeURIComponent(entity.SearchContent)}&Type=${entity.Type}&WeekId=${targetWeekId}`;
 
+	const startTime = Date.now();
 	const response = await fetch(url, {
 		headers: {
 			"User-Agent":
 				"Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15",
 		},
 	});
+
+	const latencyMs = Date.now() - startTime;
 
 	if (!response.ok) {
 		throw new Error(
@@ -154,7 +152,22 @@ export async function fetchSchedule(
 	}
 
 	const html = await response.text();
-	return parseScheduleHtml(html, entity, targetWeekId);
+
+	const debugStats: DebugStats = {
+		lastUrl: url,
+		httpStatus: response.status,
+		latencyMs,
+		htmlSizeBytes: html.length,
+		timestamp: Date.now(),
+		weekIdFormula: `14807 + N = ${targetWeekId}`,
+	};
+
+	return parseScheduleHtml(
+		html,
+		entity,
+		targetWeekId,
+		debugStats
+	);
 }
 
 /**
@@ -163,7 +176,8 @@ export async function fetchSchedule(
 export function parseScheduleHtml(
 	html: string,
 	entity: SearchResultItem,
-	activeWeekId: string
+	activeWeekId: string,
+	debugStats?: DebugStats
 ): ScheduleData {
 	const root = parse(html);
 
@@ -183,7 +197,6 @@ export function parseScheduleHtml(
 	// 2. Список недель
 	const weeks = getSemesterWeeks(activeWeekId);
 
-	// Определяем номер активной недели и диапазон дат
 	const activeWeekItem = weeks.find(
 		(w) => w.weekId === activeWeekId
 	);
@@ -198,7 +211,6 @@ export function parseScheduleHtml(
 	const now = new Date();
 	const todayStr = `${String(now.getDate()).padStart(2, "0")}.${String(now.getMonth() + 1).padStart(2, "0")}.${now.getFullYear()}`;
 
-	// Вычисляем понедельник выбранной недели для страховки от бага "01.01.0001"
 	const weekIndex = parseInt(currentWeekNum, 10) - 1;
 	const mondayDate = new Date(2026, 7, 31 + weekIndex * 7);
 
@@ -230,7 +242,7 @@ export function parseScheduleHtml(
 			dayParts[0] || defaultDayNames[rowIdx] || "";
 		let dayDate = dayParts[1] || "";
 
-		// Защита от бага "01.01.0001"
+		// Защита от бага 0001
 		if (!dayDate || dayDate.includes("0001")) {
 			const dayOffsetDate = new Date(
 				mondayDate.getTime() +
@@ -308,5 +320,6 @@ export function parseScheduleHtml(
 		weeks,
 		days,
 		lastUpdated: Date.now(),
+		debugStats,
 	};
 }

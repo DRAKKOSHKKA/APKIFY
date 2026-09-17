@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
 	StyleSheet,
 	Text,
@@ -9,7 +9,11 @@ import {
 	SafeAreaView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { CALLS_SCHEDULE } from "../utils/timeUtils";
+import * as Haptics from "expo-haptics";
+import {
+	CALLS_SCHEDULE,
+	SATURDAY_CALLS_SCHEDULE,
+} from "../utils/timeUtils";
 import { ThemeColors } from "../theme/colors";
 
 interface CallsScheduleModalProps {
@@ -21,6 +25,16 @@ interface CallsScheduleModalProps {
 export const CallsScheduleModal: React.FC<
 	CallsScheduleModalProps
 > = ({ visible, theme, onClose }) => {
+	const [scheduleType, setScheduleType] = useState<
+		"weekday" | "saturday"
+	>("weekday");
+
+	const isSaturday = scheduleType === "saturday";
+	const activeList = isSaturday
+		? SATURDAY_CALLS_SCHEDULE
+		: CALLS_SCHEDULE;
+	const durationLabel = isSaturday ? "1 час" : "1ч 20м";
+
 	return (
 		<Modal
 			visible={visible}
@@ -81,17 +95,101 @@ export const CallsScheduleModal: React.FC<
 				<ScrollView
 					contentContainerStyle={styles.content}
 				>
+					{/* Переключатель: Будни / Суббота */}
+					<View
+						style={[
+							styles.segmentedWrapper,
+							{
+								backgroundColor:
+									theme.chipBackground,
+							},
+						]}
+					>
+						<TouchableOpacity
+							style={[
+								styles.segmentButton,
+								!isSaturday && [
+									styles.segmentButtonActive,
+									{
+										backgroundColor:
+											theme.card,
+									},
+								],
+							]}
+							activeOpacity={0.7}
+							onPress={() => {
+								try {
+									Haptics.selectionAsync();
+								} catch {}
+								setScheduleType("weekday");
+							}}
+						>
+							<Text
+								style={[
+									styles.segmentText,
+									{
+										color: !isSaturday
+											? theme.text
+											: theme.textSecondary,
+										fontWeight: !isSaturday
+											? "700"
+											: "500",
+									},
+								]}
+							>
+								Будни (Пн — Пт)
+							</Text>
+						</TouchableOpacity>
+
+						<TouchableOpacity
+							style={[
+								styles.segmentButton,
+								isSaturday && [
+									styles.segmentButtonActive,
+									{
+										backgroundColor:
+											theme.card,
+									},
+								],
+							]}
+							activeOpacity={0.7}
+							onPress={() => {
+								try {
+									Haptics.selectionAsync();
+								} catch {}
+								setScheduleType("saturday");
+							}}
+						>
+							<Text
+								style={[
+									styles.segmentText,
+									{
+										color: isSaturday
+											? theme.text
+											: theme.textSecondary,
+										fontWeight: isSaturday
+											? "700"
+											: "500",
+									},
+								]}
+							>
+								Суббота (по 1 часу)
+							</Text>
+						</TouchableOpacity>
+					</View>
+
 					<Text
 						style={[
 							styles.subtitle,
 							{ color: theme.textSecondary },
 						]}
 					>
-						Время занятий (пар) в АПК и длительность
-						перемен:
+						{isSaturday
+							? "Особое субботнее расписание пар по 1 часу и перемены:"
+							: "Стандартное расписание пар (1 час 20 мин) и перемены:"}
 					</Text>
 
-					{CALLS_SCHEDULE.map((item, index) => (
+					{activeList.map((item, index) => (
 						<View
 							key={item.pair}
 							style={styles.pairItemContainer}
@@ -168,13 +266,12 @@ export const CallsScheduleModal: React.FC<
 											},
 										]}
 									>
-										1ч 20м
+										{durationLabel}
 									</Text>
 								</View>
 							</View>
 
-							{index <
-								CALLS_SCHEDULE.length - 1 && (
+							{index < activeList.length - 1 && (
 								<View style={styles.breakRow}>
 									<View
 										style={[
@@ -259,9 +356,33 @@ const styles = StyleSheet.create({
 		padding: 16,
 		paddingBottom: 40,
 	},
+	segmentedWrapper: {
+		flexDirection: "row",
+		borderRadius: 12,
+		padding: 3,
+		marginBottom: 16,
+	},
+	segmentButton: {
+		flex: 1,
+		paddingVertical: 9,
+		alignItems: "center",
+		justifyContent: "center",
+		borderRadius: 10,
+	},
+	segmentButtonActive: {
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.1,
+		shadowRadius: 3,
+		elevation: 2,
+	},
+	segmentText: {
+		fontSize: 13,
+		letterSpacing: -0.2,
+	},
 	subtitle: {
 		fontSize: 13,
-		marginBottom: 20,
+		marginBottom: 16,
 		lineHeight: 18,
 	},
 	pairItemContainer: {
