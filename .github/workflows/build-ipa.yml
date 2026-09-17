@@ -24,13 +24,13 @@ jobs:
             - name: 📥 Checkout repository
               uses: actions/checkout@v4
 
-            - name: 🍏 Select Xcode 16
+            - name: 🍏 Select Xcode 16.2
               run: |
                   echo "Available Xcode installations:"
                   ls -d /Applications/Xcode*.app || true
 
                   XCODE_PATH=""
-                  for ver in 16.4 16.3 16.2 16.1 16; do
+                  for ver in 16.2 16.1 16.0 16 16.4; do
                     if [ -d "/Applications/Xcode_${ver}.app" ]; then
                       XCODE_PATH="/Applications/Xcode_${ver}.app"
                       break
@@ -89,16 +89,7 @@ jobs:
                   sed -i '' 's/ProvisioningStyle = "Automatic";/ProvisioningStyle = "Manual";/g' ios/*.xcodeproj/project.pbxproj 2>/dev/null || true
                   sed -i '' 's/DevelopmentTeam = [^;]*;/DevelopmentTeam = "";/g' ios/*.xcodeproj/project.pbxproj 2>/dev/null || true
                   sed -i '' 's/DEVELOPMENT_TEAM = [^;]*;/DEVELOPMENT_TEAM = "";/g' ios/*.xcodeproj/project.pbxproj 2>/dev/null || true
-                  find ios/Pods -name "*.xcconfig" -exec sed -i '' 's/CODE_SIGNING_ALLOWED = YES/CODE_SIGNING_ALLOWED = NO/g' {} + 2>/dev/null || true
-
-            - name: 🔨 Pre-build ExpoModulesJSI xcframework
-              run: |
-                  node scripts/patch-expo-modules-jsi.js
-
-                  echo "Pre-compiling ExpoModulesJSI.xcframework for iphoneos..."
-                  cd node_modules/expo-modules-jsi/apple
-                  PODS_ROOT="$GITHUB_WORKSPACE/ios/Pods" RN_ROOT="$GITHUB_WORKSPACE/node_modules/react-native" PLATFORM_NAME=iphoneos ./scripts/build-xcframework.sh
-                  cd ../../..
+                  sed -i '' 's/CLANG_COVERAGE_MAPPING=NO/CLANG_COVERAGE_MAPPING=NO CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""/g' node_modules/expo-modules-jsi/apple/scripts/build-xcframework.sh 2>/dev/null || true
 
             - name: 🍏 Compile iOS App (Unsigned)
               run: |
