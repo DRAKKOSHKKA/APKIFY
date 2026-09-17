@@ -102,6 +102,16 @@ jobs:
                     sed -i '' 's/\.enableUpcomingFeature/\/\/\.enableUpcomingFeature/g' "$PACKAGE_SWIFT"
                   fi
 
+                  echo "Patching ExpoModulesJSI Swift 6.2 syntax for Swift 6.0/6.1 compatibility..."
+                  # 1. Заменяем 'weak let' на 'weak var' во всех Swift файлах
+                  find node_modules/expo-modules-jsi/apple/Sources -name "*.swift" -exec sed -i '' 's/weak let/weak var/g' {} +
+                  
+                  # 2. Убираем висящую запятую в кортеже параметров AsyncFunctionClosure
+                  sed -i '' 's/_ arguments: consuming JavaScriptValuesBuffer,/_ arguments: consuming JavaScriptValuesBuffer/g' node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/JavaScriptRuntime.swift
+                  
+                  # 3. Убираем аннотацию SWIFT_RETURNS_RETAINED у конструкторов RuntimeScheduler
+                  sed -i '' 's/SWIFT_RETURNS_RETAINED RuntimeScheduler/RuntimeScheduler/g' node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI-Cxx/include/RuntimeScheduler.h
+
                   SCRIPT_PATH="node_modules/expo-modules-jsi/apple/scripts/build-xcframework.sh"
                   if [ -f "$SCRIPT_PATH" ]; then
                     echo "Patching ExpoModulesJSI build script to disable code signing..."
