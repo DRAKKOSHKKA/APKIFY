@@ -1,0 +1,80 @@
+name: Build iOS IPA (Free CI)
+
+on:
+    workflow_dispatch:
+        inputs:
+            create_release:
+                description: "Опубликовать в GitHub Releases?"
+                required: false
+                type: boolean
+                default: false
+    push:
+        tags:
+            - "v*"
+
+jobs:
+    build-ios:
+        name: Build Unsigned IPA on macOS
+        runs-on: macos-14
+
+        steps:
+            - name: 📥 Checkout repository
+              uses: actions/checkout@v4
+
+            - name: 🟢 Setup Node.js 20 LTS
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  cache: "npm"
+
+            - name: 📦 Install dependencies
+              run: npm ci
+
+            - name: 🔍 TypeScript verification
+              run: npx tsc --noEmit
+
+            - name: 🛠️ Expo Prebuild (Generate native iOS project)
+              run: npx expo prebuild --platform ios --clean
+
+            - name: ☕ Install CocoaPods
+              run: |
+                  cd ios
+                  pod install
+                  cd ..
+
+            - name: 🍏 Compile Xcode Archive (Unsigned)
+              run: |
+                  xcodebuild -workspace ios/apkify.xcworkspace \
+                    -scheme apkify \
+                    -configuration Release \
+                    -sdk iphoneos \
+                    -archivePath build/Apkify.xcarchive \
+                    CODE_SIGNING_ALLOWED=NO \
+                    CODE_SIGNING_REQUIRED=NO \
+                    CODE_SIGN_IDENTITY="" \
+                    archive
+
+            - name: 📦 Package .ipa file
+              run: |
+                  mkdir -p build/Payload
+                  cp -r "build/Apkify.xcarchive/Products/Applications/Apkify.app" build/Payload/
+                  cd build
+                  zip -r Apkify.ipa Payload
+                  cd ..
+                  ls -lh build/Apkify.ipa
+
+            - name: 🚀 Upload IPA Artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: Apkify-iOS-IPA
+                  path: build/Apkify.ipa
+                  retention-days: 30
+
+            - name: 🏷️ Publish to GitHub Releases (Optional / on tag)
+              if: ${{ startsWith(github.ref, 'refs/tags/') || inputs.create_release == true }}
+              uses: softprops/action-gh-release@v2
+              with:
+                  files: build/Apkify.ipa
+                  generate_release_notes: true
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

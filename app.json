@@ -3,6 +3,7 @@
 		"name": "Apkify",
 		"slug": "apkify",
 		"version": "1.A1",
+		"scheme": "apkify",
 		"orientation": "portrait",
 		"icon": "./assets/icon.png",
 		"userInterfaceStyle": "automatic",
