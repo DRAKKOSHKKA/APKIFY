@@ -9,6 +9,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { SearchResultItem } from "../types/schedule";
+import { ThemeColors } from "../theme/colors";
 
 interface HeaderProps {
 	entity: SearchResultItem;
@@ -16,6 +17,7 @@ interface HeaderProps {
 	weekDates: string;
 	isFav: boolean;
 	isLoading: boolean;
+	theme: ThemeColors;
 	onOpenSearch: () => void;
 	onOpenWeeks: () => void;
 	onOpenCalls: () => void;
@@ -29,6 +31,7 @@ export const Header: React.FC<HeaderProps> = ({
 	weekDates,
 	isFav,
 	isLoading,
+	theme,
 	onOpenSearch,
 	onOpenWeeks,
 	onOpenCalls,
@@ -56,11 +59,24 @@ export const Header: React.FC<HeaderProps> = ({
 	};
 
 	return (
-		<View style={styles.container}>
+		<View
+			style={[
+				styles.container,
+				{
+					backgroundColor: theme.headerBackground,
+					borderBottomColor: theme.border,
+				},
+			]}
+		>
 			{/* Верхняя строка: логотип и действия */}
 			<View style={styles.topRow}>
 				<View style={styles.branding}>
-					<Text style={styles.collegeName}>
+					<Text
+						style={[
+							styles.collegeName,
+							{ color: theme.textSecondary },
+						]}
+					>
 						АЛЬМЕТЬЕВСКИЙ ПРОФ. КОЛЛЕДЖ
 					</Text>
 					<TouchableOpacity
@@ -72,20 +88,36 @@ export const Header: React.FC<HeaderProps> = ({
 						}}
 					>
 						<Text
-							style={styles.entityName}
+							style={[
+								styles.entityName,
+								{ color: theme.text },
+							]}
 							numberOfLines={1}
 						>
 							{entity.SearchContent}
 						</Text>
-						<View style={styles.entityBadge}>
-							<Text style={styles.entityBadgeText}>
+						<View
+							style={[
+								styles.entityBadge,
+								{
+									backgroundColor:
+										theme.accentSubtle,
+								},
+							]}
+						>
+							<Text
+								style={[
+									styles.entityBadgeText,
+									{ color: theme.accent },
+								]}
+							>
 								{getTypeLabel(entity.Type)}
 							</Text>
 						</View>
 						<Ionicons
 							name="chevron-down"
 							size={16}
-							color="#007AFF"
+							color={theme.accent}
 							style={styles.chevron}
 						/>
 					</TouchableOpacity>
@@ -94,7 +126,13 @@ export const Header: React.FC<HeaderProps> = ({
 				<View style={styles.actionsRow}>
 					{/* Избранное */}
 					<TouchableOpacity
-						style={styles.iconButton}
+						style={[
+							styles.iconButton,
+							{
+								backgroundColor:
+									theme.chipBackground,
+							},
+						]}
 						activeOpacity={0.7}
 						onPress={() => {
 							triggerHaptic(
@@ -108,14 +146,24 @@ export const Header: React.FC<HeaderProps> = ({
 							name={
 								isFav ? "star" : "star-outline"
 							}
-							size={22}
-							color={isFav ? "#FF9500" : "#8E8E93"}
+							size={20}
+							color={
+								isFav
+									? "#FF9F0A"
+									: theme.textSecondary
+							}
 						/>
 					</TouchableOpacity>
 
 					{/* Расписание звонков */}
 					<TouchableOpacity
-						style={styles.iconButton}
+						style={[
+							styles.iconButton,
+							{
+								backgroundColor:
+									theme.chipBackground,
+							},
+						]}
 						activeOpacity={0.7}
 						onPress={() => {
 							triggerHaptic();
@@ -124,14 +172,20 @@ export const Header: React.FC<HeaderProps> = ({
 					>
 						<Ionicons
 							name="notifications-outline"
-							size={22}
-							color="#007AFF"
+							size={20}
+							color={theme.accent}
 						/>
 					</TouchableOpacity>
 
 					{/* Поиск */}
 					<TouchableOpacity
-						style={styles.iconButton}
+						style={[
+							styles.iconButton,
+							{
+								backgroundColor:
+									theme.chipBackground,
+							},
+						]}
 						activeOpacity={0.7}
 						onPress={() => {
 							triggerHaptic();
@@ -140,8 +194,8 @@ export const Header: React.FC<HeaderProps> = ({
 					>
 						<Ionicons
 							name="search-outline"
-							size={22}
-							color="#007AFF"
+							size={20}
+							color={theme.accent}
 						/>
 					</TouchableOpacity>
 				</View>
@@ -150,7 +204,13 @@ export const Header: React.FC<HeaderProps> = ({
 			{/* Нижняя строка: выбор недели */}
 			<View style={styles.weekBar}>
 				<TouchableOpacity
-					style={styles.weekButton}
+					style={[
+						styles.weekButton,
+						{
+							backgroundColor:
+								theme.chipBackground,
+						},
+					]}
 					activeOpacity={0.7}
 					onPress={() => {
 						triggerHaptic();
@@ -158,32 +218,48 @@ export const Header: React.FC<HeaderProps> = ({
 					}}
 				>
 					<Ionicons
-						name="calendar-outline"
+						name="calendar"
 						size={15}
-						color="#007AFF"
+						color={theme.accent}
 						style={{ marginRight: 6 }}
 					/>
-					<Text style={styles.weekText}>
+					<Text
+						style={[
+							styles.weekText,
+							{ color: theme.text },
+						]}
+					>
 						{weekNum
 							? `${weekNum} неделя`
 							: "Выбрать неделю"}
 					</Text>
 					{weekDates ? (
-						<Text style={styles.weekDatesText}>
+						<Text
+							style={[
+								styles.weekDatesText,
+								{ color: theme.textSecondary },
+							]}
+						>
 							({weekDates})
 						</Text>
 					) : null}
 					<Ionicons
 						name="chevron-down"
 						size={14}
-						color="#8E8E93"
+						color={theme.textSecondary}
 						style={{ marginLeft: 4 }}
 					/>
 				</TouchableOpacity>
 
 				{/* Кнопка обновления */}
 				<TouchableOpacity
-					style={styles.refreshButton}
+					style={[
+						styles.refreshButton,
+						{
+							backgroundColor:
+								theme.chipBackground,
+						},
+					]}
 					activeOpacity={0.7}
 					onPress={() => {
 						triggerHaptic();
@@ -194,13 +270,13 @@ export const Header: React.FC<HeaderProps> = ({
 					{isLoading ? (
 						<ActivityIndicator
 							size="small"
-							color="#007AFF"
+							color={theme.accent}
 						/>
 					) : (
 						<Ionicons
 							name="refresh-outline"
 							size={18}
-							color="#007AFF"
+							color={theme.accent}
 						/>
 					)}
 				</TouchableOpacity>
@@ -211,9 +287,7 @@ export const Header: React.FC<HeaderProps> = ({
 
 const styles = StyleSheet.create({
 	container: {
-		backgroundColor: "#FFFFFF",
 		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: "#D1D1D6",
 		paddingHorizontal: 16,
 		paddingTop: 8,
 		paddingBottom: 10,
@@ -230,7 +304,6 @@ const styles = StyleSheet.create({
 	collegeName: {
 		fontSize: 10,
 		fontWeight: "700",
-		color: "#8E8E93",
 		letterSpacing: 0.8,
 		marginBottom: 2,
 	},
@@ -241,12 +314,10 @@ const styles = StyleSheet.create({
 	entityName: {
 		fontSize: 22,
 		fontWeight: "800",
-		color: "#000000",
 		letterSpacing: -0.5,
 		maxWidth: "65%",
 	},
 	entityBadge: {
-		backgroundColor: "#E5F1FF",
 		paddingHorizontal: 8,
 		paddingVertical: 2,
 		borderRadius: 6,
@@ -254,8 +325,7 @@ const styles = StyleSheet.create({
 	},
 	entityBadgeText: {
 		fontSize: 11,
-		fontWeight: "600",
-		color: "#007AFF",
+		fontWeight: "700",
 	},
 	chevron: {
 		marginLeft: 4,
@@ -266,10 +336,9 @@ const styles = StyleSheet.create({
 		gap: 6,
 	},
 	iconButton: {
-		width: 38,
-		height: 38,
-		borderRadius: 19,
-		backgroundColor: "#F2F2F7",
+		width: 36,
+		height: 36,
+		borderRadius: 18,
 		alignItems: "center",
 		justifyContent: "center",
 	},
@@ -282,9 +351,8 @@ const styles = StyleSheet.create({
 	weekButton: {
 		flexDirection: "row",
 		alignItems: "center",
-		backgroundColor: "#F2F2F7",
 		paddingHorizontal: 12,
-		paddingVertical: 6,
+		paddingVertical: 7,
 		borderRadius: 20,
 		flex: 1,
 		marginRight: 10,
@@ -292,18 +360,15 @@ const styles = StyleSheet.create({
 	weekText: {
 		fontSize: 13,
 		fontWeight: "600",
-		color: "#000000",
 	},
 	weekDatesText: {
 		fontSize: 12,
-		color: "#8E8E93",
 		marginLeft: 6,
 	},
 	refreshButton: {
-		width: 32,
-		height: 32,
-		borderRadius: 16,
-		backgroundColor: "#F2F2F7",
+		width: 34,
+		height: 34,
+		borderRadius: 17,
 		alignItems: "center",
 		justifyContent: "center",
 	},

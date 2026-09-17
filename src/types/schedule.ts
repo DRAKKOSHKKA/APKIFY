@@ -29,6 +29,7 @@ export interface DaySchedule {
 export interface WeekItem {
 	weekNum: string; // "1", "2", "3"
 	weekId: string; // "14810"
+	dateRange: string; // "14.09 — 20.09"
 	isCurrent: boolean;
 }
 

@@ -1,9 +1,4 @@
-import React, {
-	useState,
-	useEffect,
-	useCallback,
-	useRef,
-} from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
 	StyleSheet,
 	Text,
@@ -12,7 +7,7 @@ import {
 	RefreshControl,
 	ActivityIndicator,
 	TouchableOpacity,
-	AppState,
+	useColorScheme,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import {
@@ -20,14 +15,16 @@ import {
 	SafeAreaView,
 } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import * as Haptics from "expo-haptics";
 
 import {
 	FavoriteItem,
 	ScheduleData,
 	SearchResultItem,
 } from "./src/types/schedule";
-import { fetchSchedule } from "./src/services/api";
+import {
+	fetchSchedule,
+	getCurrentWeekId,
+} from "./src/services/api";
 import {
 	getCurrentEntity,
 	saveCurrentEntity,
@@ -39,6 +36,7 @@ import {
 	DEFAULT_ENTITY,
 } from "./src/services/storage";
 import { formatFullDate } from "./src/utils/timeUtils";
+import { getTheme } from "./src/theme/colors";
 
 import { Header } from "./src/components/Header";
 import { DaySelector } from "./src/components/DaySelector";
@@ -49,6 +47,9 @@ import { SearchModal } from "./src/components/SearchModal";
 import { CallsScheduleModal } from "./src/components/CallsScheduleModal";
 
 export default function App() {
+	const colorScheme = useColorScheme();
+	const theme = getTheme(colorScheme);
+
 	const [entity, setEntity] =
 		useState<SearchResultItem>(DEFAULT_ENTITY);
 	const [schedule, setSchedule] =
@@ -98,7 +99,6 @@ export default function App() {
 		const todayIndex = days.findIndex((d) => d.isToday);
 		if (todayIndex >= 0) return todayIndex;
 
-		// Если сегодня воскресенье (или день не найден), выбираем понедельник (индекс 0)
 		const now = new Date();
 		const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday...
 		if (dayOfWeek === 0) return 0;
@@ -133,9 +133,16 @@ export default function App() {
 			}
 
 			try {
+				const targetWeek =
+					weekId ||
+					(await getCurrentWeekId(
+						targetEntity.OwnerId
+					));
+				setSelectedWeekId(targetWeek);
+
 				const freshData = await fetchSchedule(
 					targetEntity,
-					weekId
+					targetWeek
 				);
 				setSchedule(freshData);
 				setIsOffline(false);
@@ -153,7 +160,7 @@ export default function App() {
 					setIsOffline(true);
 				} else {
 					setErrorMessage(
-						"Не удалось загрузить расписание. Проверьте интернет-соединение."
+						"Не удалось загрузить расписание. Проверьте подключение к сети."
 					);
 				}
 			} finally {
@@ -189,7 +196,7 @@ export default function App() {
 		newEntity: SearchResultItem
 	) => {
 		setEntity(newEntity);
-		setSelectedWeekId(undefined); // Сбрасываем выбранную неделю на текущую
+		setSelectedWeekId(undefined);
 		await saveCurrentEntity(newEntity);
 
 		const favStatus = await isFavorite(newEntity);
@@ -221,10 +228,15 @@ export default function App() {
 	return (
 		<SafeAreaProvider>
 			<SafeAreaView
-				style={styles.container}
+				style={[
+					styles.container,
+					{ backgroundColor: theme.background },
+				]}
 				edges={["top"]}
 			>
-				<StatusBar style="dark" />
+				<StatusBar
+					style={theme.isDark ? "light" : "dark"}
+				/>
 
 				{/* Верхняя панель управления */}
 				<Header
@@ -233,6 +245,7 @@ export default function App() {
 					weekDates={schedule?.currentWeekDates || ""}
 					isFav={isFav}
 					isLoading={isLoading}
+					theme={theme}
 					onOpenSearch={() => setIsSearchOpen(true)}
 					onOpenWeeks={() => setIsWeeksOpen(true)}
 					onOpenCalls={() => setIsCallsOpen(true)}
@@ -248,14 +261,28 @@ export default function App() {
 
 				{/* Офлайн бейдж */}
 				{isOffline && (
-					<View style={styles.offlineBanner}>
+					<View
+						style={[
+							styles.offlineBanner,
+							{
+								backgroundColor:
+									theme.warningSubtle,
+								borderBottomColor: theme.warning,
+							},
+						]}
+					>
 						<Ionicons
 							name="cloud-offline-outline"
 							size={16}
-							color="#D97706"
+							color={theme.warning}
 							style={{ marginRight: 6 }}
 						/>
-						<Text style={styles.offlineText}>
+						<Text
+							style={[
+								styles.offlineText,
+								{ color: theme.warning },
+							]}
+						>
 							Офлайн-режим • Показана сохранённая
 							копия
 						</Text>
@@ -267,6 +294,7 @@ export default function App() {
 					<DaySelector
 						days={schedule.days}
 						selectedIndex={selectedDayIndex}
+						theme={theme}
 						onSelectIndex={setSelectedDayIndex}
 					/>
 				)}
@@ -287,7 +315,7 @@ export default function App() {
 									true
 								)
 							}
-							tintColor="#007AFF"
+							tintColor={theme.accent}
 						/>
 					}
 				>
@@ -296,16 +324,34 @@ export default function App() {
 							<Ionicons
 								name="alert-circle-outline"
 								size={56}
-								color="#FF3B30"
+								color={theme.danger}
 							/>
-							<Text style={styles.errorTitle}>
+							<Text
+								style={[
+									styles.errorTitle,
+									{ color: theme.text },
+								]}
+							>
 								Ошибка загрузки
 							</Text>
-							<Text style={styles.errorSubtitle}>
+							<Text
+								style={[
+									styles.errorSubtitle,
+									{
+										color: theme.textSecondary,
+									},
+								]}
+							>
 								{errorMessage}
 							</Text>
 							<TouchableOpacity
-								style={styles.retryButton}
+								style={[
+									styles.retryButton,
+									{
+										backgroundColor:
+											theme.accent,
+									},
+								]}
 								onPress={() =>
 									loadSchedule(
 										entity,
@@ -327,7 +373,10 @@ export default function App() {
 							{/* Дата и день недели */}
 							<View style={styles.dayInfoBar}>
 								<Text
-									style={styles.dayDateTitle}
+									style={[
+										styles.dayDateTitle,
+										{ color: theme.text },
+									]}
 								>
 									{formatFullDate(
 										selectedDay.dayDate,
@@ -336,7 +385,13 @@ export default function App() {
 								</Text>
 								{selectedDay.isToday && (
 									<View
-										style={styles.todayPill}
+										style={[
+											styles.todayPill,
+											{
+												backgroundColor:
+													theme.accent,
+											},
+										]}
 									>
 										<Text
 											style={
@@ -359,6 +414,7 @@ export default function App() {
 											isToday={
 												selectedDay.isToday
 											}
+											theme={theme}
 										/>
 									)
 								)
@@ -366,6 +422,7 @@ export default function App() {
 								<EmptyDay
 									dayName={selectedDay.dayName}
 									dayDate={selectedDay.dayDate}
+									theme={theme}
 								/>
 							)}
 						</View>
@@ -373,9 +430,16 @@ export default function App() {
 						<View style={styles.loadingContainer}>
 							<ActivityIndicator
 								size="large"
-								color="#007AFF"
+								color={theme.accent}
 							/>
-							<Text style={styles.loadingText}>
+							<Text
+								style={[
+									styles.loadingText,
+									{
+										color: theme.textSecondary,
+									},
+								]}
+							>
 								Загрузка расписания...
 							</Text>
 						</View>
@@ -386,6 +450,7 @@ export default function App() {
 				<SearchModal
 					visible={isSearchOpen}
 					favorites={favorites}
+					theme={theme}
 					onSelectEntity={handleSelectEntity}
 					onClose={() => setIsSearchOpen(false)}
 				/>
@@ -393,13 +458,17 @@ export default function App() {
 				<WeekModal
 					visible={isWeeksOpen}
 					weeks={schedule?.weeks || []}
-					currentWeekId={schedule?.weekId || ""}
+					currentWeekId={
+						schedule?.weekId || selectedWeekId || ""
+					}
+					theme={theme}
 					onSelectWeek={handleSelectWeek}
 					onClose={() => setIsWeeksOpen(false)}
 				/>
 
 				<CallsScheduleModal
 					visible={isCallsOpen}
+					theme={theme}
 					onClose={() => setIsCallsOpen(false)}
 				/>
 			</SafeAreaView>
@@ -410,7 +479,6 @@ export default function App() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#F2F2F7",
 	},
 	content: {
 		flex: 1,
@@ -423,16 +491,13 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "center",
-		backgroundColor: "#FFFBEB",
-		paddingVertical: 6,
+		paddingVertical: 7,
 		paddingHorizontal: 16,
 		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: "#FDE68A",
 	},
 	offlineText: {
 		fontSize: 12,
 		fontWeight: "600",
-		color: "#D97706",
 	},
 	dayInfoBar: {
 		flexDirection: "row",
@@ -445,10 +510,8 @@ const styles = StyleSheet.create({
 	dayDateTitle: {
 		fontSize: 17,
 		fontWeight: "700",
-		color: "#1C1C1E",
 	},
 	todayPill: {
-		backgroundColor: "#007AFF",
 		paddingHorizontal: 8,
 		paddingVertical: 3,
 		borderRadius: 8,
@@ -467,7 +530,6 @@ const styles = StyleSheet.create({
 	loadingText: {
 		fontSize: 15,
 		fontWeight: "500",
-		color: "#8E8E93",
 		marginTop: 14,
 	},
 	errorContainer: {
@@ -479,19 +541,16 @@ const styles = StyleSheet.create({
 	errorTitle: {
 		fontSize: 20,
 		fontWeight: "700",
-		color: "#1C1C1E",
 		marginTop: 16,
 		marginBottom: 8,
 	},
 	errorSubtitle: {
 		fontSize: 14,
-		color: "#8E8E93",
 		textAlign: "center",
 		lineHeight: 20,
 		marginBottom: 20,
 	},
 	retryButton: {
-		backgroundColor: "#007AFF",
 		paddingHorizontal: 20,
 		paddingVertical: 10,
 		borderRadius: 20,

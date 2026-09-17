@@ -10,15 +10,17 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { CALLS_SCHEDULE } from "../utils/timeUtils";
+import { ThemeColors } from "../theme/colors";
 
 interface CallsScheduleModalProps {
 	visible: boolean;
+	theme: ThemeColors;
 	onClose: () => void;
 }
 
 export const CallsScheduleModal: React.FC<
 	CallsScheduleModalProps
-> = ({ visible, onClose }) => {
+> = ({ visible, theme, onClose }) => {
 	return (
 		<Modal
 			visible={visible}
@@ -26,16 +28,35 @@ export const CallsScheduleModal: React.FC<
 			presentationStyle="pageSheet"
 			onRequestClose={onClose}
 		>
-			<SafeAreaView style={styles.safeArea}>
-				<View style={styles.header}>
+			<SafeAreaView
+				style={[
+					styles.safeArea,
+					{ backgroundColor: theme.modalBackground },
+				]}
+			>
+				<View
+					style={[
+						styles.header,
+						{
+							backgroundColor:
+								theme.headerBackground,
+							borderBottomColor: theme.border,
+						},
+					]}
+				>
 					<View style={styles.titleContainer}>
 						<Ionicons
 							name="notifications"
 							size={22}
-							color="#007AFF"
+							color={theme.accent}
 							style={{ marginRight: 8 }}
 						/>
-						<Text style={styles.title}>
+						<Text
+							style={[
+								styles.title,
+								{ color: theme.text },
+							]}
+						>
 							Расписание звонков
 						</Text>
 					</View>
@@ -52,7 +73,7 @@ export const CallsScheduleModal: React.FC<
 						<Ionicons
 							name="close-circle"
 							size={28}
-							color="#8E8E93"
+							color={theme.textSecondary}
 						/>
 					</TouchableOpacity>
 				</View>
@@ -60,9 +81,14 @@ export const CallsScheduleModal: React.FC<
 				<ScrollView
 					contentContainerStyle={styles.content}
 				>
-					<Text style={styles.subtitle}>
-						Время начала и окончания учебных занятий
-						(пар) и длительность перемен:
+					<Text
+						style={[
+							styles.subtitle,
+							{ color: theme.textSecondary },
+						]}
+					>
+						Время занятий (пар) в АПК и длительность
+						перемен:
 					</Text>
 
 					{CALLS_SCHEDULE.map((item, index) => (
@@ -70,10 +96,33 @@ export const CallsScheduleModal: React.FC<
 							key={item.pair}
 							style={styles.pairItemContainer}
 						>
-							<View style={styles.pairRow}>
-								<View style={styles.pairBadge}>
+							<View
+								style={[
+									styles.pairRow,
+									{
+										backgroundColor:
+											theme.card,
+										borderColor:
+											theme.border,
+									},
+								]}
+							>
+								<View
+									style={[
+										styles.pairBadge,
+										{
+											backgroundColor:
+												theme.accentSubtle,
+										},
+									]}
+								>
 									<Text
-										style={styles.pairNumber}
+										style={[
+											styles.pairNumber,
+											{
+												color: theme.accent,
+											},
+										]}
 									>
 										{item.pair}
 									</Text>
@@ -81,24 +130,43 @@ export const CallsScheduleModal: React.FC<
 
 								<View style={styles.timeBlock}>
 									<Text
-										style={styles.pairTitle}
+										style={[
+											styles.pairTitle,
+											{
+												color: theme.textSecondary,
+											},
+										]}
 									>
 										Пара {item.pair}
 									</Text>
 									<Text
-										style={styles.timeRange}
+										style={[
+											styles.timeRange,
+											{
+												color: theme.text,
+											},
+										]}
 									>
 										{item.start} — {item.end}
 									</Text>
 								</View>
 
 								<View
-									style={styles.durationBadge}
+									style={[
+										styles.durationBadge,
+										{
+											backgroundColor:
+												theme.chipBackground,
+										},
+									]}
 								>
 									<Text
-										style={
-											styles.durationText
-										}
+										style={[
+											styles.durationText,
+											{
+												color: theme.textSecondary,
+											},
+										]}
 									>
 										1ч 20м
 									</Text>
@@ -109,29 +177,50 @@ export const CallsScheduleModal: React.FC<
 								CALLS_SCHEDULE.length - 1 && (
 								<View style={styles.breakRow}>
 									<View
-										style={styles.breakLine}
+										style={[
+											styles.breakLine,
+											{
+												backgroundColor:
+													theme.border,
+											},
+										]}
 									/>
 									<View
-										style={styles.breakBadge}
+										style={[
+											styles.breakBadge,
+											{
+												backgroundColor:
+													theme.warningSubtle,
+											},
+										]}
 									>
 										<Ionicons
 											name="cafe-outline"
 											size={12}
-											color="#FF9500"
+											color={theme.warning}
 											style={{
 												marginRight: 4,
 											}}
 										/>
 										<Text
-											style={
-												styles.breakText
-											}
+											style={[
+												styles.breakText,
+												{
+													color: theme.warning,
+												},
+											]}
 										>
 											{item.breakText}
 										</Text>
 									</View>
 									<View
-										style={styles.breakLine}
+										style={[
+											styles.breakLine,
+											{
+												backgroundColor:
+													theme.border,
+											},
+										]}
 									/>
 								</View>
 							)}
@@ -146,17 +235,14 @@ export const CallsScheduleModal: React.FC<
 const styles = StyleSheet.create({
 	safeArea: {
 		flex: 1,
-		backgroundColor: "#F2F2F7",
 	},
 	header: {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
 		paddingHorizontal: 20,
-		paddingVertical: 16,
+		paddingVertical: 14,
 		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: "#D1D1D6",
-		backgroundColor: "#FFFFFF",
 	},
 	titleContainer: {
 		flexDirection: "row",
@@ -165,19 +251,18 @@ const styles = StyleSheet.create({
 	title: {
 		fontSize: 20,
 		fontWeight: "700",
-		color: "#000000",
 	},
 	closeButton: {
 		padding: 2,
 	},
 	content: {
-		padding: 20,
+		padding: 16,
+		paddingBottom: 40,
 	},
 	subtitle: {
-		fontSize: 14,
-		color: "#8E8E93",
+		fontSize: 13,
 		marginBottom: 20,
-		lineHeight: 20,
+		lineHeight: 18,
 	},
 	pairItemContainer: {
 		marginBottom: 4,
@@ -185,11 +270,9 @@ const styles = StyleSheet.create({
 	pairRow: {
 		flexDirection: "row",
 		alignItems: "center",
-		backgroundColor: "#FFFFFF",
 		padding: 14,
 		borderRadius: 16,
 		borderWidth: StyleSheet.hairlineWidth,
-		borderColor: "#E5E5EA",
 		shadowColor: "#000",
 		shadowOffset: { width: 0, height: 1 },
 		shadowOpacity: 0.04,
@@ -200,7 +283,6 @@ const styles = StyleSheet.create({
 		width: 36,
 		height: 36,
 		borderRadius: 18,
-		backgroundColor: "#E5F1FF",
 		alignItems: "center",
 		justifyContent: "center",
 		marginRight: 14,
@@ -208,7 +290,6 @@ const styles = StyleSheet.create({
 	pairNumber: {
 		fontSize: 16,
 		fontWeight: "800",
-		color: "#007AFF",
 	},
 	timeBlock: {
 		flex: 1,
@@ -216,17 +297,14 @@ const styles = StyleSheet.create({
 	pairTitle: {
 		fontSize: 12,
 		fontWeight: "600",
-		color: "#8E8E93",
 		textTransform: "uppercase",
 	},
 	timeRange: {
 		fontSize: 17,
 		fontWeight: "700",
-		color: "#1C1C1E",
 		marginTop: 2,
 	},
 	durationBadge: {
-		backgroundColor: "#F2F2F7",
 		paddingHorizontal: 8,
 		paddingVertical: 4,
 		borderRadius: 8,
@@ -234,7 +312,6 @@ const styles = StyleSheet.create({
 	durationText: {
 		fontSize: 12,
 		fontWeight: "600",
-		color: "#8E8E93",
 	},
 	breakRow: {
 		flexDirection: "row",
@@ -245,12 +322,10 @@ const styles = StyleSheet.create({
 	breakLine: {
 		flex: 1,
 		height: 1,
-		backgroundColor: "#E5E5EA",
 	},
 	breakBadge: {
 		flexDirection: "row",
 		alignItems: "center",
-		backgroundColor: "#FFF8E6",
 		paddingHorizontal: 10,
 		paddingVertical: 3,
 		borderRadius: 12,
@@ -258,7 +333,6 @@ const styles = StyleSheet.create({
 	},
 	breakText: {
 		fontSize: 11,
-		fontWeight: "600",
-		color: "#D97706",
+		fontWeight: "700",
 	},
 });

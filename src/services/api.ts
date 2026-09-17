@@ -9,6 +9,81 @@ import {
 
 export const BASE_URL = "https://it-institut.ru";
 export const DEFAULT_OWNER_ID = 37; // Альметьевский профессиональный колледж
+export const DEFAULT_WEEK_ID = "14810"; // 3-я неделя (14.09.2026 - 20.09.2026)
+
+/**
+ * Генератор списка недель семестра 2026-2027 с точными датами
+ * 1 неделя = WeekId 14808 (31.08.2026 - 06.09.2026)
+ * 2 неделя = WeekId 14809 (07.09.2026 - 13.09.2026)
+ * 3 неделя = WeekId 14810 (14.09.2026 - 20.09.2026)
+ * ...
+ */
+export function getSemesterWeeks(
+	activeWeekId: string
+): WeekItem[] {
+	const weeks: WeekItem[] = [];
+	const baseWeekId = 14808; // 1 неделя
+	const baseStart = new Date(2026, 7, 31); // 31 августа 2026 (Понедельник)
+
+	for (let num = 1; num <= 17; num++) {
+		const weekId = String(baseWeekId + (num - 1));
+		const start = new Date(
+			baseStart.getTime() +
+				(num - 1) * 7 * 24 * 60 * 60 * 1000
+		);
+		const end = new Date(
+			start.getTime() + 6 * 24 * 60 * 60 * 1000
+		);
+
+		const fmt = (d: Date) =>
+			`${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}`;
+		const dateRange = `${fmt(start)} — ${fmt(end)}`;
+
+		weeks.push({
+			weekNum: String(num),
+			weekId,
+			dateRange,
+			isCurrent: weekId === activeWeekId,
+		});
+	}
+	return weeks;
+}
+
+/**
+ * Получение текущей активной недели с главной страницы колледжа
+ */
+export async function getCurrentWeekId(
+	ownerId: number = DEFAULT_OWNER_ID
+): Promise<string> {
+	try {
+		const res = await fetch(
+			`${BASE_URL}/SearchString/Index/${ownerId}`,
+			{
+				headers: {
+					"User-Agent":
+						"Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15",
+				},
+			}
+		);
+		if (res.ok) {
+			const html = await res.text();
+			const root = parse(html);
+			const hidden = root.querySelector("#ChangeWeekId");
+			if (hidden) {
+				const val = hidden.getAttribute("value");
+				if (val && /^\d+$/.test(val)) {
+					return val;
+				}
+			}
+		}
+	} catch (err) {
+		console.warn(
+			"Не удалось получить текущую неделю с сервера, используем дефолтную:",
+			err
+		);
+	}
+	return DEFAULT_WEEK_ID;
+}
 
 /**
  * Поиск групп, преподавателей или кабинетов
@@ -50,16 +125,20 @@ export async function searchEntities(
 }
 
 /**
- * Загрузка и парсинг расписания с сайта
+ * Загрузка и парсинг расписания с сайта.
+ * ВНИМАНИЕ: Если WeekId не передан, мы ВСЕГДА запрашиваем актуальный WeekId (например 14810),
+ * чтобы сервер не сбрасывал дату в пустую 01.01.0001!
  */
 export async function fetchSchedule(
 	entity: SearchResultItem,
 	weekId?: string
 ): Promise<ScheduleData> {
-	let url = `${BASE_URL}/Raspisanie/SearchedRaspisanie?OwnerId=${entity.OwnerId}&SearchId=${entity.SearchId}&SearchString=${encodeURIComponent(entity.SearchContent)}&Type=${entity.Type}`;
-	if (weekId) {
-		url += `&WeekId=${weekId}`;
+	let targetWeekId = weekId;
+	if (!targetWeekId) {
+		targetWeekId = await getCurrentWeekId(entity.OwnerId);
 	}
+
+	const url = `${BASE_URL}/Raspisanie/SearchedRaspisanie?OwnerId=${entity.OwnerId}&SearchId=${entity.SearchId}&SearchString=${encodeURIComponent(entity.SearchContent)}&Type=${entity.Type}&WeekId=${targetWeekId}`;
 
 	const response = await fetch(url, {
 		headers: {
@@ -75,16 +154,16 @@ export async function fetchSchedule(
 	}
 
 	const html = await response.text();
-	return parseScheduleHtml(html, entity, weekId);
+	return parseScheduleHtml(html, entity, targetWeekId);
 }
 
 /**
- * Парсер HTML страницы расписания на чистом JS (node-html-parser)
+ * Парсер HTML страницы расписания
  */
 export function parseScheduleHtml(
 	html: string,
 	entity: SearchResultItem,
-	requestedWeekId?: string
+	activeWeekId: string
 ): ScheduleData {
 	const root = parse(html);
 
@@ -101,80 +180,65 @@ export function parseScheduleHtml(
 		}
 	}
 
-	// 2. Извлекаем список всех недель
-	const weeks: WeekItem[] = [];
-	let currentActiveWeekId = requestedWeekId || "";
-	let currentWeekNum = "";
+	// 2. Список недель
+	const weeks = getSemesterWeeks(activeWeekId);
 
-	const weekLinks = root.querySelectorAll(".weeks-navgroup a");
-	for (const a of weekLinks) {
-		const weekNum = a.text.trim();
-		const href = a.getAttribute("href") || "";
-		const match = href.match(/WeekId=(\d+)/i);
-		const isCurrent = a.classList.contains("btn-primary");
-
-		if (match) {
-			const id = match[1];
-			if (isCurrent) {
-				currentActiveWeekId = id;
-				currentWeekNum = weekNum;
-			}
-			weeks.push({
-				weekNum,
-				weekId: id,
-				isCurrent,
-			});
-		}
-	}
-
-	// Если WeekId не найден в кнопках, берем из скрытого input
-	if (!currentActiveWeekId) {
-		const hiddenInput = root.querySelector(
-			"input#ChangeWeekId"
-		);
-		if (hiddenInput) {
-			const val = hiddenInput.getAttribute("value");
-			if (val) {
-				currentActiveWeekId = val;
-			}
-		}
-	}
-
-	// Текст с датами недели
-	const weekNavDiv = root.querySelector(
-		".weeks-searchedraspisanie"
+	// Определяем номер активной недели и диапазон дат
+	const activeWeekItem = weeks.find(
+		(w) => w.weekId === activeWeekId
 	);
-	const currentWeekInfoText = weekNavDiv
-		? weekNavDiv.text.replace(/\s+/g, " ").trim()
-		: "";
-	const datesMatch = currentWeekInfoText.match(
-		/c\s+(\d{2}\.\d{2}\.\d{4})\s+по\s+(\d{2}\.\d{2}\.\d{4})/i
-	);
-	const currentWeekDates = datesMatch
-		? `${datesMatch[1]} — ${datesMatch[2]}`
-		: "";
+	const currentWeekNum = activeWeekItem
+		? activeWeekItem.weekNum
+		: "3";
+	const currentWeekDates = activeWeekItem
+		? activeWeekItem.dateRange
+		: "14.09 — 20.09";
 
 	// 3. Формируем сегодняшнюю дату
 	const now = new Date();
 	const todayStr = `${String(now.getDate()).padStart(2, "0")}.${String(now.getMonth() + 1).padStart(2, "0")}.${now.getFullYear()}`;
 
+	// Вычисляем понедельник выбранной недели для страховки от бага "01.01.0001"
+	const weekIndex = parseInt(currentWeekNum, 10) - 1;
+	const mondayDate = new Date(2026, 7, 31 + weekIndex * 7);
+
 	// 4. Парсим дни и пары
 	const days: DaySchedule[] = [];
 	const rows = root.querySelectorAll("table tbody tr");
 
-	for (const row of rows) {
-		const th = row.querySelector('th[scope="row"]');
-		if (!th) continue;
+	const defaultDayNames = [
+		"Понедельник",
+		"Вторник",
+		"Среда",
+		"Четверг",
+		"Пятница",
+		"Суббота",
+		"Воскресенье",
+	];
 
-		// "Понедельник<br />14.09.2026"
+	rows.forEach((row, rowIdx) => {
+		const th = row.querySelector('th[scope="row"]');
+		if (!th) return;
+
 		const rawHtml = th.innerHTML;
 		const dayParts = rawHtml
 			.split(/<br\s*\/?>/i)
 			.map((part) => parse(part).text.trim())
 			.filter(Boolean);
 
-		const dayName = dayParts[0] || "";
-		const dayDate = dayParts[1] || "";
+		let dayName =
+			dayParts[0] || defaultDayNames[rowIdx] || "";
+		let dayDate = dayParts[1] || "";
+
+		// Защита от бага "01.01.0001"
+		if (!dayDate || dayDate.includes("0001")) {
+			const dayOffsetDate = new Date(
+				mondayDate.getTime() +
+					rowIdx * 24 * 60 * 60 * 1000
+			);
+			dayDate = `${String(dayOffsetDate.getDate()).padStart(2, "0")}.${String(dayOffsetDate.getMonth() + 1).padStart(2, "0")}.${dayOffsetDate.getFullYear()}`;
+		}
+
 		const isToday = dayDate === todayStr;
 
 		const lessons: Lesson[] = [];
@@ -234,12 +298,12 @@ export function parseScheduleHtml(
 			lessons,
 			isToday,
 		});
-	}
+	});
 
 	return {
 		entity,
-		weekId: currentActiveWeekId,
-		currentWeekNum: currentWeekNum || "—",
+		weekId: activeWeekId,
+		currentWeekNum,
 		currentWeekDates,
 		weeks,
 		days,

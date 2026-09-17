@@ -3,15 +3,18 @@ import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Lesson } from "../types/schedule";
 import { getLessonStatus } from "../utils/timeUtils";
+import { ThemeColors } from "../theme/colors";
 
 interface LessonCardProps {
 	lesson: Lesson;
 	isToday: boolean;
+	theme: ThemeColors;
 }
 
 export const LessonCard: React.FC<LessonCardProps> = ({
 	lesson,
 	isToday,
+	theme,
 }) => {
 	const { status, badgeText } = getLessonStatus(
 		lesson.time,
@@ -26,6 +29,18 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 		<View
 			style={[
 				styles.card,
+				{
+					backgroundColor: isCurrent
+						? theme.successSubtle
+						: isCompleted
+							? theme.isDark
+								? "#151517"
+								: "#F7F7F9"
+							: theme.card,
+					borderColor: isCurrent
+						? theme.success
+						: theme.border,
+				},
 				isCurrent && styles.cardCurrent,
 				isCompleted && styles.cardCompleted,
 			]}
@@ -34,9 +49,15 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 			<View
 				style={[
 					styles.indicatorBar,
-					isCurrent && styles.indicatorCurrent,
-					isUpcoming && styles.indicatorUpcoming,
-					isCompleted && styles.indicatorCompleted,
+					{
+						backgroundColor: isCurrent
+							? theme.success
+							: isUpcoming
+								? theme.accent
+								: isCompleted
+									? theme.border
+									: theme.accent,
+					},
 				]}
 			/>
 
@@ -47,25 +68,43 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 						<View
 							style={[
 								styles.pairCircle,
-								isCurrent &&
-									styles.pairCircleCurrent,
+								{
+									backgroundColor: isCurrent
+										? theme.success
+										: theme.chipBackground,
+								},
 							]}
 						>
 							<Text
 								style={[
 									styles.pairNumber,
-									isCurrent &&
-										styles.pairNumberCurrent,
+									{
+										color: isCurrent
+											? "#FFFFFF"
+											: theme.accent,
+									},
 								]}
 							>
 								{lesson.pairIndex}
 							</Text>
 						</View>
 						<View style={styles.timeTextContainer}>
-							<Text style={styles.timeLabel}>
+							<Text
+								style={[
+									styles.timeLabel,
+									{
+										color: theme.textSecondary,
+									},
+								]}
+							>
 								Пара {lesson.pairIndex}
 							</Text>
-							<Text style={styles.timeValue}>
+							<Text
+								style={[
+									styles.timeValue,
+									{ color: theme.text },
+								]}
+							>
 								{lesson.time}
 							</Text>
 						</View>
@@ -76,21 +115,32 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 						<View
 							style={[
 								styles.badge,
-								isCurrent && styles.badgeCurrent,
-								isUpcoming &&
-									styles.badgeUpcoming,
+								{
+									backgroundColor: isCurrent
+										? theme.successSubtle
+										: theme.accentSubtle,
+								},
 							]}
 						>
 							{isCurrent && (
-								<View style={styles.pulseDot} />
+								<View
+									style={[
+										styles.pulseDot,
+										{
+											backgroundColor:
+												theme.success,
+										},
+									]}
+								/>
 							)}
 							<Text
 								style={[
 									styles.badgeText,
-									isCurrent &&
-										styles.badgeTextCurrent,
-									isUpcoming &&
-										styles.badgeTextUpcoming,
+									{
+										color: isCurrent
+											? theme.success
+											: theme.accent,
+									},
 								]}
 							>
 								{badgeText}
@@ -99,9 +149,22 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 					)}
 
 					{isCompleted && (
-						<View style={styles.badgeCompleted}>
+						<View
+							style={[
+								styles.badgeCompleted,
+								{
+									backgroundColor:
+										theme.chipBackground,
+								},
+							]}
+						>
 							<Text
-								style={styles.badgeTextCompleted}
+								style={[
+									styles.badgeTextCompleted,
+									{
+										color: theme.textSecondary,
+									},
+								]}
 							>
 								Завершена
 							</Text>
@@ -113,7 +176,11 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 				<Text
 					style={[
 						styles.subject,
-						isCompleted && styles.textMuted,
+						{
+							color: isCompleted
+								? theme.textSecondary
+								: theme.text,
+						},
 					]}
 				>
 					{lesson.subject}
@@ -129,16 +196,19 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 								size={14}
 								color={
 									isCompleted
-										? "#8E8E93"
-										: "#007AFF"
+										? theme.textSecondary
+										: theme.accent
 								}
 								style={styles.detailIcon}
 							/>
 							<Text
 								style={[
 									styles.detailText,
-									isCompleted &&
-										styles.textMuted,
+									{
+										color: isCompleted
+											? theme.textSecondary
+											: theme.text,
+									},
 								]}
 							>
 								{lesson.teacher}
@@ -154,13 +224,26 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 								size={14}
 								color={
 									isCompleted
-										? "#8E8E93"
-										: "#34C759"
+										? theme.textSecondary
+										: theme.success
 								}
 								style={styles.detailIcon}
 							/>
-							<View style={styles.roomBadge}>
-								<Text style={styles.roomText}>
+							<View
+								style={[
+									styles.roomBadge,
+									{
+										backgroundColor:
+											theme.chipBackground,
+									},
+								]}
+							>
+								<Text
+									style={[
+										styles.roomText,
+										{ color: theme.text },
+									]}
+								>
 									{lesson.room}
 								</Text>
 							</View>
@@ -173,10 +256,17 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 							<Ionicons
 								name="people-outline"
 								size={14}
-								color="#8E8E93"
+								color={theme.textSecondary}
 								style={styles.detailIcon}
 							/>
-							<Text style={styles.groupText}>
+							<Text
+								style={[
+									styles.groupText,
+									{
+										color: theme.textSecondary,
+									},
+								]}
+							>
 								{lesson.group}
 							</Text>
 						</View>
@@ -190,7 +280,6 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 const styles = StyleSheet.create({
 	card: {
 		flexDirection: "row",
-		backgroundColor: "#FFFFFF",
 		borderRadius: 16,
 		marginBottom: 12,
 		marginHorizontal: 16,
@@ -201,32 +290,18 @@ const styles = StyleSheet.create({
 		elevation: 2,
 		overflow: "hidden",
 		borderWidth: StyleSheet.hairlineWidth,
-		borderColor: "#E5E5EA",
 	},
 	cardCurrent: {
-		borderColor: "#34C759",
-		backgroundColor: "#F7FCF8",
 		shadowColor: "#34C759",
-		shadowOpacity: 0.15,
+		shadowOpacity: 0.2,
 		shadowRadius: 10,
 		elevation: 4,
 	},
 	cardCompleted: {
-		opacity: 0.65,
-		backgroundColor: "#FAFAFA",
+		opacity: 0.6,
 	},
 	indicatorBar: {
 		width: 5,
-		backgroundColor: "#007AFF",
-	},
-	indicatorCurrent: {
-		backgroundColor: "#34C759",
-	},
-	indicatorUpcoming: {
-		backgroundColor: "#007AFF",
-	},
-	indicatorCompleted: {
-		backgroundColor: "#C7C7CC",
 	},
 	cardContent: {
 		flex: 1,
@@ -246,21 +321,13 @@ const styles = StyleSheet.create({
 		width: 28,
 		height: 28,
 		borderRadius: 14,
-		backgroundColor: "#F2F2F7",
 		alignItems: "center",
 		justifyContent: "center",
 		marginRight: 8,
 	},
-	pairCircleCurrent: {
-		backgroundColor: "#34C759",
-	},
 	pairNumber: {
 		fontSize: 13,
 		fontWeight: "700",
-		color: "#007AFF",
-	},
-	pairNumberCurrent: {
-		color: "#FFFFFF",
 	},
 	timeTextContainer: {
 		justifyContent: "center",
@@ -268,14 +335,12 @@ const styles = StyleSheet.create({
 	timeLabel: {
 		fontSize: 10,
 		fontWeight: "600",
-		color: "#8E8E93",
 		textTransform: "uppercase",
 		letterSpacing: 0.5,
 	},
 	timeValue: {
 		fontSize: 13,
 		fontWeight: "700",
-		color: "#1C1C1E",
 	},
 	badge: {
 		flexDirection: "row",
@@ -284,14 +349,7 @@ const styles = StyleSheet.create({
 		paddingVertical: 4,
 		borderRadius: 12,
 	},
-	badgeCurrent: {
-		backgroundColor: "#E8F8ED",
-	},
-	badgeUpcoming: {
-		backgroundColor: "#E5F1FF",
-	},
 	badgeCompleted: {
-		backgroundColor: "#F2F2F7",
 		paddingHorizontal: 8,
 		paddingVertical: 4,
 		borderRadius: 12,
@@ -300,28 +358,19 @@ const styles = StyleSheet.create({
 		width: 6,
 		height: 6,
 		borderRadius: 3,
-		backgroundColor: "#34C759",
 		marginRight: 5,
 	},
 	badgeText: {
 		fontSize: 11,
 		fontWeight: "700",
 	},
-	badgeTextCurrent: {
-		color: "#34C759",
-	},
-	badgeTextUpcoming: {
-		color: "#007AFF",
-	},
 	badgeTextCompleted: {
 		fontSize: 11,
 		fontWeight: "600",
-		color: "#8E8E93",
 	},
 	subject: {
 		fontSize: 16,
 		fontWeight: "700",
-		color: "#000000",
 		lineHeight: 22,
 		marginBottom: 10,
 	},
@@ -339,11 +388,9 @@ const styles = StyleSheet.create({
 	},
 	detailText: {
 		fontSize: 13,
-		color: "#3A3A3C",
 		fontWeight: "500",
 	},
 	roomBadge: {
-		backgroundColor: "#F2F2F7",
 		paddingHorizontal: 7,
 		paddingVertical: 2,
 		borderRadius: 6,
@@ -351,13 +398,8 @@ const styles = StyleSheet.create({
 	roomText: {
 		fontSize: 12,
 		fontWeight: "700",
-		color: "#1C1C1E",
 	},
 	groupText: {
 		fontSize: 12,
-		color: "#8E8E93",
-	},
-	textMuted: {
-		color: "#8E8E93",
 	},
 });

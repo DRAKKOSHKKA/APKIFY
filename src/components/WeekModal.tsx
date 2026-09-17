@@ -11,11 +11,13 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { WeekItem } from "../types/schedule";
+import { ThemeColors } from "../theme/colors";
 
 interface WeekModalProps {
 	visible: boolean;
 	weeks: WeekItem[];
 	currentWeekId: string;
+	theme: ThemeColors;
 	onSelectWeek: (weekId: string) => void;
 	onClose: () => void;
 }
@@ -24,6 +26,7 @@ export const WeekModal: React.FC<WeekModalProps> = ({
 	visible,
 	weeks,
 	currentWeekId,
+	theme,
 	onSelectWeek,
 	onClose,
 }) => {
@@ -34,11 +37,38 @@ export const WeekModal: React.FC<WeekModalProps> = ({
 			presentationStyle="pageSheet"
 			onRequestClose={onClose}
 		>
-			<SafeAreaView style={styles.safeArea}>
-				<View style={styles.header}>
-					<Text style={styles.title}>
-						Учебные недели
-					</Text>
+			<SafeAreaView
+				style={[
+					styles.safeArea,
+					{ backgroundColor: theme.modalBackground },
+				]}
+			>
+				<View
+					style={[
+						styles.header,
+						{
+							backgroundColor:
+								theme.headerBackground,
+							borderBottomColor: theme.border,
+						},
+					]}
+				>
+					<View style={styles.titleRow}>
+						<Ionicons
+							name="calendar"
+							size={20}
+							color={theme.accent}
+							style={{ marginRight: 8 }}
+						/>
+						<Text
+							style={[
+								styles.title,
+								{ color: theme.text },
+							]}
+						>
+							Учебные недели
+						</Text>
+					</View>
 					<TouchableOpacity
 						style={styles.closeButton}
 						onPress={onClose}
@@ -52,7 +82,7 @@ export const WeekModal: React.FC<WeekModalProps> = ({
 						<Ionicons
 							name="close-circle"
 							size={28}
-							color="#8E8E93"
+							color={theme.textSecondary}
 						/>
 					</TouchableOpacity>
 				</View>
@@ -60,11 +90,17 @@ export const WeekModal: React.FC<WeekModalProps> = ({
 				<ScrollView
 					contentContainerStyle={styles.content}
 				>
-					<Text style={styles.subtitle}>
-						Выберите неделю для просмотра расписания:
+					<Text
+						style={[
+							styles.subtitle,
+							{ color: theme.textSecondary },
+						]}
+					>
+						1 семестр 2026-2027 учебного года.
+						Выберите неделю для просмотра:
 					</Text>
 
-					<View style={styles.grid}>
+					<View style={styles.list}>
 						{weeks.map((week) => {
 							const isSelected =
 								week.weekId === currentWeekId;
@@ -73,9 +109,17 @@ export const WeekModal: React.FC<WeekModalProps> = ({
 								<TouchableOpacity
 									key={week.weekId}
 									style={[
-										styles.weekCard,
-										isSelected &&
-											styles.weekCardSelected,
+										styles.weekRow,
+										{
+											backgroundColor:
+												isSelected
+													? theme.accent
+													: theme.card,
+											borderColor:
+												isSelected
+													? theme.accent
+													: theme.border,
+										},
 									]}
 									activeOpacity={0.7}
 									onPress={() => {
@@ -92,39 +136,117 @@ export const WeekModal: React.FC<WeekModalProps> = ({
 										onClose();
 									}}
 								>
-									<Text
-										style={[
-											styles.weekNumber,
-											isSelected &&
-												styles.textSelected,
-										]}
+									<View
+										style={styles.weekInfo}
 									>
-										{week.weekNum}
-									</Text>
-									<Text
-										style={[
-											styles.weekLabel,
-											isSelected &&
-												styles.textSelected,
-										]}
-									>
-										неделя
-									</Text>
-									{week.isCurrent && (
+										<View
+											style={[
+												styles.numCircle,
+												{
+													backgroundColor:
+														isSelected
+															? "rgba(255, 255, 255, 0.25)"
+															: theme.accentSubtle,
+												},
+											]}
+										>
+											<Text
+												style={[
+													styles.numText,
+													{
+														color: isSelected
+															? "#FFFFFF"
+															: theme.accent,
+													},
+												]}
+											>
+												{week.weekNum}
+											</Text>
+										</View>
+
 										<View
 											style={
-												styles.currentBadge
+												styles.weekDetails
 											}
 										>
 											<Text
-												style={
-													styles.currentBadgeText
-												}
+												style={[
+													styles.weekTitle,
+													{
+														color: isSelected
+															? "#FFFFFF"
+															: theme.text,
+													},
+												]}
 											>
-												Сейчас
+												{week.weekNum}{" "}
+												неделя
 											</Text>
+											{week.dateRange ? (
+												<Text
+													style={[
+														styles.weekDates,
+														{
+															color: isSelected
+																? "rgba(255, 255, 255, 0.8)"
+																: theme.textSecondary,
+														},
+													]}
+												>
+													{
+														week.dateRange
+													}
+												</Text>
+											) : null}
 										</View>
-									)}
+									</View>
+
+									<View
+										style={styles.rightBadge}
+									>
+										{week.isCurrent && (
+											<View
+												style={[
+													styles.currentBadge,
+													{
+														backgroundColor:
+															isSelected
+																? "#FFFFFF"
+																: theme.success,
+													},
+												]}
+											>
+												<Text
+													style={[
+														styles.currentBadgeText,
+														{
+															color: isSelected
+																? theme.accent
+																: "#FFFFFF",
+														},
+													]}
+												>
+													СЕЙЧАС
+												</Text>
+											</View>
+										)}
+										<Ionicons
+											name={
+												isSelected
+													? "checkmark-circle"
+													: "chevron-forward"
+											}
+											size={20}
+											color={
+												isSelected
+													? "#FFFFFF"
+													: theme.textSecondary
+											}
+											style={{
+												marginLeft: 8,
+											}}
+										/>
+									</View>
 								</TouchableOpacity>
 							);
 						})}
@@ -138,90 +260,90 @@ export const WeekModal: React.FC<WeekModalProps> = ({
 const styles = StyleSheet.create({
 	safeArea: {
 		flex: 1,
-		backgroundColor: "#F2F2F7",
 	},
 	header: {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
 		paddingHorizontal: 20,
-		paddingVertical: 16,
+		paddingVertical: 14,
 		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: "#D1D1D6",
-		backgroundColor: "#FFFFFF",
+	},
+	titleRow: {
+		flexDirection: "row",
+		alignItems: "center",
 	},
 	title: {
 		fontSize: 20,
 		fontWeight: "700",
-		color: "#000000",
 	},
 	closeButton: {
 		padding: 2,
 	},
 	content: {
-		padding: 20,
+		padding: 16,
+		paddingBottom: 40,
 	},
 	subtitle: {
-		fontSize: 14,
-		color: "#8E8E93",
+		fontSize: 13,
 		marginBottom: 16,
+		lineHeight: 18,
 	},
-	grid: {
+	list: {
+		gap: 8,
+	},
+	weekRow: {
 		flexDirection: "row",
-		flexWrap: "wrap",
-		gap: 12,
-	},
-	weekCard: {
-		width: "30%",
-		aspectRatio: 1,
-		backgroundColor: "#FFFFFF",
-		borderRadius: 16,
 		alignItems: "center",
-		justifyContent: "center",
-		padding: 10,
-		borderWidth: 1.5,
-		borderColor: "#E5E5EA",
-		position: "relative",
+		justifyContent: "space-between",
+		padding: 14,
+		borderRadius: 16,
+		borderWidth: StyleSheet.hairlineWidth,
 		shadowColor: "#000",
 		shadowOffset: { width: 0, height: 1 },
 		shadowOpacity: 0.04,
 		shadowRadius: 4,
 		elevation: 1,
 	},
-	weekCardSelected: {
-		backgroundColor: "#007AFF",
-		borderColor: "#007AFF",
-		shadowColor: "#007AFF",
-		shadowOpacity: 0.25,
-		shadowRadius: 8,
-		elevation: 3,
+	weekInfo: {
+		flexDirection: "row",
+		alignItems: "center",
 	},
-	weekNumber: {
-		fontSize: 26,
+	numCircle: {
+		width: 36,
+		height: 36,
+		borderRadius: 18,
+		alignItems: "center",
+		justifyContent: "center",
+		marginRight: 12,
+	},
+	numText: {
+		fontSize: 16,
 		fontWeight: "800",
-		color: "#000000",
 	},
-	weekLabel: {
-		fontSize: 12,
-		fontWeight: "500",
-		color: "#8E8E93",
+	weekDetails: {
+		justifyContent: "center",
+	},
+	weekTitle: {
+		fontSize: 16,
+		fontWeight: "700",
+	},
+	weekDates: {
+		fontSize: 13,
 		marginTop: 2,
 	},
+	rightBadge: {
+		flexDirection: "row",
+		alignItems: "center",
+	},
 	currentBadge: {
-		position: "absolute",
-		top: 6,
-		right: 6,
-		backgroundColor: "#34C759",
-		paddingHorizontal: 5,
-		paddingVertical: 1,
-		borderRadius: 6,
+		paddingHorizontal: 7,
+		paddingVertical: 3,
+		borderRadius: 8,
 	},
 	currentBadgeText: {
-		fontSize: 9,
-		fontWeight: "700",
-		color: "#FFFFFF",
-	},
-	textSelected: {
-		color: "#FFFFFF",
+		fontSize: 10,
+		fontWeight: "800",
+		letterSpacing: 0.5,
 	},
 });

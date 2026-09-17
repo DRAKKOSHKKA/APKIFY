@@ -17,10 +17,12 @@ import {
 	SearchResultItem,
 } from "../types/schedule";
 import { searchEntities } from "../services/api";
+import { ThemeColors } from "../theme/colors";
 
 interface SearchModalProps {
 	visible: boolean;
 	favorites: FavoriteItem[];
+	theme: ThemeColors;
 	onSelectEntity: (entity: SearchResultItem) => void;
 	onClose: () => void;
 }
@@ -75,6 +77,7 @@ const SUGGESTIONS: SearchResultItem[] = [
 export const SearchModal: React.FC<SearchModalProps> = ({
 	visible,
 	favorites,
+	theme,
 	onSelectEntity,
 	onClose,
 }) => {
@@ -137,11 +140,11 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 	const getTypeColor = (type: string) => {
 		switch (type) {
 			case "Teacher":
-				return "#AF52DE";
+				return "#BF5AF2";
 			case "Classroom":
-				return "#34C759";
+				return "#30D158";
 			default:
-				return "#007AFF";
+				return theme.accent;
 		}
 	};
 
@@ -173,10 +176,31 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 			presentationStyle="pageSheet"
 			onRequestClose={onClose}
 		>
-			<SafeAreaView style={styles.safeArea}>
+			<SafeAreaView
+				style={[
+					styles.safeArea,
+					{ backgroundColor: theme.modalBackground },
+				]}
+			>
 				{/* Заголовок */}
-				<View style={styles.header}>
-					<Text style={styles.title}>Поиск</Text>
+				<View
+					style={[
+						styles.header,
+						{
+							backgroundColor:
+								theme.headerBackground,
+							borderBottomColor: theme.border,
+						},
+					]}
+				>
+					<Text
+						style={[
+							styles.title,
+							{ color: theme.text },
+						]}
+					>
+						Поиск
+					</Text>
 					<TouchableOpacity
 						style={styles.closeButton}
 						onPress={onClose}
@@ -190,24 +214,45 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 						<Ionicons
 							name="close-circle"
 							size={28}
-							color="#8E8E93"
+							color={theme.textSecondary}
 						/>
 					</TouchableOpacity>
 				</View>
 
 				{/* Поисковая строка iOS */}
-				<View style={styles.searchBarContainer}>
-					<View style={styles.searchBar}>
+				<View
+					style={[
+						styles.searchBarContainer,
+						{
+							backgroundColor:
+								theme.headerBackground,
+						},
+					]}
+				>
+					<View
+						style={[
+							styles.searchBar,
+							{
+								backgroundColor:
+									theme.searchBarBackground,
+							},
+						]}
+					>
 						<Ionicons
 							name="search"
 							size={18}
-							color="#8E8E93"
+							color={theme.textSecondary}
 							style={styles.searchIcon}
 						/>
 						<TextInput
-							style={styles.input}
+							style={[
+								styles.input,
+								{ color: theme.text },
+							]}
 							placeholder="Номер группы, фамилия или кабинет..."
-							placeholderTextColor="#8E8E93"
+							placeholderTextColor={
+								theme.textSecondary
+							}
 							value={query}
 							onChangeText={setQuery}
 							autoFocus
@@ -216,7 +261,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 						{isLoading && (
 							<ActivityIndicator
 								size="small"
-								color="#007AFF"
+								color={theme.accent}
 								style={{ marginRight: 6 }}
 							/>
 						)}
@@ -224,7 +269,16 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 				</View>
 
 				{/* Фильтры */}
-				<View style={styles.filterRow}>
+				<View
+					style={[
+						styles.filterRow,
+						{
+							backgroundColor:
+								theme.headerBackground,
+							borderBottomColor: theme.border,
+						},
+					]}
+				>
 					{(
 						[
 							"All",
@@ -246,16 +300,25 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 								key={f}
 								style={[
 									styles.filterChip,
-									isSelected &&
-										styles.filterChipSelected,
+									{
+										backgroundColor:
+											theme.chipBackground,
+									},
+									isSelected && {
+										backgroundColor:
+											theme.accent,
+									},
 								]}
 								onPress={() => setFilter(f)}
 							>
 								<Text
 									style={[
 										styles.filterText,
-										isSelected &&
-											styles.filterTextSelected,
+										{
+											color: isSelected
+												? "#FFFFFF"
+												: theme.textSecondary,
+										},
 									]}
 								>
 									{label}
@@ -283,17 +346,27 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 									<Ionicons
 										name="search-outline"
 										size={48}
-										color="#C7C7CC"
+										color={
+											theme.textSecondary
+										}
 									/>
 									<Text
-										style={styles.emptyTitle}
+										style={[
+											styles.emptyTitle,
+											{
+												color: theme.text,
+											},
+										]}
 									>
 										Ничего не найдено
 									</Text>
 									<Text
-										style={
-											styles.emptySubtitle
-										}
+										style={[
+											styles.emptySubtitle,
+											{
+												color: theme.textSecondary,
+											},
+										]}
 									>
 										Попробуйте изменить
 										запрос, например: «21
@@ -304,7 +377,15 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 						}
 						renderItem={({ item }) => (
 							<TouchableOpacity
-								style={styles.resultItem}
+								style={[
+									styles.resultItem,
+									{
+										backgroundColor:
+											theme.card,
+										borderColor:
+											theme.border,
+									},
+								]}
 								activeOpacity={0.7}
 								onPress={() =>
 									handleSelect(item)
@@ -314,7 +395,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 									style={[
 										styles.typeIconBadge,
 										{
-											backgroundColor: `${getTypeColor(item.Type)}15`,
+											backgroundColor: `${getTypeColor(item.Type)}20`,
 										},
 									]}
 								>
@@ -333,12 +414,22 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 
 								<View style={styles.resultInfo}>
 									<Text
-										style={styles.resultName}
+										style={[
+											styles.resultName,
+											{
+												color: theme.text,
+											},
+										]}
 									>
 										{item.SearchContent}
 									</Text>
 									<Text
-										style={styles.resultType}
+										style={[
+											styles.resultType,
+											{
+												color: theme.textSecondary,
+											},
+										]}
 									>
 										{getTypeLabel(item.Type)}
 									</Text>
@@ -347,7 +438,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 								<Ionicons
 									name="chevron-forward"
 									size={18}
-									color="#C7C7CC"
+									color={theme.textSecondary}
 								/>
 							</TouchableOpacity>
 						)}
@@ -365,9 +456,12 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 								{favorites.length > 0 && (
 									<View style={styles.section}>
 										<Text
-											style={
-												styles.sectionTitle
-											}
+											style={[
+												styles.sectionTitle,
+												{
+													color: theme.textSecondary,
+												},
+											]}
 										>
 											ИЗБРАННОЕ
 										</Text>
@@ -375,9 +469,15 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 											(item) => (
 												<TouchableOpacity
 													key={`fav-${item.SearchId}`}
-													style={
-														styles.resultItem
-													}
+													style={[
+														styles.resultItem,
+														{
+															backgroundColor:
+																theme.card,
+															borderColor:
+																theme.border,
+														},
+													]}
 													activeOpacity={
 														0.7
 													}
@@ -392,7 +492,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 															styles.typeIconBadge,
 															{
 																backgroundColor:
-																	"#FFF3D6",
+																	theme.warningSubtle,
 															},
 														]}
 													>
@@ -401,7 +501,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 															size={
 																18
 															}
-															color="#FF9500"
+															color={
+																theme.warning
+															}
 														/>
 													</View>
 													<View
@@ -410,18 +512,24 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 														}
 													>
 														<Text
-															style={
-																styles.resultName
-															}
+															style={[
+																styles.resultName,
+																{
+																	color: theme.text,
+																},
+															]}
 														>
 															{
 																item.SearchContent
 															}
 														</Text>
 														<Text
-															style={
-																styles.resultType
-															}
+															style={[
+																styles.resultType,
+																{
+																	color: theme.textSecondary,
+																},
+															]}
 														>
 															{getTypeLabel(
 																item.Type
@@ -431,7 +539,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 													<Ionicons
 														name="chevron-forward"
 														size={18}
-														color="#C7C7CC"
+														color={
+															theme.textSecondary
+														}
 													/>
 												</TouchableOpacity>
 											)
@@ -442,18 +552,27 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 								{/* Быстрые подсказки */}
 								<View style={styles.section}>
 									<Text
-										style={
-											styles.sectionTitle
-										}
+										style={[
+											styles.sectionTitle,
+											{
+												color: theme.textSecondary,
+											},
+										]}
 									>
 										ПОПУЛЯРНЫЕ В АПК
 									</Text>
 									{SUGGESTIONS.map((item) => (
 										<TouchableOpacity
 											key={`sug-${item.SearchId}`}
-											style={
-												styles.resultItem
-											}
+											style={[
+												styles.resultItem,
+												{
+													backgroundColor:
+														theme.card,
+													borderColor:
+														theme.border,
+												},
+											]}
 											activeOpacity={0.7}
 											onPress={() =>
 												handleSelect(
@@ -465,7 +584,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 												style={[
 													styles.typeIconBadge,
 													{
-														backgroundColor: `${getTypeColor(item.Type)}15`,
+														backgroundColor: `${getTypeColor(item.Type)}20`,
 													},
 												]}
 											>
@@ -487,18 +606,24 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 												}
 											>
 												<Text
-													style={
-														styles.resultName
-													}
+													style={[
+														styles.resultName,
+														{
+															color: theme.text,
+														},
+													]}
 												>
 													{
 														item.SearchContent
 													}
 												</Text>
 												<Text
-													style={
-														styles.resultType
-													}
+													style={[
+														styles.resultType,
+														{
+															color: theme.textSecondary,
+														},
+													]}
 												>
 													{getTypeLabel(
 														item.Type
@@ -508,7 +633,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 											<Ionicons
 												name="chevron-forward"
 												size={18}
-												color="#C7C7CC"
+												color={
+													theme.textSecondary
+												}
 											/>
 										</TouchableOpacity>
 									))}
@@ -525,7 +652,6 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 const styles = StyleSheet.create({
 	safeArea: {
 		flex: 1,
-		backgroundColor: "#F2F2F7",
 	},
 	header: {
 		flexDirection: "row",
@@ -533,27 +659,22 @@ const styles = StyleSheet.create({
 		justifyContent: "space-between",
 		paddingHorizontal: 20,
 		paddingVertical: 14,
-		backgroundColor: "#FFFFFF",
 		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: "#D1D1D6",
 	},
 	title: {
 		fontSize: 20,
 		fontWeight: "700",
-		color: "#000000",
 	},
 	closeButton: {
 		padding: 2,
 	},
 	searchBarContainer: {
-		backgroundColor: "#FFFFFF",
 		paddingHorizontal: 16,
 		paddingVertical: 10,
 	},
 	searchBar: {
 		flexDirection: "row",
 		alignItems: "center",
-		backgroundColor: "#EFEFF0",
 		borderRadius: 12,
 		paddingHorizontal: 10,
 		height: 40,
@@ -564,34 +685,23 @@ const styles = StyleSheet.create({
 	input: {
 		flex: 1,
 		fontSize: 15,
-		color: "#000000",
 		paddingVertical: 0,
 	},
 	filterRow: {
 		flexDirection: "row",
 		paddingHorizontal: 16,
 		paddingVertical: 10,
-		backgroundColor: "#FFFFFF",
 		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: "#E5E5EA",
 		gap: 8,
 	},
 	filterChip: {
 		paddingHorizontal: 12,
 		paddingVertical: 6,
 		borderRadius: 16,
-		backgroundColor: "#F2F2F7",
-	},
-	filterChipSelected: {
-		backgroundColor: "#007AFF",
 	},
 	filterText: {
 		fontSize: 13,
 		fontWeight: "600",
-		color: "#8E8E93",
-	},
-	filterTextSelected: {
-		color: "#FFFFFF",
 	},
 	listContent: {
 		paddingHorizontal: 16,
@@ -604,7 +714,6 @@ const styles = StyleSheet.create({
 	sectionTitle: {
 		fontSize: 12,
 		fontWeight: "700",
-		color: "#8E8E93",
 		letterSpacing: 0.5,
 		marginBottom: 8,
 		marginLeft: 4,
@@ -612,12 +721,10 @@ const styles = StyleSheet.create({
 	resultItem: {
 		flexDirection: "row",
 		alignItems: "center",
-		backgroundColor: "#FFFFFF",
 		padding: 12,
 		borderRadius: 14,
 		marginBottom: 8,
 		borderWidth: StyleSheet.hairlineWidth,
-		borderColor: "#E5E5EA",
 	},
 	typeIconBadge: {
 		width: 36,
@@ -633,11 +740,9 @@ const styles = StyleSheet.create({
 	resultName: {
 		fontSize: 16,
 		fontWeight: "700",
-		color: "#000000",
 	},
 	resultType: {
 		fontSize: 12,
-		color: "#8E8E93",
 		marginTop: 2,
 	},
 	emptyContainer: {
@@ -649,12 +754,10 @@ const styles = StyleSheet.create({
 	emptyTitle: {
 		fontSize: 17,
 		fontWeight: "700",
-		color: "#1C1C1E",
 		marginTop: 12,
 	},
 	emptySubtitle: {
 		fontSize: 14,
-		color: "#8E8E93",
 		textAlign: "center",
 		marginTop: 6,
 		lineHeight: 20,
