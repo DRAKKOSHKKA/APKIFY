@@ -26,40 +26,32 @@ export const DaySelector: React.FC<DaySelectorProps> = ({
 	const getShortDay = (dayName: string) => {
 		switch (dayName.toLowerCase()) {
 			case "понедельник":
-				return "Пн";
+				return "ПН";
 			case "вторник":
-				return "Вт";
+				return "ВТ";
 			case "среда":
-				return "Ср";
+				return "СР";
 			case "четверг":
-				return "Чт";
+				return "ЧТ";
 			case "пятница":
-				return "Пт";
+				return "ПТ";
 			case "суббота":
-				return "Сб";
+				return "СБ";
 			case "воскресенье":
-				return "Вс";
+				return "ВС";
 			default:
-				return dayName.slice(0, 2);
+				return dayName.slice(0, 2).toUpperCase();
 		}
 	};
 
 	const getDayNumber = (dateStr: string) => {
 		if (!dateStr) return "";
 		const parts = dateStr.split(".");
-		return parts[0] || "";
+		return parts[0] ? parseInt(parts[0], 10).toString() : "";
 	};
 
 	return (
-		<View
-			style={[
-				styles.container,
-				{
-					backgroundColor: theme.headerBackground,
-					borderBottomColor: theme.border,
-				},
-			]}
-		>
+		<View style={styles.container}>
 			<ScrollView
 				horizontal
 				showsHorizontalScrollIndicator={false}
@@ -69,57 +61,43 @@ export const DaySelector: React.FC<DaySelectorProps> = ({
 					const isSelected = selectedIndex === idx;
 					const shortName = getShortDay(day.dayName);
 					const dayNum = getDayNumber(day.dayDate);
-					const lessonCount = day.lessons.length;
 
 					return (
 						<TouchableOpacity
 							key={`${day.dayName}-${day.dayDate}-${idx}`}
 							style={[
 								styles.dayChip,
-								{
-									backgroundColor:
-										theme.chipBackground,
-								},
-								isSelected && {
-									backgroundColor:
-										theme.accent,
-								},
-								day.isToday &&
-									!isSelected && {
-										borderColor:
-											theme.accent,
-										borderWidth: 1.5,
-										backgroundColor:
-											theme.accentSubtle,
-									},
+								isSelected
+									? [
+											styles.dayChipSelected,
+											{
+												backgroundColor:
+													theme.accent,
+											},
+										]
+									: {
+											backgroundColor:
+												"transparent",
+										},
 							]}
-							activeOpacity={0.75}
+							activeOpacity={0.7}
 							onPress={() => {
 								try {
-									Haptics.selectionAsync();
+									Haptics.impactAsync(
+										Haptics
+											.ImpactFeedbackStyle
+											.Light
+									);
 								} catch {}
 								onSelectIndex(idx);
 							}}
 						>
-							{day.isToday && (
-								<View
-									style={[
-										styles.todayDot,
-										{
-											backgroundColor:
-												isSelected
-													? "#FFFFFF"
-													: theme.accent,
-										},
-									]}
-								/>
-							)}
 							<Text
 								style={[
 									styles.dayShortName,
 									{
 										color: isSelected
-											? "#FFFFFF"
+											? "rgba(255, 255, 255, 0.8)"
 											: theme.textSecondary,
 									},
 								]}
@@ -133,38 +111,30 @@ export const DaySelector: React.FC<DaySelectorProps> = ({
 										color: isSelected
 											? "#FFFFFF"
 											: theme.text,
+										fontWeight: isSelected
+											? "700"
+											: "500",
 									},
 								]}
 							>
 								{dayNum}
 							</Text>
-							<View
-								style={[
-									styles.countBadge,
-									{
-										backgroundColor:
-											isSelected
-												? "rgba(255, 255, 255, 0.25)"
-												: theme.isDark
-													? "#3A3A3C"
-													: "#D1D1D6",
-									},
-								]}
-							>
-								<Text
-									style={[
-										styles.countText,
-										{
-											color: isSelected
-												? "#FFFFFF"
-												: theme.textSecondary,
-										},
-									]}
-								>
-									{lessonCount > 0
-										? `${lessonCount}`
-										: "—"}
-								</Text>
+
+							{/* Точка текущего дня (сегодня) */}
+							<View style={styles.dotContainer}>
+								{day.isToday && (
+									<View
+										style={[
+											styles.todayDot,
+											{
+												backgroundColor:
+													isSelected
+														? "#FFFFFF"
+														: theme.accent,
+											},
+										]}
+									/>
+								)}
 							</View>
 						</TouchableOpacity>
 					);
@@ -176,46 +146,45 @@ export const DaySelector: React.FC<DaySelectorProps> = ({
 
 const styles = StyleSheet.create({
 	container: {
-		borderBottomWidth: StyleSheet.hairlineWidth,
-		paddingVertical: 8,
+		paddingVertical: 6,
 	},
 	scrollContent: {
-		paddingHorizontal: 12,
-		gap: 8,
+		paddingHorizontal: 16,
+		gap: 6,
 	},
 	dayChip: {
 		alignItems: "center",
 		justifyContent: "center",
-		paddingVertical: 8,
+		paddingVertical: 10,
 		paddingHorizontal: 12,
-		borderRadius: 16,
-		minWidth: 54,
-		position: "relative",
+		borderRadius: 20,
+		minWidth: 46,
 	},
-	todayDot: {
-		position: "absolute",
-		top: 4,
-		width: 5,
-		height: 5,
-		borderRadius: 2.5,
+	dayChipSelected: {
+		shadowColor: "#007AFF",
+		shadowOffset: { width: 0, height: 4 },
+		shadowOpacity: 0.25,
+		shadowRadius: 6,
+		elevation: 3,
 	},
 	dayShortName: {
-		fontSize: 12,
-		fontWeight: "600",
-		marginBottom: 2,
-	},
-	dayNumber: {
-		fontSize: 16,
-		fontWeight: "700",
-	},
-	countBadge: {
-		marginTop: 4,
-		paddingHorizontal: 6,
-		paddingVertical: 1,
-		borderRadius: 8,
-	},
-	countText: {
 		fontSize: 10,
 		fontWeight: "700",
+		letterSpacing: 0.5,
+		marginBottom: 4,
+	},
+	dayNumber: {
+		fontSize: 17,
+	},
+	dotContainer: {
+		height: 6,
+		alignItems: "center",
+		justifyContent: "center",
+		marginTop: 3,
+	},
+	todayDot: {
+		width: 4,
+		height: 4,
+		borderRadius: 2,
 	},
 });

@@ -1,6 +1,5 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { Lesson } from "../types/schedule";
 import { getLessonStatus } from "../utils/timeUtils";
 import { ThemeColors } from "../theme/colors";
@@ -22,151 +21,113 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 	);
 
 	const isCurrent = status === "current";
-	const isUpcoming = status === "upcoming";
 	const isCompleted = status === "completed";
+
+	// Разделяем время "08:00 - 09:20" на начало и конец
+	const timeParts = lesson.time
+		.split(/[-—]/)
+		.map((t) => t.trim());
+	const startTime = timeParts[0] || lesson.time;
+	const endTime = timeParts[1] || "";
+
+	// Формируем чистую строку деталей
+	const metaParts: string[] = [];
+	if (lesson.room) metaParts.push(`каб. ${lesson.room}`);
+	if (lesson.teacher) metaParts.push(lesson.teacher);
+	if (lesson.group) metaParts.push(lesson.group);
+	const metaLine = metaParts.join(" • ");
 
 	return (
 		<View
 			style={[
-				styles.card,
-				{
-					backgroundColor: isCurrent
-						? theme.successSubtle
-						: isCompleted
-							? theme.isDark
-								? "#151517"
-								: "#F7F7F9"
-							: theme.card,
-					borderColor: isCurrent
-						? theme.success
-						: theme.border,
-				},
-				isCurrent && styles.cardCurrent,
-				isCompleted && styles.cardCompleted,
+				styles.container,
+				isCompleted && styles.containerCompleted,
 			]}
 		>
-			{/* Левая цветная полоса-индикатор */}
+			{/* Левая колонка: время начала и конца */}
+			<View style={styles.timeColumn}>
+				<Text
+					style={[
+						styles.startTime,
+						{
+							color: isCurrent
+								? theme.accent
+								: theme.text,
+						},
+					]}
+				>
+					{startTime}
+				</Text>
+				{endTime ? (
+					<Text
+						style={[
+							styles.endTime,
+							{ color: theme.textSecondary },
+						]}
+					>
+						{endTime}
+					</Text>
+				) : null}
+			</View>
+
+			{/* Правая карточка пары */}
 			<View
 				style={[
-					styles.indicatorBar,
+					styles.card,
 					{
-						backgroundColor: isCurrent
+						backgroundColor: theme.card,
+						borderColor: isCurrent
 							? theme.success
-							: isUpcoming
-								? theme.accent
-								: isCompleted
-									? theme.border
-									: theme.accent,
+							: "transparent",
 					},
+					isCurrent && [
+						styles.cardCurrent,
+						{ backgroundColor: theme.successSubtle },
+					],
 				]}
-			/>
+			>
+				{/* Верхняя строка: пара и статус (если идет) */}
+				<View style={styles.cardHeader}>
+					<Text
+						style={[
+							styles.pairIndex,
+							{
+								color: isCurrent
+									? theme.success
+									: theme.textSecondary,
+							},
+						]}
+					>
+						{lesson.pairIndex} пара
+					</Text>
 
-			<View style={styles.cardContent}>
-				{/* Шапка карточки: Номер пары, Время, Бейдж статуса */}
-				<View style={styles.topRow}>
-					<View style={styles.timeInfo}>
+					{isCurrent && (
 						<View
 							style={[
-								styles.pairCircle,
+								styles.statusBadge,
 								{
-									backgroundColor: isCurrent
-										? theme.success
-										: theme.chipBackground,
+									backgroundColor: theme.isDark
+										? "#0F3819"
+										: "#D1F2D9",
 								},
 							]}
 						>
-							<Text
+							<View
 								style={[
-									styles.pairNumber,
+									styles.pulseDot,
 									{
-										color: isCurrent
-											? "#FFFFFF"
-											: theme.accent,
+										backgroundColor:
+											theme.success,
 									},
 								]}
-							>
-								{lesson.pairIndex}
-							</Text>
-						</View>
-						<View style={styles.timeTextContainer}>
+							/>
 							<Text
 								style={[
-									styles.timeLabel,
-									{
-										color: theme.textSecondary,
-									},
+									styles.statusText,
+									{ color: theme.success },
 								]}
 							>
-								Пара {lesson.pairIndex}
-							</Text>
-							<Text
-								style={[
-									styles.timeValue,
-									{ color: theme.text },
-								]}
-							>
-								{lesson.time}
-							</Text>
-						</View>
-					</View>
-
-					{/* Статус бейдж */}
-					{badgeText && (
-						<View
-							style={[
-								styles.badge,
-								{
-									backgroundColor: isCurrent
-										? theme.successSubtle
-										: theme.accentSubtle,
-								},
-							]}
-						>
-							{isCurrent && (
-								<View
-									style={[
-										styles.pulseDot,
-										{
-											backgroundColor:
-												theme.success,
-										},
-									]}
-								/>
-							)}
-							<Text
-								style={[
-									styles.badgeText,
-									{
-										color: isCurrent
-											? theme.success
-											: theme.accent,
-									},
-								]}
-							>
-								{badgeText}
-							</Text>
-						</View>
-					)}
-
-					{isCompleted && (
-						<View
-							style={[
-								styles.badgeCompleted,
-								{
-									backgroundColor:
-										theme.chipBackground,
-								},
-							]}
-						>
-							<Text
-								style={[
-									styles.badgeTextCompleted,
-									{
-										color: theme.textSecondary,
-									},
-								]}
-							>
-								Завершена
+								{badgeText || "Идёт"}
 							</Text>
 						</View>
 					)}
@@ -186,220 +147,105 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 					{lesson.subject}
 				</Text>
 
-				{/* Детали: Преподаватель, Кабинет, Подгруппа */}
-				<View style={styles.detailsContainer}>
-					{/* Преподаватель */}
-					{lesson.teacher ? (
-						<View style={styles.detailRow}>
-							<Ionicons
-								name="person-outline"
-								size={14}
-								color={
-									isCompleted
-										? theme.textSecondary
-										: theme.accent
-								}
-								style={styles.detailIcon}
-							/>
-							<Text
-								style={[
-									styles.detailText,
-									{
-										color: isCompleted
-											? theme.textSecondary
-											: theme.text,
-									},
-								]}
-							>
-								{lesson.teacher}
-							</Text>
-						</View>
-					) : null}
-
-					{/* Кабинет */}
-					{lesson.room ? (
-						<View style={styles.detailRow}>
-							<Ionicons
-								name="location-outline"
-								size={14}
-								color={
-									isCompleted
-										? theme.textSecondary
-										: theme.success
-								}
-								style={styles.detailIcon}
-							/>
-							<View
-								style={[
-									styles.roomBadge,
-									{
-										backgroundColor:
-											theme.chipBackground,
-									},
-								]}
-							>
-								<Text
-									style={[
-										styles.roomText,
-										{ color: theme.text },
-									]}
-								>
-									{lesson.room}
-								</Text>
-							</View>
-						</View>
-					) : null}
-
-					{/* Подгруппа / группа */}
-					{lesson.group ? (
-						<View style={styles.detailRow}>
-							<Ionicons
-								name="people-outline"
-								size={14}
-								color={theme.textSecondary}
-								style={styles.detailIcon}
-							/>
-							<Text
-								style={[
-									styles.groupText,
-									{
-										color: theme.textSecondary,
-									},
-								]}
-							>
-								{lesson.group}
-							</Text>
-						</View>
-					) : null}
-				</View>
+				{/* Преподаватель и кабинет в одну спокойную строку */}
+				{metaLine ? (
+					<Text
+						style={[
+							styles.metaText,
+							{ color: theme.textSecondary },
+						]}
+						numberOfLines={1}
+					>
+						{metaLine}
+					</Text>
+				) : null}
 			</View>
 		</View>
 	);
 };
 
 const styles = StyleSheet.create({
-	card: {
+	container: {
 		flexDirection: "row",
-		borderRadius: 16,
-		marginBottom: 12,
-		marginHorizontal: 16,
+		paddingHorizontal: 16,
+		marginBottom: 10,
+	},
+	containerCompleted: {
+		opacity: 0.55,
+	},
+	timeColumn: {
+		width: 52,
+		paddingTop: 8,
+		alignItems: "flex-start",
+	},
+	startTime: {
+		fontSize: 14,
+		fontWeight: "700",
+		letterSpacing: -0.2,
+	},
+	endTime: {
+		fontSize: 12,
+		fontWeight: "500",
+		marginTop: 2,
+	},
+	card: {
+		flex: 1,
+		paddingVertical: 14,
+		paddingHorizontal: 16,
+		borderRadius: 18,
+		borderWidth: 1.5,
 		shadowColor: "#000",
 		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.06,
-		shadowRadius: 8,
-		elevation: 2,
-		overflow: "hidden",
-		borderWidth: StyleSheet.hairlineWidth,
+		shadowOpacity: 0.04,
+		shadowRadius: 6,
+		elevation: 1,
 	},
 	cardCurrent: {
 		shadowColor: "#34C759",
-		shadowOpacity: 0.2,
-		shadowRadius: 10,
-		elevation: 4,
+		shadowOpacity: 0.15,
+		shadowRadius: 8,
+		elevation: 3,
 	},
-	cardCompleted: {
-		opacity: 0.6,
-	},
-	indicatorBar: {
-		width: 5,
-	},
-	cardContent: {
-		flex: 1,
-		padding: 14,
-	},
-	topRow: {
+	cardHeader: {
 		flexDirection: "row",
+		alignItems: "center",
 		justifyContent: "space-between",
-		alignItems: "center",
-		marginBottom: 8,
+		marginBottom: 4,
 	},
-	timeInfo: {
-		flexDirection: "row",
-		alignItems: "center",
-	},
-	pairCircle: {
-		width: 28,
-		height: 28,
-		borderRadius: 14,
-		alignItems: "center",
-		justifyContent: "center",
-		marginRight: 8,
-	},
-	pairNumber: {
-		fontSize: 13,
+	pairIndex: {
+		fontSize: 11,
 		fontWeight: "700",
-	},
-	timeTextContainer: {
-		justifyContent: "center",
-	},
-	timeLabel: {
-		fontSize: 10,
-		fontWeight: "600",
 		textTransform: "uppercase",
-		letterSpacing: 0.5,
+		letterSpacing: 0.6,
 	},
-	timeValue: {
-		fontSize: 13,
-		fontWeight: "700",
-	},
-	badge: {
+	statusBadge: {
 		flexDirection: "row",
 		alignItems: "center",
-		paddingHorizontal: 8,
-		paddingVertical: 4,
-		borderRadius: 12,
-	},
-	badgeCompleted: {
-		paddingHorizontal: 8,
-		paddingVertical: 4,
-		borderRadius: 12,
+		paddingHorizontal: 7,
+		paddingVertical: 2,
+		borderRadius: 8,
 	},
 	pulseDot: {
-		width: 6,
-		height: 6,
-		borderRadius: 3,
-		marginRight: 5,
+		width: 5,
+		height: 5,
+		borderRadius: 2.5,
+		marginRight: 4,
 	},
-	badgeText: {
-		fontSize: 11,
-		fontWeight: "700",
-	},
-	badgeTextCompleted: {
-		fontSize: 11,
-		fontWeight: "600",
+	statusText: {
+		fontSize: 10,
+		fontWeight: "800",
+		letterSpacing: 0.2,
 	},
 	subject: {
 		fontSize: 16,
 		fontWeight: "700",
-		lineHeight: 22,
-		marginBottom: 10,
+		lineHeight: 21,
+		marginBottom: 6,
+		letterSpacing: -0.3,
 	},
-	detailsContainer: {
-		flexDirection: "row",
-		flexWrap: "wrap",
-		gap: 12,
-	},
-	detailRow: {
-		flexDirection: "row",
-		alignItems: "center",
-	},
-	detailIcon: {
-		marginRight: 5,
-	},
-	detailText: {
+	metaText: {
 		fontSize: 13,
 		fontWeight: "500",
-	},
-	roomBadge: {
-		paddingHorizontal: 7,
-		paddingVertical: 2,
-		borderRadius: 6,
-	},
-	roomText: {
-		fontSize: 12,
-		fontWeight: "700",
-	},
-	groupText: {
-		fontSize: 12,
+		letterSpacing: -0.1,
 	},
 });

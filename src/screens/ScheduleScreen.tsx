@@ -7,11 +7,13 @@ import {
 	RefreshControl,
 	ActivityIndicator,
 	TouchableOpacity,
+	LayoutAnimation,
+	Platform,
+	UIManager,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import {
 	AppSettings,
-	DaySchedule,
 	Lesson,
 	ScheduleData,
 	SearchResultItem,
@@ -23,6 +25,13 @@ import { Header } from "../components/Header";
 import { DaySelector } from "../components/DaySelector";
 import { LessonCard } from "../components/LessonCard";
 import { EmptyDay } from "../components/EmptyDay";
+
+if (
+	Platform.OS === "android" &&
+	UIManager.setLayoutAnimationEnabledExperimental
+) {
+	UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 interface ScheduleScreenProps {
 	entity: SearchResultItem;
@@ -49,8 +58,6 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 	entity,
 	schedule,
 	selectedDayIndex,
-	selectedWeekId,
-	isFav,
 	isLoading,
 	isRefreshing,
 	isOffline,
@@ -60,21 +67,24 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 	onSelectDayIndex,
 	onOpenSearch,
 	onOpenWeeks,
-	onOpenCalls,
-	onToggleFav,
 	onRefresh,
 	onRetry,
 }) => {
 	const selectedDay = schedule?.days[selectedDayIndex];
 
-	// Фильтрация пар по выбранной в профиле подгруппе
-	const filterLessonsBySubgroup = (
-		lessons: Lesson[]
-	): Lesson[] => {
+	// Анимация при переключении дня
+	const handleSelectDay = (idx: number) => {
+		LayoutAnimation.configureNext(
+			LayoutAnimation.Presets.easeInEaseOut
+		);
+		onSelectDayIndex(idx);
+	};
+
+	// Фильтрация по подгруппе
+	const filterLessons = (lessons: Lesson[]): Lesson[] => {
 		if (settings.subgroup === "all") return lessons;
-		return lessons.filter((lesson) => {
-			const g = lesson.group.toLowerCase();
-			// Если подгруппа не указана в скобках, значит пара для всей группы
+		return lessons.filter((l) => {
+			const g = l.group.toLowerCase();
 			if (!g.includes("подгруппа") && !g.includes("п/г"))
 				return true;
 			if (
@@ -96,7 +106,7 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 	};
 
 	const displayedLessons = selectedDay
-		? filterLessonsBySubgroup(selectedDay.lessons)
+		? filterLessons(selectedDay.lessons)
 		: [];
 
 	return (
@@ -106,63 +116,43 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 				{ backgroundColor: theme.background },
 			]}
 		>
-			{/* Шапка iOS */}
+			{/* Лаконичная шапка */}
 			<Header
 				entity={entity}
 				weekNum={schedule?.currentWeekNum || ""}
-				weekDates={schedule?.currentWeekDates || ""}
-				isFav={isFav}
-				isLoading={isLoading}
 				theme={theme}
 				onOpenSearch={onOpenSearch}
 				onOpenWeeks={onOpenWeeks}
-				onOpenCalls={onOpenCalls}
-				onToggleFav={onToggleFav}
-				onRefresh={onRefresh}
 			/>
 
-			{/* Офлайн бейдж */}
-			{isOffline && (
-				<View
-					style={[
-						styles.offlineBanner,
-						{
-							backgroundColor: theme.warningSubtle,
-							borderBottomColor: theme.warning,
-						},
-					]}
-				>
-					<Ionicons
-						name="cloud-offline-outline"
-						size={15}
-						color={theme.warning}
-						style={{ marginRight: 6 }}
-					/>
-					<Text
-						style={[
-							styles.offlineText,
-							{ color: theme.warning },
-						]}
-					>
-						Офлайн-режим • Показана сохранённая копия
-					</Text>
-				</View>
-			)}
-
-			{/* Горизонтальный переключатель дней недели */}
+			{/* Полоска дней */}
 			{schedule?.days && schedule.days.length > 0 && (
 				<DaySelector
 					days={schedule.days}
 					selectedIndex={selectedDayIndex}
 					theme={theme}
-					onSelectIndex={onSelectDayIndex}
+					onSelectIndex={handleSelectDay}
 				/>
+			)}
+
+			{/* Спокойное уведомление об офлайн-режиме (если сети нет) */}
+			{isOffline && (
+				<View style={styles.offlineNotice}>
+					<Text
+						style={[
+							styles.offlineText,
+							{ color: theme.textSecondary },
+						]}
+					>
+						Офлайн-копия
+					</Text>
+				</View>
 			)}
 
 			{/* Список пар */}
 			<ScrollView
-				style={styles.content}
-				contentContainerStyle={styles.scrollContainer}
+				style={styles.scroll}
+				contentContainerStyle={styles.scrollContent}
 				showsVerticalScrollIndicator={false}
 				refreshControl={
 					<RefreshControl
@@ -173,11 +163,11 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 				}
 			>
 				{errorMessage && !schedule ? (
-					<View style={styles.errorContainer}>
+					<View style={styles.centerBox}>
 						<Ionicons
-							name="alert-circle-outline"
-							size={56}
-							color={theme.danger}
+							name="cloud-offline-outline"
+							size={48}
+							color={theme.textSecondary}
 						/>
 						<Text
 							style={[
@@ -185,7 +175,7 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 								{ color: theme.text },
 							]}
 						>
-							Ошибка загрузки
+							Нет связи с сервером
 						</Text>
 						<Text
 							style={[
@@ -197,7 +187,7 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 						</Text>
 						<TouchableOpacity
 							style={[
-								styles.retryButton,
+								styles.retryBtn,
 								{
 									backgroundColor:
 										theme.accent,
@@ -205,18 +195,18 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 							]}
 							onPress={onRetry}
 						>
-							<Text style={styles.retryButtonText}>
-								Попробовать снова
+							<Text style={styles.retryBtnText}>
+								Повторить
 							</Text>
 						</TouchableOpacity>
 					</View>
 				) : selectedDay ? (
 					<View>
-						{/* Дата и статус "Сегодня" */}
-						<View style={styles.dayInfoBar}>
+						{/* Дата выбранного дня */}
+						<View style={styles.dayHeader}>
 							<Text
 								style={[
-									styles.dayDateTitle,
+									styles.dayTitle,
 									{ color: theme.text },
 								]}
 							>
@@ -225,53 +215,22 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 									selectedDay.dayName
 								)}
 							</Text>
-							<View style={styles.rightPillRow}>
-								{settings.subgroup !== "all" && (
-									<View
-										style={[
-											styles.subgroupPill,
-											{
-												backgroundColor:
-													theme.chipBackground,
-											},
-										]}
-									>
-										<Text
-											style={[
-												styles.subgroupPillText,
-												{
-													color: theme.textSecondary,
-												},
-											]}
-										>
-											{settings.subgroup}{" "}
-											подгр.
-										</Text>
-									</View>
-								)}
-								{selectedDay.isToday && (
-									<View
-										style={[
-											styles.todayPill,
-											{
-												backgroundColor:
-													theme.accent,
-											},
-										]}
-									>
-										<Text
-											style={
-												styles.todayPillText
-											}
-										>
-											СЕГОДНЯ
-										</Text>
-									</View>
-								)}
-							</View>
+							{settings.subgroup !== "all" && (
+								<Text
+									style={[
+										styles.subgroupNotice,
+										{
+											color: theme.textSecondary,
+										},
+									]}
+								>
+									{settings.subgroup}-я
+									подгруппа
+								</Text>
+							)}
 						</View>
 
-						{/* Карточки пар */}
+						{/* Карточки занятий */}
 						{displayedLessons.length > 0 ? (
 							displayedLessons.map((lesson) => (
 								<LessonCard
@@ -290,19 +249,11 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 						)}
 					</View>
 				) : isLoading ? (
-					<View style={styles.loadingContainer}>
+					<View style={styles.centerBox}>
 						<ActivityIndicator
-							size="large"
+							size="small"
 							color={theme.accent}
 						/>
-						<Text
-							style={[
-								styles.loadingText,
-								{ color: theme.textSecondary },
-							]}
-						>
-							Загрузка расписания...
-						</Text>
 					</View>
 				) : null}
 			</ScrollView>
@@ -314,97 +265,63 @@ const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 	},
-	content: {
+	scroll: {
 		flex: 1,
 	},
-	scrollContainer: {
-		paddingVertical: 12,
-		paddingBottom: 110, // Чтобы не перекрывалось нижним таб-баром
+	scrollContent: {
+		paddingTop: 8,
+		paddingBottom: 110,
 	},
-	offlineBanner: {
-		flexDirection: "row",
+	offlineNotice: {
 		alignItems: "center",
-		justifyContent: "center",
-		paddingVertical: 6,
-		paddingHorizontal: 16,
-		borderBottomWidth: StyleSheet.hairlineWidth,
+		paddingVertical: 4,
 	},
 	offlineText: {
-		fontSize: 12,
-		fontWeight: "600",
+		fontSize: 11,
+		fontWeight: "500",
 	},
-	dayInfoBar: {
+	dayHeader: {
 		flexDirection: "row",
-		alignItems: "center",
+		alignItems: "baseline",
 		justifyContent: "space-between",
 		paddingHorizontal: 20,
-		marginBottom: 12,
-		marginTop: 4,
+		marginBottom: 14,
+		marginTop: 6,
 	},
-	dayDateTitle: {
-		fontSize: 17,
+	dayTitle: {
+		fontSize: 18,
 		fontWeight: "700",
+		letterSpacing: -0.3,
 	},
-	rightPillRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 6,
+	subgroupNotice: {
+		fontSize: 12,
+		fontWeight: "500",
 	},
-	subgroupPill: {
-		paddingHorizontal: 7,
-		paddingVertical: 3,
-		borderRadius: 8,
-	},
-	subgroupPillText: {
-		fontSize: 11,
-		fontWeight: "600",
-	},
-	todayPill: {
-		paddingHorizontal: 8,
-		paddingVertical: 3,
-		borderRadius: 8,
-	},
-	todayPillText: {
-		fontSize: 10,
-		fontWeight: "800",
-		color: "#FFFFFF",
-		letterSpacing: 0.5,
-	},
-	loadingContainer: {
+	centerBox: {
 		alignItems: "center",
 		justifyContent: "center",
 		paddingVertical: 100,
-	},
-	loadingText: {
-		fontSize: 15,
-		fontWeight: "500",
-		marginTop: 14,
-	},
-	errorContainer: {
-		alignItems: "center",
-		justifyContent: "center",
-		paddingVertical: 80,
 		paddingHorizontal: 30,
 	},
 	errorTitle: {
-		fontSize: 20,
+		fontSize: 18,
 		fontWeight: "700",
-		marginTop: 16,
-		marginBottom: 8,
+		marginTop: 14,
+		marginBottom: 6,
 	},
 	errorSubtitle: {
-		fontSize: 14,
+		fontSize: 13,
 		textAlign: "center",
-		lineHeight: 20,
-		marginBottom: 20,
+		marginBottom: 16,
+		lineHeight: 18,
 	},
-	retryButton: {
-		paddingHorizontal: 20,
-		paddingVertical: 10,
-		borderRadius: 20,
+	retryBtn: {
+		paddingHorizontal: 18,
+		paddingVertical: 8,
+		borderRadius: 18,
 	},
-	retryButtonText: {
-		fontSize: 15,
+	retryBtnText: {
+		fontSize: 14,
 		fontWeight: "600",
 		color: "#FFFFFF",
 	},

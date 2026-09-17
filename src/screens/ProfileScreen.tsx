@@ -5,7 +5,6 @@ import {
 	View,
 	ScrollView,
 	TouchableOpacity,
-	Switch,
 	Alert,
 	Linking,
 } from "react-native";
@@ -13,7 +12,6 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import {
 	AppSettings,
-	SearchResultItem,
 	SubgroupFilter,
 	ThemeMode,
 } from "../types/schedule";
@@ -35,7 +33,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 	onOpenGroupPicker,
 	onOpenCallsModal,
 }) => {
-	const [clearingCache, setClearingCache] = useState(false);
+	const [clearing, setClearing] = useState(false);
 
 	const triggerLight = () => {
 		try {
@@ -45,8 +43,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 		} catch {}
 	};
 
-	const handleClearCache = async () => {
-		setClearingCache(true);
+	const handleClear = async () => {
+		setClearing(true);
 		try {
 			const count = await clearScheduleCache();
 			try {
@@ -55,20 +53,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 				);
 			} catch {}
 			Alert.alert(
-				"Память очищена",
-				`Удалено сохранённых копий расписания: ${count}`
+				"Кэш очищен",
+				`Удалено сохранённых дней расписания: ${count}`
 			);
 		} catch {
 			Alert.alert("Ошибка", "Не удалось очистить кэш");
 		} finally {
-			setClearingCache(false);
+			setClearing(false);
 		}
-	};
-
-	const openCollegeSite = () => {
-		Linking.openURL(
-			"https://it-institut.ru/SearchString/Index/37"
-		);
 	};
 
 	return (
@@ -80,95 +72,41 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 			contentContainerStyle={styles.scrollContent}
 			showsVerticalScrollIndicator={false}
 		>
-			{/* iOS Large Title */}
-			<View style={styles.titleContainer}>
+			{/* Заголовок экрана */}
+			<View style={styles.header}>
 				<Text
 					style={[
 						styles.largeTitle,
 						{ color: theme.text },
 					]}
 				>
-					Профиль
+					Настройки
 				</Text>
 			</View>
 
-			{/* Карточка студента / профиля в стиле Apple ID */}
-			<TouchableOpacity
-				style={[
-					styles.profileCard,
-					{
-						backgroundColor: theme.groupedCell,
-						borderColor: theme.border,
-					},
-				]}
-				activeOpacity={0.7}
-				onPress={() => {
-					triggerLight();
-					onOpenGroupPicker();
-				}}
-			>
-				<View
-					style={[
-						styles.avatarCircle,
-						{ backgroundColor: theme.accent },
-					]}
-				>
-					<Ionicons
-						name="school"
-						size={32}
-						color="#FFFFFF"
-					/>
-				</View>
-
-				<View style={styles.profileDetails}>
-					<Text
-						style={[
-							styles.profileName,
-							{ color: theme.text },
-						]}
-					>
-						{settings.defaultEntity.SearchContent}
-					</Text>
-					<Text
-						style={[
-							styles.profileSub,
-							{ color: theme.textSecondary },
-						]}
-					>
-						Группа по умолчанию • АПК
-					</Text>
-				</View>
-
-				<Ionicons
-					name="chevron-forward"
-					size={20}
-					color={theme.textSecondary}
-				/>
-			</TouchableOpacity>
-
-			{/* СЕКЦИЯ: УЧЕБНЫЙ ПРОЦЕСС */}
+			{/* СЕКЦИЯ 1: ГРУППА И ПОДГРУППА */}
 			<View style={styles.section}>
 				<Text
 					style={[
-						styles.sectionHeader,
+						styles.sectionTitle,
 						{ color: theme.textSecondary },
 					]}
 				>
-					УЧЕБНЫЙ ПРОЦЕСС
+					УЧЁБА
 				</Text>
 				<View
 					style={[
-						styles.groupedCard,
+						styles.card,
 						{
-							backgroundColor: theme.groupedCell,
+							backgroundColor: theme.card,
 							borderColor: theme.border,
 						},
 					]}
 				>
 					{/* Выбор группы */}
 					<TouchableOpacity
-						style={styles.cellRow}
-						activeOpacity={0.7}
+						style={styles.row}
+						activeOpacity={0.6}
 						onPress={() => {
 							triggerLight();
 							onOpenGroupPicker();
@@ -176,59 +114,55 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 					>
 						<View
 							style={[
-								styles.iconBox,
+								styles.iconSquare,
 								{ backgroundColor: "#007AFF" },
 							]}
 						>
 							<Ionicons
 								name="people"
-								size={17}
+								size={16}
 								color="#FFFFFF"
 							/>
 						</View>
-						<View style={styles.cellContent}>
-							<Text
-								style={[
-									styles.cellTitle,
-									{ color: theme.text },
-								]}
-							>
-								Основная группа
-							</Text>
-							<Text
-								style={[
-									styles.cellValue,
-									{
-										color: theme.textSecondary,
-									},
-								]}
-							>
-								{
-									settings.defaultEntity
-										.SearchContent
-								}
-							</Text>
-						</View>
+						<Text
+							style={[
+								styles.rowLabel,
+								{ color: theme.text },
+							]}
+						>
+							Группа
+						</Text>
+						<Text
+							style={[
+								styles.rowValue,
+								{ color: theme.textSecondary },
+							]}
+						>
+							{
+								settings.defaultEntity
+									.SearchContent
+							}
+						</Text>
 						<Ionicons
 							name="chevron-forward"
-							size={18}
+							size={16}
 							color={theme.textSecondary}
 						/>
 					</TouchableOpacity>
 
 					<View
 						style={[
-							styles.separator,
-							{ backgroundColor: theme.separator },
+							styles.divider,
+							{ backgroundColor: theme.border },
 						]}
 					/>
 
-					{/* Моя подгруппа */}
-					<View style={styles.cellRowColumn}>
-						<View style={styles.cellRowHeader}>
+					{/* Выбор подгруппы */}
+					<View style={styles.columnRow}>
+						<View style={styles.labelRow}>
 							<View
 								style={[
-									styles.iconBox,
+									styles.iconSquare,
 									{
 										backgroundColor:
 											"#34C759",
@@ -243,17 +177,17 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 							</View>
 							<Text
 								style={[
-									styles.cellTitle,
+									styles.rowLabel,
 									{ color: theme.text },
 								]}
 							>
-								Фильтр подгруппы
+								Подгруппа
 							</Text>
 						</View>
 
 						<View
 							style={[
-								styles.segmentedControl,
+								styles.segmented,
 								{
 									backgroundColor:
 										theme.chipBackground,
@@ -266,22 +200,20 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 									"1",
 									"2",
 								] as SubgroupFilter[]
-							).map((val) => {
+							).map((sg) => {
 								const isSelected =
-									settings.subgroup === val;
-								let label = "Все";
-								if (val === "1")
-									label = "1 подгруппа";
-								if (val === "2")
-									label = "2 подгруппа";
+									settings.subgroup === sg;
+								let title = "Все";
+								if (sg === "1") title = "1-я";
+								if (sg === "2") title = "2-я";
 
 								return (
 									<TouchableOpacity
-										key={val}
+										key={sg}
 										style={[
-											styles.segmentItem,
+											styles.segmentBtn,
 											isSelected && [
-												styles.segmentItemSelected,
+												styles.segmentBtnActive,
 												{
 													backgroundColor:
 														theme.card,
@@ -294,13 +226,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 												Haptics.selectionAsync();
 											} catch {}
 											onUpdateSettings({
-												subgroup: val,
+												subgroup: sg,
 											});
 										}}
 									>
 										<Text
 											style={[
-												styles.segmentText,
+												styles.segmentBtnText,
 												{
 													color: isSelected
 														? theme.text
@@ -312,7 +244,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 												},
 											]}
 										>
-											{label}
+											{title}
 										</Text>
 									</TouchableOpacity>
 								);
@@ -322,11 +254,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 				</View>
 			</View>
 
-			{/* СЕКЦИЯ: ОФОРМЛЕНИЕ */}
+			{/* СЕКЦИЯ 2: ОФОРМЛЕНИЕ */}
 			<View style={styles.section}>
 				<Text
 					style={[
-						styles.sectionHeader,
+						styles.sectionTitle,
 						{ color: theme.textSecondary },
 					]}
 				>
@@ -334,19 +266,18 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 				</Text>
 				<View
 					style={[
-						styles.groupedCard,
+						styles.card,
 						{
-							backgroundColor: theme.groupedCell,
+							backgroundColor: theme.card,
 							borderColor: theme.border,
 						},
 					]}
 				>
-					{/* Тема */}
-					<View style={styles.cellRowColumn}>
-						<View style={styles.cellRowHeader}>
+					<View style={styles.columnRow}>
+						<View style={styles.labelRow}>
 							<View
 								style={[
-									styles.iconBox,
+									styles.iconSquare,
 									{
 										backgroundColor:
 											"#AF52DE",
@@ -354,24 +285,24 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 								]}
 							>
 								<Ionicons
-									name="color-palette"
-									size={17}
+									name="moon"
+									size={16}
 									color="#FFFFFF"
 								/>
 							</View>
 							<Text
 								style={[
-									styles.cellTitle,
+									styles.rowLabel,
 									{ color: theme.text },
 								]}
 							>
-								Цветовая тема
+								Тема
 							</Text>
 						</View>
 
 						<View
 							style={[
-								styles.segmentedControl,
+								styles.segmented,
 								{
 									backgroundColor:
 										theme.chipBackground,
@@ -387,25 +318,19 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 							).map((mode) => {
 								const isSelected =
 									settings.themeMode === mode;
-								let label = "Авто";
-								let iconName: any =
-									"phone-portrait-outline";
-								if (mode === "light") {
-									label = "Светлая";
-									iconName = "sunny";
-								}
-								if (mode === "dark") {
-									label = "Тёмная";
-									iconName = "moon";
-								}
+								let title = "Авто";
+								if (mode === "light")
+									title = "Светлая";
+								if (mode === "dark")
+									title = "Тёмная";
 
 								return (
 									<TouchableOpacity
 										key={mode}
 										style={[
-											styles.segmentItem,
+											styles.segmentBtn,
 											isSelected && [
-												styles.segmentItemSelected,
+												styles.segmentBtnActive,
 												{
 													backgroundColor:
 														theme.card,
@@ -422,21 +347,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 											});
 										}}
 									>
-										<Ionicons
-											name={iconName}
-											size={14}
-											color={
-												isSelected
-													? theme.accent
-													: theme.textSecondary
-											}
-											style={{
-												marginRight: 4,
-											}}
-										/>
 										<Text
 											style={[
-												styles.segmentText,
+												styles.segmentBtnText,
 												{
 													color: isSelected
 														? theme.text
@@ -448,7 +361,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 												},
 											]}
 										>
-											{label}
+											{title}
 										</Text>
 									</TouchableOpacity>
 								);
@@ -458,29 +371,29 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 				</View>
 			</View>
 
-			{/* СЕКЦИЯ: ЗВОНКИ */}
+			{/* СЕКЦИЯ 3: ИНФОРМАЦИЯ И ЗВОНКИ */}
 			<View style={styles.section}>
 				<Text
 					style={[
-						styles.sectionHeader,
+						styles.sectionTitle,
 						{ color: theme.textSecondary },
 					]}
 				>
-					ЗВОНКИ И УВЕДОМЛЕНИЯ
+					СПРАВОЧНИК
 				</Text>
 				<View
 					style={[
-						styles.groupedCard,
+						styles.card,
 						{
-							backgroundColor: theme.groupedCell,
+							backgroundColor: theme.card,
 							borderColor: theme.border,
 						},
 					]}
 				>
 					{/* Расписание звонков */}
 					<TouchableOpacity
-						style={styles.cellRow}
-						activeOpacity={0.7}
+						style={styles.row}
+						activeOpacity={0.6}
 						onPress={() => {
 							triggerLight();
 							onOpenCallsModal();
@@ -488,178 +401,119 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 					>
 						<View
 							style={[
-								styles.iconBox,
+								styles.iconSquare,
 								{ backgroundColor: "#FF9500" },
 							]}
 						>
 							<Ionicons
 								name="notifications"
-								size={17}
+								size={16}
 								color="#FFFFFF"
 							/>
 						</View>
-						<View style={styles.cellContent}>
-							<Text
-								style={[
-									styles.cellTitle,
-									{ color: theme.text },
-								]}
-							>
-								Расписание звонков
-							</Text>
-						</View>
+						<Text
+							style={[
+								styles.rowLabel,
+								{ color: theme.text },
+							]}
+						>
+							Расписание звонков
+						</Text>
 						<Ionicons
 							name="chevron-forward"
-							size={18}
+							size={16}
 							color={theme.textSecondary}
 						/>
 					</TouchableOpacity>
 
 					<View
 						style={[
-							styles.separator,
-							{ backgroundColor: theme.separator },
+							styles.divider,
+							{ backgroundColor: theme.border },
 						]}
 					/>
 
-					{/* Переключатель напоминаний */}
-					<View style={styles.cellRow}>
-						<View
-							style={[
-								styles.iconBox,
-								{ backgroundColor: "#FF2D55" },
-							]}
-						>
-							<Ionicons
-								name="alarm"
-								size={17}
-								color="#FFFFFF"
-							/>
-						</View>
-						<View style={styles.cellContent}>
-							<Text
-								style={[
-									styles.cellTitle,
-									{ color: theme.text },
-								]}
-							>
-								Напоминать о начале пары
-							</Text>
-						</View>
-						<Switch
-							value={settings.notificationsEnabled}
-							onValueChange={(val) => {
-								try {
-									Haptics.selectionAsync();
-								} catch {}
-								onUpdateSettings({
-									notificationsEnabled: val,
-								});
-							}}
-							trackColor={{
-								false: theme.chipBackground,
-								true: "#34C759",
-							}}
-						/>
-					</View>
-				</View>
-			</View>
-
-			{/* СЕКЦИЯ: ДАННЫЕ И САЙТ */}
-			<View style={styles.section}>
-				<Text
-					style={[
-						styles.sectionHeader,
-						{ color: theme.textSecondary },
-					]}
-				>
-					СИСТЕМА И ДАННЫЕ
-				</Text>
-				<View
-					style={[
-						styles.groupedCard,
-						{
-							backgroundColor: theme.groupedCell,
-							borderColor: theme.border,
-						},
-					]}
-				>
-					{/* Открыть сайт */}
+					{/* Портал колледжа */}
 					<TouchableOpacity
-						style={styles.cellRow}
-						activeOpacity={0.7}
-						onPress={openCollegeSite}
+						style={styles.row}
+						activeOpacity={0.6}
+						onPress={() => {
+							Linking.openURL(
+								"https://it-institut.ru/SearchString/Index/37"
+							);
+						}}
 					>
 						<View
 							style={[
-								styles.iconBox,
+								styles.iconSquare,
 								{ backgroundColor: "#5856D6" },
 							]}
 						>
 							<Ionicons
 								name="globe-outline"
-								size={17}
+								size={16}
 								color="#FFFFFF"
 							/>
 						</View>
-						<View style={styles.cellContent}>
-							<Text
-								style={[
-									styles.cellTitle,
-									{ color: theme.text },
-								]}
-							>
-								Открыть портал колледжа
-							</Text>
-						</View>
+						<Text
+							style={[
+								styles.rowLabel,
+								{ color: theme.text },
+							]}
+						>
+							Портал колледжа
+						</Text>
 						<Ionicons
 							name="open-outline"
-							size={18}
+							size={16}
 							color={theme.textSecondary}
 						/>
 					</TouchableOpacity>
+				</View>
+			</View>
 
-					<View
-						style={[
-							styles.separator,
-							{ backgroundColor: theme.separator },
-						]}
-					/>
-
-					{/* Очистить кэш */}
+			{/* СЕКЦИЯ 4: ПАМЯТЬ */}
+			<View style={styles.section}>
+				<View
+					style={[
+						styles.card,
+						{
+							backgroundColor: theme.card,
+							borderColor: theme.border,
+						},
+					]}
+				>
 					<TouchableOpacity
-						style={styles.cellRow}
-						activeOpacity={0.7}
-						onPress={handleClearCache}
-						disabled={clearingCache}
+						style={styles.row}
+						activeOpacity={0.6}
+						onPress={handleClear}
+						disabled={clearing}
 					>
 						<View
 							style={[
-								styles.iconBox,
+								styles.iconSquare,
 								{ backgroundColor: "#FF3B30" },
 							]}
 						>
 							<Ionicons
 								name="trash-outline"
-								size={17}
+								size={16}
 								color="#FFFFFF"
 							/>
 						</View>
-						<View style={styles.cellContent}>
-							<Text
-								style={[
-									styles.cellTitle,
-									{ color: theme.danger },
-								]}
-							>
-								Очистить сохранённое расписание
-							</Text>
-						</View>
+						<Text
+							style={[
+								styles.rowLabel,
+								{ color: theme.danger },
+							]}
+						>
+							Очистить сохранённый кэш
+						</Text>
 					</TouchableOpacity>
 				</View>
 			</View>
 
-			{/* Футер приложения */}
+			{/* Футер */}
 			<View style={styles.footer}>
 				<Text
 					style={[
@@ -667,7 +521,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 						{ color: theme.textSecondary },
 					]}
 				>
-					Расписание АПК для iPhone
+					Альметьевский профессиональный колледж
 				</Text>
 				<Text
 					style={[
@@ -675,7 +529,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 						{ color: theme.textSecondary },
 					]}
 				>
-					Версия 1.0.0 (Сборка 2026.09) • Альметьевск
+					Версия 1.0.0
 				</Text>
 			</View>
 		</ScrollView>
@@ -688,137 +542,100 @@ const styles = StyleSheet.create({
 	},
 	scrollContent: {
 		paddingHorizontal: 16,
-		paddingTop: 12,
-		paddingBottom: 110, // Отступ для нижней панели таб-бара
+		paddingTop: 8,
+		paddingBottom: 110,
 	},
-	titleContainer: {
+	header: {
 		marginBottom: 16,
-		marginTop: 8,
+		marginTop: 6,
+		paddingHorizontal: 4,
 	},
 	largeTitle: {
-		fontSize: 34,
+		fontSize: 32,
 		fontWeight: "800",
-		letterSpacing: -0.8,
-	},
-	profileCard: {
-		flexDirection: "row",
-		alignItems: "center",
-		padding: 16,
-		borderRadius: 16,
-		marginBottom: 24,
-		borderWidth: StyleSheet.hairlineWidth,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 1 },
-		shadowOpacity: 0.04,
-		shadowRadius: 5,
-		elevation: 1,
-	},
-	avatarCircle: {
-		width: 54,
-		height: 54,
-		borderRadius: 27,
-		alignItems: "center",
-		justifyContent: "center",
-		marginRight: 14,
-	},
-	profileDetails: {
-		flex: 1,
-	},
-	profileName: {
-		fontSize: 20,
-		fontWeight: "700",
-		marginBottom: 3,
-	},
-	profileSub: {
-		fontSize: 13,
+		letterSpacing: -0.6,
 	},
 	section: {
-		marginBottom: 24,
+		marginBottom: 22,
 	},
-	sectionHeader: {
+	sectionTitle: {
 		fontSize: 12,
 		fontWeight: "600",
-		letterSpacing: 0.4,
-		marginBottom: 8,
-		marginLeft: 12,
+		letterSpacing: 0.3,
+		marginBottom: 6,
+		marginLeft: 8,
 	},
-	groupedCard: {
-		borderRadius: 16,
+	card: {
+		borderRadius: 18,
 		borderWidth: StyleSheet.hairlineWidth,
 		overflow: "hidden",
 	},
-	cellRow: {
+	row: {
 		flexDirection: "row",
 		alignItems: "center",
 		paddingHorizontal: 16,
-		paddingVertical: 12,
+		paddingVertical: 13,
 	},
-	cellRowColumn: {
+	columnRow: {
 		paddingHorizontal: 16,
 		paddingVertical: 12,
 	},
-	cellRowHeader: {
+	labelRow: {
 		flexDirection: "row",
 		alignItems: "center",
 		marginBottom: 10,
 	},
-	iconBox: {
-		width: 30,
-		height: 30,
-		borderRadius: 8,
+	iconSquare: {
+		width: 28,
+		height: 28,
+		borderRadius: 7,
 		alignItems: "center",
 		justifyContent: "center",
 		marginRight: 12,
 	},
-	cellContent: {
-		flex: 1,
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		paddingRight: 8,
-	},
-	cellTitle: {
+	rowLabel: {
 		fontSize: 16,
 		fontWeight: "500",
+		flex: 1,
 	},
-	cellValue: {
+	rowValue: {
 		fontSize: 15,
+		marginRight: 6,
 	},
-	separator: {
+	divider: {
 		height: StyleSheet.hairlineWidth,
-		marginLeft: 58,
+		marginLeft: 56,
 	},
-	segmentedControl: {
+	segmented: {
 		flexDirection: "row",
 		borderRadius: 9,
 		padding: 2,
 	},
-	segmentItem: {
+	segmentBtn: {
 		flex: 1,
-		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "center",
-		paddingVertical: 6,
+		paddingVertical: 7,
 		borderRadius: 7,
 	},
-	segmentItemSelected: {
+	segmentBtnActive: {
 		shadowColor: "#000",
 		shadowOffset: { width: 0, height: 1 },
-		shadowOpacity: 0.12,
+		shadowOpacity: 0.1,
 		shadowRadius: 2,
 		elevation: 2,
 	},
-	segmentText: {
+	segmentBtnText: {
 		fontSize: 13,
 	},
 	footer: {
 		alignItems: "center",
-		paddingVertical: 20,
+		paddingVertical: 16,
 	},
 	footerText: {
-		fontSize: 13,
-		fontWeight: "600",
-		marginBottom: 3,
+		fontSize: 12,
+		fontWeight: "500",
+		marginBottom: 2,
 	},
 	footerSub: {
 		fontSize: 11,
