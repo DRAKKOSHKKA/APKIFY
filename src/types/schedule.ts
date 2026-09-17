@@ -46,3 +46,14 @@ export interface ScheduleData {
 export interface FavoriteItem extends SearchResultItem {
 	addedAt: number;
 }
+
+export type ThemeMode = "system" | "light" | "dark";
+export type SubgroupFilter = "all" | "1" | "2";
+
+export interface AppSettings {
+	themeMode: ThemeMode;
+	subgroup: SubgroupFilter;
+	compactView: boolean;
+	notificationsEnabled: boolean;
+	defaultEntity: SearchResultItem;
+}

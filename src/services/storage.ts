@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
+	AppSettings,
 	FavoriteItem,
 	ScheduleData,
 	SearchResultItem,
@@ -9,6 +10,7 @@ const STORAGE_KEYS = {
 	CURRENT_ENTITY: "@schedule_current_entity",
 	FAVORITES: "@schedule_favorites",
 	SCHEDULE_CACHE_PREFIX: "@schedule_cache_",
+	SETTINGS: "@schedule_settings",
 };
 
 // Дефолтная группа (из запроса пользователя)
@@ -18,6 +20,51 @@ export const DEFAULT_ENTITY: SearchResultItem = {
 	SearchId: 45041,
 	OwnerId: 37,
 };
+
+export const DEFAULT_SETTINGS: AppSettings = {
+	themeMode: "system",
+	subgroup: "all",
+	compactView: false,
+	notificationsEnabled: true,
+	defaultEntity: DEFAULT_ENTITY,
+};
+
+/**
+ * Получить настройки приложения
+ */
+export async function getSettings(): Promise<AppSettings> {
+	try {
+		const json = await AsyncStorage.getItem(
+			STORAGE_KEYS.SETTINGS
+		);
+		if (json) {
+			return { ...DEFAULT_SETTINGS, ...JSON.parse(json) };
+		}
+	} catch (err) {
+		console.warn("Ошибка чтения настроек:", err);
+	}
+	return DEFAULT_SETTINGS;
+}
+
+/**
+ * Сохранить настройки приложения
+ */
+export async function saveSettings(
+	partial: Partial<AppSettings>
+): Promise<AppSettings> {
+	try {
+		const current = await getSettings();
+		const updated = { ...current, ...partial };
+		await AsyncStorage.setItem(
+			STORAGE_KEYS.SETTINGS,
+			JSON.stringify(updated)
+		);
+		return updated;
+	} catch (err) {
+		console.warn("Ошибка сохранения настроек:", err);
+		return DEFAULT_SETTINGS;
+	}
+}
 
 /**
  * Сохранить текущую выбранную группу/преподавателя
@@ -67,7 +114,7 @@ export async function saveCachedSchedule(
 }
 
 /**
- * Получить расписание из локального кэша (для мгновенного открытия и офлайн-режима)
+ * Получить расписание из локального кэша
  */
 export async function getCachedSchedule(
 	entity: SearchResultItem,
@@ -86,7 +133,26 @@ export async function getCachedSchedule(
 }
 
 /**
- * Получить список избранных групп/преподавателей
+ * Очистить весь локальный кэш расписаний
+ */
+export async function clearScheduleCache(): Promise<number> {
+	try {
+		const allKeys = await AsyncStorage.getAllKeys();
+		const cacheKeys = allKeys.filter((k) =>
+			k.startsWith(STORAGE_KEYS.SCHEDULE_CACHE_PREFIX)
+		);
+		if (cacheKeys.length > 0) {
+			await AsyncStorage.multiRemove(cacheKeys);
+		}
+		return cacheKeys.length;
+	} catch (err) {
+		console.warn("Ошибка очистки кэша:", err);
+		return 0;
+	}
+}
+
+/**
+ * Получить список избранных
  */
 export async function getFavorites(): Promise<FavoriteItem[]> {
 	try {
@@ -99,7 +165,6 @@ export async function getFavorites(): Promise<FavoriteItem[]> {
 	} catch (err) {
 		console.warn("Ошибка чтения избранного:", err);
 	}
-	// По умолчанию добавляем группу 21 нмо в избранное
 	return [
 		{
 			...DEFAULT_ENTITY,
@@ -150,7 +215,7 @@ export async function toggleFavorite(
 }
 
 /**
- * Проверить, находится ли группа в избранном
+ * Проверить, в избранном ли
  */
 export async function isFavorite(
 	entity: SearchResultItem

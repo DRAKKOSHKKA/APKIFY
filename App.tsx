@@ -1,22 +1,13 @@
 import React, { useState, useEffect, useCallback } from "react";
-import {
-	StyleSheet,
-	Text,
-	View,
-	ScrollView,
-	RefreshControl,
-	ActivityIndicator,
-	TouchableOpacity,
-	useColorScheme,
-} from "react-native";
+import { StyleSheet, View, useColorScheme } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import {
 	SafeAreaProvider,
 	SafeAreaView,
 } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
 
 import {
+	AppSettings,
 	FavoriteItem,
 	ScheduleData,
 	SearchResultItem,
@@ -33,22 +24,32 @@ import {
 	getFavorites,
 	toggleFavorite,
 	isFavorite,
+	getSettings,
+	saveSettings,
 	DEFAULT_ENTITY,
+	DEFAULT_SETTINGS,
 } from "./src/services/storage";
-import { formatFullDate } from "./src/utils/timeUtils";
-import { getTheme } from "./src/theme/colors";
+import { getActiveTheme } from "./src/theme/colors";
 
-import { Header } from "./src/components/Header";
-import { DaySelector } from "./src/components/DaySelector";
-import { LessonCard } from "./src/components/LessonCard";
-import { EmptyDay } from "./src/components/EmptyDay";
-import { WeekModal } from "./src/components/WeekModal";
+import { TabBar, TabType } from "./src/components/TabBar";
+import { ScheduleScreen } from "./src/screens/ScheduleScreen";
+import { ProfileScreen } from "./src/screens/ProfileScreen";
 import { SearchModal } from "./src/components/SearchModal";
+import { WeekModal } from "./src/components/WeekModal";
 import { CallsScheduleModal } from "./src/components/CallsScheduleModal";
 
 export default function App() {
-	const colorScheme = useColorScheme();
-	const theme = getTheme(colorScheme);
+	const systemColorScheme = useColorScheme();
+	const [currentTab, setCurrentTab] =
+		useState<TabType>("schedule");
+	const [settings, setSettings] =
+		useState<AppSettings>(DEFAULT_SETTINGS);
+
+	// Вычисляем активную тему (с учетом настройки пользователя: авто, светлая или темная)
+	const theme = getActiveTheme(
+		settings.themeMode,
+		systemColorScheme
+	);
 
 	const [entity, setEntity] =
 		useState<SearchResultItem>(DEFAULT_ENTITY);
@@ -122,7 +123,7 @@ export default function App() {
 			}
 			setErrorMessage(null);
 
-			// Сначала пытаемся подтянуть кэш для мгновенного отображения
+			// Проверяем локальный кэш для мгновенного рендера
 			const cached = await getCachedSchedule(
 				targetEntity,
 				weekId
@@ -148,7 +149,6 @@ export default function App() {
 				setIsOffline(false);
 				await saveCachedSchedule(freshData);
 
-				// Обновляем индекс дня только если это первая загрузка или смена группы
 				if (!cached || isRefresh) {
 					setSelectedDayIndex(
 						pickTodayIndex(freshData.days)
@@ -160,7 +160,7 @@ export default function App() {
 					setIsOffline(true);
 				} else {
 					setErrorMessage(
-						"Не удалось загрузить расписание. Проверьте подключение к сети."
+						"Не удалось загрузить расписание. Проверьте интернет-соединение."
 					);
 				}
 			} finally {
@@ -172,25 +172,43 @@ export default function App() {
 	);
 
 	/**
-	 * Начальная инициализация приложения
+	 * Начальная загрузка настроек и данных
 	 */
 	useEffect(() => {
 		async function init() {
-			const savedEntity = await getCurrentEntity();
-			const favList = await getFavorites();
-			const favStatus = await isFavorite(savedEntity);
+			const loadedSettings = await getSettings();
+			setSettings(loadedSettings);
 
-			setEntity(savedEntity);
+			const savedEntity = await getCurrentEntity();
+			const initialEntity =
+				savedEntity ||
+				loadedSettings.defaultEntity ||
+				DEFAULT_ENTITY;
+			setEntity(initialEntity);
+
+			const favList = await getFavorites();
 			setFavorites(favList);
+
+			const favStatus = await isFavorite(initialEntity);
 			setIsFav(favStatus);
 
-			await loadSchedule(savedEntity);
+			await loadSchedule(initialEntity);
 		}
 		init();
 	}, [loadSchedule]);
 
 	/**
-	 * Выбор новой группы / преподавателя / кабинета
+	 * Обновление настроек приложения
+	 */
+	const handleUpdateSettings = async (
+		partial: Partial<AppSettings>
+	) => {
+		const updated = await saveSettings(partial);
+		setSettings(updated);
+	};
+
+	/**
+	 * Выбор сущности из поиска
 	 */
 	const handleSelectEntity = async (
 		newEntity: SearchResultItem
@@ -199,6 +217,9 @@ export default function App() {
 		setSelectedWeekId(undefined);
 		await saveCurrentEntity(newEntity);
 
+		// Если выбор был сделан при смене дефолтной группы в профиле
+		await handleUpdateSettings({ defaultEntity: newEntity });
+
 		const favStatus = await isFavorite(newEntity);
 		setIsFav(favStatus);
 
@@ -206,7 +227,7 @@ export default function App() {
 	};
 
 	/**
-	 * Выбор другой недели
+	 * Выбор недели
 	 */
 	const handleSelectWeek = async (weekId: string) => {
 		setSelectedWeekId(weekId);
@@ -223,8 +244,6 @@ export default function App() {
 		setFavorites(updatedFavorites);
 	};
 
-	const selectedDay = schedule?.days[selectedDayIndex];
-
 	return (
 		<SafeAreaProvider>
 			<SafeAreaView
@@ -238,213 +257,61 @@ export default function App() {
 					style={theme.isDark ? "light" : "dark"}
 				/>
 
-				{/* Верхняя панель управления */}
-				<Header
-					entity={entity}
-					weekNum={schedule?.currentWeekNum || ""}
-					weekDates={schedule?.currentWeekDates || ""}
-					isFav={isFav}
-					isLoading={isLoading}
-					theme={theme}
-					onOpenSearch={() => setIsSearchOpen(true)}
-					onOpenWeeks={() => setIsWeeksOpen(true)}
-					onOpenCalls={() => setIsCallsOpen(true)}
-					onToggleFav={handleToggleFavorite}
-					onRefresh={() =>
-						loadSchedule(
-							entity,
-							selectedWeekId,
-							true
-						)
-					}
-				/>
-
-				{/* Офлайн бейдж */}
-				{isOffline && (
-					<View
-						style={[
-							styles.offlineBanner,
-							{
-								backgroundColor:
-									theme.warningSubtle,
-								borderBottomColor: theme.warning,
-							},
-						]}
-					>
-						<Ionicons
-							name="cloud-offline-outline"
-							size={16}
-							color={theme.warning}
-							style={{ marginRight: 6 }}
-						/>
-						<Text
-							style={[
-								styles.offlineText,
-								{ color: theme.warning },
-							]}
-						>
-							Офлайн-режим • Показана сохранённая
-							копия
-						</Text>
-					</View>
-				)}
-
-				{/* Переключатель дней недели */}
-				{schedule?.days && schedule.days.length > 0 && (
-					<DaySelector
-						days={schedule.days}
-						selectedIndex={selectedDayIndex}
+				{/* Экран Расписание */}
+				{currentTab === "schedule" && (
+					<ScheduleScreen
+						entity={entity}
+						schedule={schedule}
+						selectedDayIndex={selectedDayIndex}
+						selectedWeekId={selectedWeekId}
+						isFav={isFav}
+						isLoading={isLoading}
+						isRefreshing={isRefreshing}
+						isOffline={isOffline}
+						errorMessage={errorMessage}
+						settings={settings}
 						theme={theme}
-						onSelectIndex={setSelectedDayIndex}
+						onSelectDayIndex={setSelectedDayIndex}
+						onOpenSearch={() =>
+							setIsSearchOpen(true)
+						}
+						onOpenWeeks={() => setIsWeeksOpen(true)}
+						onOpenCalls={() => setIsCallsOpen(true)}
+						onToggleFav={handleToggleFavorite}
+						onRefresh={() =>
+							loadSchedule(
+								entity,
+								selectedWeekId,
+								true
+							)
+						}
+						onRetry={() =>
+							loadSchedule(entity, selectedWeekId)
+						}
 					/>
 				)}
 
-				{/* Основной контент: пары на выбранный день */}
-				<ScrollView
-					style={styles.content}
-					contentContainerStyle={
-						styles.scrollContainer
-					}
-					refreshControl={
-						<RefreshControl
-							refreshing={isRefreshing}
-							onRefresh={() =>
-								loadSchedule(
-									entity,
-									selectedWeekId,
-									true
-								)
-							}
-							tintColor={theme.accent}
-						/>
-					}
-				>
-					{errorMessage && !schedule ? (
-						<View style={styles.errorContainer}>
-							<Ionicons
-								name="alert-circle-outline"
-								size={56}
-								color={theme.danger}
-							/>
-							<Text
-								style={[
-									styles.errorTitle,
-									{ color: theme.text },
-								]}
-							>
-								Ошибка загрузки
-							</Text>
-							<Text
-								style={[
-									styles.errorSubtitle,
-									{
-										color: theme.textSecondary,
-									},
-								]}
-							>
-								{errorMessage}
-							</Text>
-							<TouchableOpacity
-								style={[
-									styles.retryButton,
-									{
-										backgroundColor:
-											theme.accent,
-									},
-								]}
-								onPress={() =>
-									loadSchedule(
-										entity,
-										selectedWeekId
-									)
-								}
-							>
-								<Text
-									style={
-										styles.retryButtonText
-									}
-								>
-									Попробовать снова
-								</Text>
-							</TouchableOpacity>
-						</View>
-					) : selectedDay ? (
-						<View>
-							{/* Дата и день недели */}
-							<View style={styles.dayInfoBar}>
-								<Text
-									style={[
-										styles.dayDateTitle,
-										{ color: theme.text },
-									]}
-								>
-									{formatFullDate(
-										selectedDay.dayDate,
-										selectedDay.dayName
-									)}
-								</Text>
-								{selectedDay.isToday && (
-									<View
-										style={[
-											styles.todayPill,
-											{
-												backgroundColor:
-													theme.accent,
-											},
-										]}
-									>
-										<Text
-											style={
-												styles.todayPillText
-											}
-										>
-											СЕГОДНЯ
-										</Text>
-									</View>
-								)}
-							</View>
+				{/* Экран Профиль и Настройки */}
+				{currentTab === "profile" && (
+					<ProfileScreen
+						settings={settings}
+						theme={theme}
+						onUpdateSettings={handleUpdateSettings}
+						onOpenGroupPicker={() =>
+							setIsSearchOpen(true)
+						}
+						onOpenCallsModal={() =>
+							setIsCallsOpen(true)
+						}
+					/>
+				)}
 
-							{/* Список занятий */}
-							{selectedDay.lessons.length > 0 ? (
-								selectedDay.lessons.map(
-									(lesson) => (
-										<LessonCard
-											key={lesson.id}
-											lesson={lesson}
-											isToday={
-												selectedDay.isToday
-											}
-											theme={theme}
-										/>
-									)
-								)
-							) : (
-								<EmptyDay
-									dayName={selectedDay.dayName}
-									dayDate={selectedDay.dayDate}
-									theme={theme}
-								/>
-							)}
-						</View>
-					) : isLoading ? (
-						<View style={styles.loadingContainer}>
-							<ActivityIndicator
-								size="large"
-								color={theme.accent}
-							/>
-							<Text
-								style={[
-									styles.loadingText,
-									{
-										color: theme.textSecondary,
-									},
-								]}
-							>
-								Загрузка расписания...
-							</Text>
-						</View>
-					) : null}
-				</ScrollView>
+				{/* Нативная нижняя панель iOS (TabBar) */}
+				<TabBar
+					currentTab={currentTab}
+					theme={theme}
+					onSelectTab={setCurrentTab}
+				/>
 
 				{/* Модальные окна */}
 				<SearchModal
@@ -479,85 +346,5 @@ export default function App() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-	},
-	content: {
-		flex: 1,
-	},
-	scrollContainer: {
-		paddingVertical: 12,
-		paddingBottom: 40,
-	},
-	offlineBanner: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		paddingVertical: 7,
-		paddingHorizontal: 16,
-		borderBottomWidth: StyleSheet.hairlineWidth,
-	},
-	offlineText: {
-		fontSize: 12,
-		fontWeight: "600",
-	},
-	dayInfoBar: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		paddingHorizontal: 20,
-		marginBottom: 12,
-		marginTop: 4,
-	},
-	dayDateTitle: {
-		fontSize: 17,
-		fontWeight: "700",
-	},
-	todayPill: {
-		paddingHorizontal: 8,
-		paddingVertical: 3,
-		borderRadius: 8,
-	},
-	todayPillText: {
-		fontSize: 10,
-		fontWeight: "800",
-		color: "#FFFFFF",
-		letterSpacing: 0.5,
-	},
-	loadingContainer: {
-		alignItems: "center",
-		justifyContent: "center",
-		paddingVertical: 100,
-	},
-	loadingText: {
-		fontSize: 15,
-		fontWeight: "500",
-		marginTop: 14,
-	},
-	errorContainer: {
-		alignItems: "center",
-		justifyContent: "center",
-		paddingVertical: 80,
-		paddingHorizontal: 30,
-	},
-	errorTitle: {
-		fontSize: 20,
-		fontWeight: "700",
-		marginTop: 16,
-		marginBottom: 8,
-	},
-	errorSubtitle: {
-		fontSize: 14,
-		textAlign: "center",
-		lineHeight: 20,
-		marginBottom: 20,
-	},
-	retryButton: {
-		paddingHorizontal: 20,
-		paddingVertical: 10,
-		borderRadius: 20,
-	},
-	retryButtonText: {
-		fontSize: 15,
-		fontWeight: "600",
-		color: "#FFFFFF",
 	},
 });
