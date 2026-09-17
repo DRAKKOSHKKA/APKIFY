@@ -2,7 +2,7 @@
 	"expo": {
 		"name": "Apkify",
 		"slug": "apkify",
-		"version": "1.A1",
+		"version": "1.A2",
 		"scheme": "apkify",
 		"orientation": "portrait",
 		"icon": "./assets/icon.png",
