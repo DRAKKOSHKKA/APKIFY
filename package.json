@@ -1,6 +1,6 @@
 {
 	"name": "apkify",
-	"version": "1.A1",
+	"version": "1.A2",
 	"main": "index.ts",
 	"dependencies": {
 		"@expo/vector-icons": "^15.0.2",
