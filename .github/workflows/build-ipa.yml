@@ -19,8 +19,6 @@ jobs:
     build-ios:
         name: Build Unsigned IPA on macOS
         runs-on: macos-15
-        env:
-            DEVELOPER_DIR: /Applications/Xcode_16.2.app/Contents/Developer
 
         steps:
             - name: 📥 Checkout repository
@@ -28,14 +26,25 @@ jobs:
 
             - name: 🍏 Select Xcode 16
               run: |
-                  XCODE_PATH="/Applications/Xcode_16.2.app"
-                  if [ ! -d "$XCODE_PATH" ]; then
-                    XCODE_PATH=$(ls -d /Applications/Xcode_16*.app | head -n 1)
+                  echo "Available Xcode installations:"
+                  ls -d /Applications/Xcode*.app || true
+
+                  XCODE_PATH=""
+                  for ver in 16.4 16.3 16.2 16.1 16; do
+                    if [ -d "/Applications/Xcode_${ver}.app" ]; then
+                      XCODE_PATH="/Applications/Xcode_${ver}.app"
+                      break
+                    fi
+                  done
+                  if [ -z "$XCODE_PATH" ] && [ -d "/Applications/Xcode.app" ]; then
+                    XCODE_PATH="/Applications/Xcode.app"
                   fi
+
                   echo "Selected Xcode: $XCODE_PATH"
                   sudo xcode-select -s "$XCODE_PATH/Contents/Developer"
                   echo "DEVELOPER_DIR=$XCODE_PATH/Contents/Developer" >> $GITHUB_ENV
                   xcodebuild -version
+                  swift --version
 
             - name: 🟢 Setup Node.js 22 LTS
               uses: actions/setup-node@v4
@@ -84,6 +93,15 @@ jobs:
 
             - name: 🔨 Pre-build ExpoModulesJSI xcframework
               run: |
+                  PACKAGE_SWIFT="node_modules/expo-modules-jsi/apple/Package.swift"
+                  if [ -f "$PACKAGE_SWIFT" ]; then
+                    echo "Patching Package.swift for Swift compatibility..."
+                    INSTALLED_SWIFT=$(swift --version | grep -o 'Swift version [0-9]\.[0-9]' | awk '{print $3}' || echo "6.0")
+                    echo "Detected Swift compiler: $INSTALLED_SWIFT"
+                    sed -i '' "s/swift-tools-version: 6.2/swift-tools-version: ${INSTALLED_SWIFT}/g" "$PACKAGE_SWIFT"
+                    sed -i '' 's/\.enableUpcomingFeature/\/\/\.enableUpcomingFeature/g' "$PACKAGE_SWIFT"
+                  fi
+
                   SCRIPT_PATH="node_modules/expo-modules-jsi/apple/scripts/build-xcframework.sh"
                   if [ -f "$SCRIPT_PATH" ]; then
                     echo "Patching ExpoModulesJSI build script to disable code signing..."
