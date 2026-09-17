@@ -24,10 +24,10 @@ jobs:
             - name: 📥 Checkout repository
               uses: actions/checkout@v4
 
-            - name: 🟢 Setup Node.js 20 LTS
+            - name: 🟢 Setup Node.js 22 LTS
               uses: actions/setup-node@v4
               with:
-                  node-version: 20
+                  node-version: 22
                   cache: "npm"
 
             - name: 📦 Install dependencies
@@ -39,35 +39,40 @@ jobs:
             - name: 🛠️ Expo Prebuild (Generate native iOS project)
               run: npx expo prebuild --platform ios --clean
 
-            - name: ☕ Install CocoaPods
+            - name: ☕ Install CocoaPods & Disable Native Code Signing
               run: |
                   cd ios
                   pod install
                   cd ..
+                  # Отключаем обязательную подпись Xcode для сборки без аккаунта разработчика
+                  sed -i '' 's/ProvisioningStyle = Automatic;/ProvisioningStyle = Manual;/g' ios/*.xcodeproj/project.pbxproj 2>/dev/null || true
+                  sed -i '' 's/ProvisioningStyle = "Automatic";/ProvisioningStyle = "Manual";/g' ios/*.xcodeproj/project.pbxproj 2>/dev/null || true
+                  find ios/Pods -name "*.xcconfig" -exec sed -i '' 's/CODE_SIGNING_ALLOWED = YES/CODE_SIGNING_ALLOWED = NO/g' {} + 2>/dev/null || true
 
-            - name: 🍏 Compile Xcode Archive (Unsigned)
+            - name: 🍏 Compile iOS App (Unsigned)
               run: |
                   WORKSPACE=$(ls -d ios/*.xcworkspace | head -n 1)
                   SCHEME=$(xcodebuild -workspace "$WORKSPACE" -list | awk '/Schemes:/{flag=1;next}/^$/{flag=0}flag' | tr -d ' ' | head -n 1)
-                  echo "Found workspace: $WORKSPACE, scheme: $SCHEME"
+                  echo "Building workspace: $WORKSPACE with scheme: $SCHEME"
                   xcodebuild -workspace "$WORKSPACE" \
                     -scheme "$SCHEME" \
                     -configuration Release \
-                    -sdk iphoneos \
-                    -archivePath build/Apkify.xcarchive \
+                    -destination 'generic/platform=iOS' \
+                    -derivedDataPath build/DerivedData \
+                    CODE_SIGN_STYLE=Manual \
                     CODE_SIGNING_ALLOWED=NO \
                     CODE_SIGNING_REQUIRED=NO \
                     CODE_SIGN_IDENTITY="" \
-                    archive
+                    build
 
             - name: 📦 Package .ipa file
               run: |
                   mkdir -p build/Payload
-                  APP_PATH=$(find build/Apkify.xcarchive/Products/Applications -name "*.app" -maxdepth 1)
-                  echo "Found application bundle at: $APP_PATH"
+                  APP_PATH=$(find build/DerivedData/Build/Products/Release-iphoneos -name "*.app" -maxdepth 1 | head -n 1)
+                  echo "Found application bundle: $APP_PATH"
                   cp -r "$APP_PATH" build/Payload/
                   cd build
-                  zip -r Apkify.ipa Payload
+                  zip -r -q Apkify.ipa Payload
                   cd ..
                   ls -lh build/Apkify.ipa
 
