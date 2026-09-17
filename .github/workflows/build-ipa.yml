@@ -125,7 +125,11 @@ jobs:
             - name: 📦 Package .ipa file
               run: |
                   mkdir -p build/Payload
-                  APP_PATH=$(find build/DerivedData -name "*.app" | head -n 1)
+                  if [ -d "build/DerivedData/Build/Products/Release-iphoneos/Apkify.app" ]; then
+                    APP_PATH="build/DerivedData/Build/Products/Release-iphoneos/Apkify.app"
+                  else
+                    APP_PATH=$(find build/DerivedData -name "*.app" | head -n 1)
+                  fi
                   echo "Found application bundle: $APP_PATH"
                   cp -r "$APP_PATH" build/Payload/
                   cd build

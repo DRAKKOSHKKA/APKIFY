@@ -47,11 +47,13 @@ const sourcesDir = path.resolve('node_modules/expo-modules-jsi/apple/Sources');
 const swiftFiles = walk(sourcesDir);
 let weakLetCount = 0;
 let trailingCommaCount = 0;
+let sendableClassCount = 0;
 
 for (const file of swiftFiles) {
   let content = fs.readFileSync(file, 'utf8');
   let changed = false;
 
+  // 3a. Replace weak let with weak var
   if (content.includes('weak let')) {
     const matches = (content.match(/weak\s+let/g) || []).length;
     content = content.replace(/weak\s+let/g, 'weak var');
@@ -59,9 +61,54 @@ for (const file of swiftFiles) {
     changed = true;
   }
 
+  // 3b. Remove trailing comma in closure parameter list
   if (content.includes('_ arguments: consuming JavaScriptValuesBuffer,')) {
-    content = content.replace(/_ arguments: consuming JavaScriptValuesBuffer,/g, '_ arguments: consuming JavaScriptValuesBuffer');
+    content = content.replace(
+      /_ arguments: consuming JavaScriptValuesBuffer,/g,
+      '_ arguments: consuming JavaScriptValuesBuffer'
+    );
     trailingCommaCount++;
+    changed = true;
+  }
+
+  // 3c. Fix Swift 6 Sendable class concurrency errors on mutable 'weak var runtime'
+  // In Swift 6 mode, Sendable classes cannot have mutable stored properties unless marked nonisolated(unsafe)
+  if (file.endsWith('JavaScriptPropNameID.swift')) {
+    content = content.replace(
+      /class JavaScriptPropNameID:\s*JavaScriptType(?!,\s*@unchecked Sendable)/,
+      'class JavaScriptPropNameID: JavaScriptType, @unchecked Sendable'
+    );
+    content = content.replace(
+      /(?:nonisolated\(unsafe\)\s+)?private\s+weak\s+(?:let|var)\s+runtime:\s*JavaScriptRuntime\?/,
+      'nonisolated(unsafe) private weak var runtime: JavaScriptRuntime?'
+    );
+    sendableClassCount++;
+    changed = true;
+  }
+
+  if (file.endsWith('JavaScriptError.swift')) {
+    content = content.replace(
+      /class JavaScriptError:\s*Error,\s*Sendable\b/,
+      'class JavaScriptError: Error, @unchecked Sendable'
+    );
+    content = content.replace(
+      /(?:nonisolated\(unsafe\)\s+)?private\s+weak\s+(?:let|var)\s+runtime:\s*JavaScriptRuntime\?/,
+      'nonisolated(unsafe) private weak var runtime: JavaScriptRuntime?'
+    );
+    sendableClassCount++;
+    changed = true;
+  }
+
+  if (file.endsWith('JavaScriptValue.swift')) {
+    content = content.replace(
+      /class JavaScriptValue:\s*JavaScriptType,\s*Equatable,\s*Escapable(?!,\s*@unchecked Sendable)/,
+      'class JavaScriptValue: JavaScriptType, Equatable, Escapable, @unchecked Sendable'
+    );
+    content = content.replace(
+      /(?:nonisolated\(unsafe\)\s+)?internal\s+weak\s+(?:let|var)\s+runtime:\s*JavaScriptRuntime\?/,
+      'nonisolated(unsafe) internal weak var runtime: JavaScriptRuntime?'
+    );
+    sendableClassCount++;
     changed = true;
   }
 
@@ -72,6 +119,7 @@ for (const file of swiftFiles) {
 
 console.log(`✓ Patched ${weakLetCount} occurrences of 'weak let' -> 'weak var' across ${swiftFiles.length} Swift files`);
 console.log(`✓ Patched ${trailingCommaCount} trailing commas in closure parameter lists`);
+console.log(`✓ Patched ${sendableClassCount} Sendable classes with nonisolated(unsafe) and @unchecked Sendable`);
 
 // 4. Patch build-xcframework.sh
 const scriptPath = path.resolve('node_modules/expo-modules-jsi/apple/scripts/build-xcframework.sh');
