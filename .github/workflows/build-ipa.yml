@@ -24,7 +24,7 @@ jobs:
             - name: 📥 Checkout repository
               uses: actions/checkout@v4
 
-            - name: 🍏 Select Xcode
+            - name: 🍏 Select Xcode 16.4
               run: |
                   echo "Available Xcode installations:"
                   ls -d /Applications/Xcode*.app || true
@@ -62,6 +62,9 @@ jobs:
             - name: 📦 Install dependencies
               run: npm ci
 
+            - name: 🩹 Patch ExpoModulesJSI for Swift 6.1 compatibility
+              run: node scripts/patch-expo-modules-jsi.js
+
             - name: 🔍 TypeScript verification
               run: npx tsc --noEmit
 
@@ -70,9 +73,6 @@ jobs:
 
             - name: ☕ Configure Podfile & Install CocoaPods
               run: |
-                  # Отключаем обязательную подпись для nested xcodebuild внутри скрипта сборки XCFramework
-                  sed -i '' 's/CLANG_COVERAGE_MAPPING=NO/CLANG_COVERAGE_MAPPING=NO CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""/g' node_modules/expo-modules-jsi/apple/scripts/build-xcframework.sh 2>/dev/null || true
-
                   # Внедряем отключение подписи в post_install Podfile
                   ruby -e '
                     path = "ios/Podfile"
