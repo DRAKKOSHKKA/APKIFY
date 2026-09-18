@@ -293,22 +293,25 @@ for (const file of swiftFiles) {
     guard let viewTag = value as? Int else {
       throw InvalidViewTagException()
     }
-    nonisolated(unsafe) var result: Any?
+    final class ResultBox: @unchecked Sendable {
+      var value: Any?
+    }
+    let box = ResultBox()
     try performSynchronouslyOnMainThread {
       try MainActor.assumeIsolated {
         if let view = appContext.findView(withTag: viewTag, ofType: ExpoSwiftUI.SwiftUIVirtualView<ViewType.Props, ViewType>.self) {
-          result = view.contentView
+          box.value = view.contentView
           return
         }
         if let view = appContext.findView(withTag: viewTag, ofType: ExpoSwiftUI.SwiftUIVirtualViewDev<ViewType.Props, ViewType>.self) {
-          result = view.contentView
+          box.value = view.contentView
           return
         }
         // For wrapper types
         // e.g. ExpoUIView(SecureFieldView.self)
         if let provider = appContext.findView(withTag: viewTag, ofType: ExpoSwiftUI.ViewWrapper.self),
            let innerView = provider.getWrappedView() as? ViewType {
-          result = innerView
+          box.value = innerView
           return
         }
         // For views using WithHostingView protocol.
@@ -316,23 +319,94 @@ for (const file of swiftFiles) {
         guard let view = appContext.findView(withTag: viewTag, ofType: AnyExpoSwiftUIHostingView.self) else {
           throw Exceptions.SwiftUIViewNotFound((tag: viewTag, type: innerType.self))
         }
-        result = view.getContentView()
+        box.value = view.getContentView()
       }
     }
-    guard let result else {
+    guard let result = box.value else {
       throw Exceptions.SwiftUIViewNotFound((tag: viewTag, type: innerType.self))
     }
     return result
   }`;
 
 		const castFuncRegex =
-			/func cast<ValueType>\(.*?appContext: AppContext\) throws -> Any \{[\s\S]*?(return result\}|return view\.getContentView\(\)\s*\}[\s\S]*?\n  \})/;
+			/func cast<ValueType>\(.*?appContext: AppContext\) throws -> Any \{[\s\S]*?(return result\}|return result\s*\}|return view\.getContentView\(\)\s*\}[\s\S]*?\n  \})/;
 
 		if (
 			content.includes("performSynchronouslyOnMainThread") ||
 			content.includes("MainActor.assumeIsolated")
 		) {
 			content = content.replace(castFuncRegex, fullCastFunc);
+			swiftConcurrencyPatchCount++;
+			changed = true;
+		}
+	}
+
+	if (file.endsWith("DynamicConvertibleType.swift")) {
+		if (!content.includes("ConvertBox")) {
+			content =
+				`private final class ConvertBox<T>: @unchecked Sendable {\n  let value: T\n  init(_ value: T) { self.value = value }\n}\n` +
+				content;
+			content = content.replace(
+				/if let value = value as\? any Record \{\s*return try JavaScriptActor\.assumeIsolated \{\s*try value\.toObject\(appContext: appContext\)\.asValue\(\)\s*\}\s*\}/,
+				`if let value = value as? any Record {
+      let box = ConvertBox(value)
+      return try JavaScriptActor.assumeIsolated {
+        try box.value.toObject(appContext: appContext).asValue()
+      }
+    }`
+			);
+			content = content.replace(
+				/if let value = value as\? any RecordObjectConvertible \{\s*return try JavaScriptActor\.assumeIsolated \{\s*try value\.toObject\(appContext: appContext\)\.asValue\(\)\s*\}\s*\}/,
+				`if let value = value as? any RecordObjectConvertible {
+      let box = ConvertBox(value)
+      return try JavaScriptActor.assumeIsolated {
+        try box.value.toObject(appContext: appContext).asValue()
+      }
+    }`
+			);
+			swiftConcurrencyPatchCount++;
+			changed = true;
+		}
+	}
+
+	if (file.endsWith("DynamicRawType.swift")) {
+		if (!content.includes("BuilderBox")) {
+			content =
+				`private final class BuilderBox<T>: @unchecked Sendable {\n  let value: T\n  init(_ value: T) { self.value = value }\n}\n` +
+				content;
+			content = content.replace(
+				/if let objectBuilder = result as\? JavaScriptObjectBuilder \{\s*return try JavaScriptActor\.assumeIsolated \{\s*return try objectBuilder\.build\(appContext: appContext\)\.asValue\(\)\s*\}\s*\}/,
+				`if let objectBuilder = result as? JavaScriptObjectBuilder {
+      let box = BuilderBox(objectBuilder)
+      return try JavaScriptActor.assumeIsolated {
+        return try box.value.build(appContext: appContext).asValue()
+      }
+    }`
+			);
+			swiftConcurrencyPatchCount++;
+			changed = true;
+		}
+	}
+
+	if (file.endsWith("EventEmitter.swift")) {
+		if (!content.includes("WeakEmitterBox")) {
+			content =
+				`private final class WeakEmitterBox: @unchecked Sendable {\n  weak var value: EventEmitter?\n  init(_ value: EventEmitter?) { self.value = value }\n}\n` +
+				content;
+			content = content.replace(
+				/nonisolated\(unsafe\) weak var emitter = self\s*runtime\.schedule \{\s*guard let emitter else \{/,
+				`let emitterBox = WeakEmitterBox(self)
+
+    runtime.schedule {
+      guard let emitter = emitterBox.value else {`
+			);
+			content = content.replace(
+				/nonisolated\(unsafe\) weak var emitter = self\s*runtime\.schedule \{ \[weak appContext\] in\s*guard let emitter, let appContext else \{/,
+				`let emitterBox = WeakEmitterBox(self)
+
+    runtime.schedule { [weak appContext] in
+      guard let emitter = emitterBox.value, let appContext else {`
+			);
 			swiftConcurrencyPatchCount++;
 			changed = true;
 		}
@@ -770,8 +844,26 @@ const filesToVerify = [
 	{
 		path: "node_modules/expo-modules-core/ios/Core/DynamicTypes/DynamicSwiftUIViewType.swift",
 		checks: [
-			"nonisolated(unsafe) var result: Any?",
+			"final class ResultBox: @unchecked Sendable",
 			"try MainActor.assumeIsolated {",
+		],
+	},
+	{
+		path: "node_modules/expo-modules-core/ios/Core/DynamicTypes/DynamicConvertibleType.swift",
+		checks: [
+			"private final class ConvertBox<T>: @unchecked Sendable",
+		],
+	},
+	{
+		path: "node_modules/expo-modules-core/ios/Core/DynamicTypes/DynamicRawType.swift",
+		checks: [
+			"private final class BuilderBox<T>: @unchecked Sendable",
+		],
+	},
+	{
+		path: "node_modules/expo-modules-core/ios/Core/Events/EventEmitter.swift",
+		checks: [
+			"private final class WeakEmitterBox: @unchecked Sendable",
 		],
 	},
 	{
