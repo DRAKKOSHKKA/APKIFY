@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 
 console.log(
-	"--- Patching expo-modules-jsi for Swift 5 / 6.0 / 6.1 compatibility ---"
+	"--- Patching expo-modules-jsi for Swift 6.0/6.1 compatibility ---"
 );
 
 // 1. Patch Package.swift
@@ -21,17 +21,15 @@ if (fs.existsSync(pkgPath)) {
 	);
 	content = content.replace(
 		/swiftLanguageModes:\s*\[[^\]]+\]/g,
-		"swiftLanguageModes: [.v5]"
+		"swiftLanguageModes: [.v6]"
 	);
-	if (!content.includes('"-strict-concurrency=targeted"')) {
-		content = content.replace(
-			'"-enable-library-evolution",',
-			'"-enable-library-evolution",\n          "-Xfrontend", "-strict-concurrency=targeted",'
-		);
-	}
+	content = content.replace(
+		/\s*"-Xfrontend",\s*"-strict-concurrency=targeted",?/g,
+		""
+	);
 	fs.writeFileSync(pkgPath, content, "utf8");
 	console.log(
-		"✓ Patched Package.swift (swift-tools-version: 6.0, swiftLanguageModes: [.v5], strict-concurrency=targeted)"
+		"✓ Patched Package.swift (swift-tools-version: 6.0, swiftLanguageModes: [.v6])"
 	);
 }
 
@@ -43,17 +41,19 @@ if (fs.existsSync(podspecPath)) {
 	let content = fs.readFileSync(podspecPath, "utf8");
 	content = content.replace(
 		/s\.swift_version\s*=\s*['"][^'"]+['"]/,
-		"s.swift_version  = '5.0'"
+		"s.swift_version  = '6.0'"
 	);
-	if (!content.includes("'SWIFT_STRICT_CONCURRENCY'")) {
-		content = content.replace(
-			"'CLANG_CXX_LANGUAGE_STANDARD' => 'c++20',",
-			"'CLANG_CXX_LANGUAGE_STANDARD' => 'c++20',\n    'SWIFT_VERSION' => '5.0',\n    'SWIFT_STRICT_CONCURRENCY' => 'targeted',"
-		);
-	}
+	content = content.replace(
+		/\s*'SWIFT_VERSION'\s*=>\s*'[^']+',/g,
+		""
+	);
+	content = content.replace(
+		/\s*'SWIFT_STRICT_CONCURRENCY'\s*=>\s*'[^']+',/g,
+		""
+	);
 	fs.writeFileSync(podspecPath, content, "utf8");
 	console.log(
-		"✓ Patched ExpoModulesJSI.podspec (SWIFT_VERSION = 5.0, SWIFT_STRICT_CONCURRENCY = targeted)"
+		"✓ Patched ExpoModulesJSI.podspec (reverted to standard Swift 6.0 settings)"
 	);
 }
 
@@ -264,7 +264,43 @@ extension Task where Failure == any Error {
 		changed = true;
 	}
 
-	// 6e. Patch JavaScriptRuntime.swift
+	// 6e. Patch JavaScriptPromise.swift:
+	// In Swift 6.1, initializing an @JavaScriptActor-isolated class at the property declaration level
+	// (`private let longLivedState = LongLivedState()`) fails with:
+	// "error: call to global actor 'JavaScriptActor'-isolated initializer"
+	// Move initialization inside the @JavaScriptActor initializers.
+	if (file.endsWith("JavaScriptPromise.swift")) {
+		if (content.includes("private let longLivedState = LongLivedState()")) {
+			content = content.replace(
+				"private let longLivedState = LongLivedState()",
+				"private let longLivedState: LongLivedState"
+			);
+		}
+
+		// Patch initializers to initialize self.longLivedState = LongLivedState()
+		const initObjectOld =
+			/@JavaScriptActor\s*public init\(_ runtime: JavaScriptRuntime, _ object: consuming JavaScriptObject\) throws \{\s*self\.runtime = runtime\s*(?:self\.longLivedState = LongLivedState\(\)\s*)?longLivedState\.object\.reset/;
+		if (initObjectOld.test(content)) {
+			content = content.replace(
+				initObjectOld,
+				`@JavaScriptActor\n  public init(_ runtime: JavaScriptRuntime, _ object: consuming JavaScriptObject) throws {\n    self.runtime = runtime\n    self.longLivedState = LongLivedState()\n    longLivedState.object.reset`
+			);
+		}
+
+		const initDeferredOld =
+			/@JavaScriptActor\s*public init\(_ runtime: JavaScriptRuntime\) throws \{\s*self\.runtime = runtime\s*(?:self\.longLivedState = LongLivedState\(\)\s*)?(?:\/\/[^\n]*\n\s*)?let triple = try runtime\.deferredPromiseFactory/;
+		if (initDeferredOld.test(content)) {
+			content = content.replace(
+				initDeferredOld,
+				`@JavaScriptActor\n  public init(_ runtime: JavaScriptRuntime) throws {\n    self.runtime = runtime\n    self.longLivedState = LongLivedState()\n\n    let triple = try runtime.deferredPromiseFactory`
+			);
+		}
+
+		swiftConcurrencyPatchCount++;
+		changed = true;
+	}
+
+	// 6f. Patch JavaScriptRuntime.swift
 	if (file.endsWith("JavaScriptRuntime.swift")) {
 		// Replace constructors with factory functions
 		content = content.replace(
@@ -299,8 +335,17 @@ extension Task where Failure == any Error {
 			);
 		}
 
-		// 6e-1: Fix pointer data races in getter (around line 188)
-		// Change raw resultPtr to UInt bitPattern before closure and reconstruct inside
+		// 6f-1: Fix regex literal syntax that fails without BareRegexSyntax:
+		// "error: '$' is not a valid digit in integer literal"
+		const regexOld =
+			/if name\.wholeMatch\(of: \/\^\[a-zA-Z_\$\]\[a-zA-Z0-9_\$\]\*\$\/\) == nil/;
+		const regexNew =
+			'let validIdentifierRegex = try? Regex(#"^[a-zA-Z_$][a-zA-Z0-9_$]*$"#)\n    if validIdentifierRegex.flatMap({ name.wholeMatch(of: $0) }) == nil';
+		if (regexOld.test(content)) {
+			content = content.replace(regexOld, regexNew);
+		}
+
+		// 6f-2: Fix pointer data races in getter (around line 188)
 		const getterOld =
 			/let propertyName = String\(cString: propertyName\)\s*(?:nonisolated\(unsafe\)\s+let\s+resultPtr\s*=\s*resultPtr|let\s+resBits\s*=\s*UInt\(bitPattern:\s*resultPtr\))\s*return withGuaranteedContext\(context\) \{\s*\(context:\s*HostObjectContext,\s*runtime\)\s*in\s*return JavaScriptActor\.assumeIsolated \{\s*return forwardingSwiftErrorsToJS\(runtime: runtime\) \{\s*(?:let resultPtr = UnsafeMutablePointer<facebook\.jsi\.Value>\(bitPattern: resBits\)!\s*)?try context\.get\(propertyName\)\.writeJSIValue\(to: resultPtr\)/;
 		const getterNew = `let propertyName = String(cString: propertyName)
@@ -315,7 +360,7 @@ extension Task where Failure == any Error {
 			content = content.replace(getterOld, getterNew);
 		}
 
-		// 6e-2: Fix callerRunLoop in schedule (around line 476)
+		// 6f-3: Fix callerRunLoop in schedule (around line 476)
 		content = content.replace(
 			/nonisolated\(unsafe\) let callerRunLoop = CFRunLoopGetCurrent\(\)/g,
 			"let callerRunLoop = NonisolatedUnsafeVar(CFRunLoopGetCurrent())"
@@ -329,7 +374,7 @@ extension Task where Failure == any Error {
 			"CFRunLoopWakeUp(callerRunLoop.value)"
 		);
 
-		// 6e-3: Fix pointer data races in createFunctionClosure (SyncFunctionClosure)
+		// 6f-4: Fix pointer data races in createFunctionClosure (SyncFunctionClosure)
 		const funcClosureOld1 =
 			/nonisolated\(unsafe\) let thisPtr = thisPtr\s*nonisolated\(unsafe\) let argumentsPtr = argumentsPtr\s*nonisolated\(unsafe\) let resultPtr = resultPtr\s*\/\/ See `withGuaranteedContext`[^\n]*\n\s*\/\/[^\n]*\n\s*return withGuaranteedContext\(context\) \{\s*\(context:\s*HostFunctionContext,\s*runtime\)\s*in\s*return JavaScriptActor\.assumeIsolated \{\s*return forwardingSwiftErrorsToJS\(runtime: runtime\) \{\s*let this = UnsafeMutablePointer\(mutating: thisPtr\)\.move\(\)/;
 		const funcClosureNew1 = `let thisBits = UInt(bitPattern: thisPtr)
@@ -347,7 +392,7 @@ extension Task where Failure == any Error {
 			content = content.replace(funcClosureOld1, funcClosureNew1);
 		}
 
-		// 6e-4: Fix pointer data races in createFunctionClosure (UnownedThisSyncFunctionClosure)
+		// 6f-5: Fix pointer data races in createFunctionClosure (UnownedThisSyncFunctionClosure)
 		const funcClosureOld2 =
 			/nonisolated\(unsafe\) let thisPtr = thisPtr\s*nonisolated\(unsafe\) let argumentsPtr = argumentsPtr\s*nonisolated\(unsafe\) let resultPtr = resultPtr\s*\/\/ See `withGuaranteedContext`[^\n]*\n\s*\/\/[^\n]*\n\s*return withGuaranteedContext\(context\) \{\s*\(context:\s*UnownedThisHostFunctionContext,\s*runtime\)\s*in\s*return JavaScriptActor\.assumeIsolated \{\s*return forwardingSwiftErrorsToJS\(runtime: runtime\) \{\s*let arguments = JavaScriptValuesBuffer\(runtime, start: argumentsPtr, count: argumentsCount\)/;
 		const funcClosureNew2 = `let thisBits = UInt(bitPattern: thisPtr)
@@ -384,7 +429,7 @@ console.log(
 	`✓ Patched ${sendableClassCount} Sendable classes with nonisolated(unsafe) and @unchecked Sendable`
 );
 console.log(
-	`✓ Patched ${swiftConcurrencyPatchCount} files with Swift concurrency / UInt pointer fixes`
+	`✓ Patched ${swiftConcurrencyPatchCount} files with Swift concurrency / UInt pointer / actor init fixes`
 );
 
 // 7. Patch build-xcframework.sh
@@ -393,6 +438,10 @@ const scriptPath = path.resolve(
 );
 if (fs.existsSync(scriptPath)) {
 	let content = fs.readFileSync(scriptPath, "utf8");
+	content = content.replace(
+		/\s*SWIFT_VERSION=5\.0\s*SWIFT_STRICT_CONCURRENCY=targeted/g,
+		""
+	);
 	if (
 		!content.includes(
 			'CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""'
@@ -400,19 +449,74 @@ if (fs.existsSync(scriptPath)) {
 	) {
 		content = content.replace(
 			/CLANG_COVERAGE_MAPPING=NO/g,
-			'CLANG_COVERAGE_MAPPING=NO CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" SWIFT_VERSION=5.0 SWIFT_STRICT_CONCURRENCY=targeted'
-		);
-	} else if (!content.includes("SWIFT_STRICT_CONCURRENCY=targeted")) {
-		content = content.replace(
-			/CODE_SIGN_IDENTITY=""/g,
-			'CODE_SIGN_IDENTITY="" SWIFT_VERSION=5.0 SWIFT_STRICT_CONCURRENCY=targeted'
+			'CLANG_COVERAGE_MAPPING=NO CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""'
 		);
 	}
 	content = content.replace(/-quiet/g, "");
 	fs.writeFileSync(scriptPath, content, "utf8");
 	console.log(
-		"✓ Patched build-xcframework.sh (disabled signing, removed -quiet, set SWIFT_VERSION=5.0 and SWIFT_STRICT_CONCURRENCY=targeted)"
+		"✓ Patched build-xcframework.sh (disabled signing and removed -quiet)"
 	);
 }
 
-console.log("--- Patching complete successfully ---");
+// 8. Strict Verification of All Required Files and Changes
+console.log("--- Verifying applied patches ---");
+const filesToVerify = [
+	{
+		path: "node_modules/expo-modules-jsi/apple/Package.swift",
+		checks: ["swift-tools-version: 6.0", "swiftLanguageModes: [.v6]"],
+	},
+	{
+		path: "node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI-Cxx/include/RuntimeScheduler.h",
+		checks: ["createRuntimeScheduler"],
+	},
+	{
+		path: "node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI-Cxx/include/HostFunctionClosure.h",
+		checks: ["createHostFunctionClosure"],
+	},
+	{
+		path: "node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI-Cxx/include/HostObjectCallbacks.h",
+		checks: ["appendPropNameId", "facebook::jsi::IRuntime &runtime"],
+	},
+	{
+		path: "node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptPromise.swift",
+		checks: [
+			"private let longLivedState: LongLivedState",
+			"self.longLivedState = LongLivedState()",
+		],
+	},
+	{
+		path: "node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/JavaScriptRuntime.swift",
+		checks: [
+			"UInt(bitPattern: thisPtr)",
+			"UInt(bitPattern: resultPtr)",
+			"createRuntimeScheduler()",
+			"createHostFunctionClosure(",
+			"appendPropNameId(&vector",
+			'Regex(#"^[a-zA-Z_$][a-zA-Z0-9_$]*$"#)',
+		],
+	},
+	{
+		path: "node_modules/expo-modules-jsi/apple/scripts/build-xcframework.sh",
+		checks: [
+			'CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""',
+		],
+	},
+];
+
+for (const { path: relPath, checks } of filesToVerify) {
+	const fullPath = path.resolve(relPath);
+	if (!fs.existsSync(fullPath)) {
+		throw new Error(`Expected ExpoModulesJSI file not found: ${relPath}`);
+	}
+	const content = fs.readFileSync(fullPath, "utf8");
+	for (const check of checks) {
+		if (!content.includes(check)) {
+			throw new Error(
+				`Patch verification failed: '${check}' not found in ${relPath}`
+			);
+		}
+	}
+}
+
+console.log("✓ All patches verified successfully!");
