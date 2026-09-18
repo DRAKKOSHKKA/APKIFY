@@ -19,6 +19,9 @@ jobs:
     build-ios:
         name: Build Unsigned IPA on macOS
         runs-on: macos-15
+        env:
+            SWIFT_VERSION: "5.0"
+            SWIFT_STRICT_CONCURRENCY: "targeted"
 
         steps:
             - name: 📥 Checkout repository
@@ -62,18 +65,18 @@ jobs:
             - name: 📦 Install dependencies
               run: npm ci
 
-            - name: 🩹 Patch ExpoModulesJSI for Swift 6.1 compatibility
-              run: node scripts/patch-expo-modules-jsi.js
-
             - name: 🔍 TypeScript verification
               run: npx tsc --noEmit
 
             - name: 🛠️ Expo Prebuild (Generate native iOS project)
               run: npx expo prebuild --platform ios --clean --no-install
 
+            - name: 🩹 Patch ExpoModulesJSI for Swift 5 / 6.1 compatibility
+              run: node scripts/patch-expo-modules-jsi.js
+
             - name: ☕ Configure Podfile & Install CocoaPods
               run: |
-                  # Внедряем отключение подписи в post_install Podfile
+                  # Внедряем отключение подписи и принудительный Swift 5 в post_install Podfile
                   ruby -e '
                     path = "ios/Podfile"
                     content = File.read(path)
@@ -83,6 +86,8 @@ jobs:
                           config.build_settings["CODE_SIGNING_ALLOWED"] = "NO"
                           config.build_settings["CODE_SIGNING_REQUIRED"] = "NO"
                           config.build_settings["EXPANDED_CODE_SIGN_IDENTITY"] = ""
+                          config.build_settings["SWIFT_VERSION"] = "5.0"
+                          config.build_settings["SWIFT_STRICT_CONCURRENCY"] = "targeted"
                         end
                       end
                     }
@@ -116,6 +121,8 @@ jobs:
                     -configuration Release \
                     -destination 'generic/platform=iOS' \
                     -derivedDataPath build/DerivedData \
+                    SWIFT_VERSION=5.0 \
+                    SWIFT_STRICT_CONCURRENCY=targeted \
                     CODE_SIGNING_ALLOWED=NO \
                     CODE_SIGNING_REQUIRED=NO \
                     CODE_SIGN_IDENTITY="" \

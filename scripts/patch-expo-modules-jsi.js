@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 
 console.log(
-	"--- Patching expo-modules-jsi for Swift 6.0/6.1 compatibility ---"
+	"--- Patching expo-modules-jsi for Swift 5 / 6.0 / 6.1 compatibility ---"
 );
 
 // 1. Patch Package.swift
@@ -19,13 +19,45 @@ if (fs.existsSync(pkgPath)) {
 		/\.enableUpcomingFeature\([^)]+\),?/g,
 		""
 	);
+	content = content.replace(
+		/swiftLanguageModes:\s*\[[^\]]+\]/g,
+		"swiftLanguageModes: [.v5]"
+	);
+	if (!content.includes('"-strict-concurrency=targeted"')) {
+		content = content.replace(
+			'"-enable-library-evolution",',
+			'"-enable-library-evolution",\n          "-Xfrontend", "-strict-concurrency=targeted",'
+		);
+	}
 	fs.writeFileSync(pkgPath, content, "utf8");
 	console.log(
-		"✓ Patched Package.swift (swift-tools-version: 6.0 and removed upcoming features)"
+		"✓ Patched Package.swift (swift-tools-version: 6.0, swiftLanguageModes: [.v5], strict-concurrency=targeted)"
 	);
 }
 
-// 2. Patch RuntimeScheduler.h
+// 2. Patch ExpoModulesJSI.podspec
+const podspecPath = path.resolve(
+	"node_modules/expo-modules-jsi/apple/ExpoModulesJSI.podspec"
+);
+if (fs.existsSync(podspecPath)) {
+	let content = fs.readFileSync(podspecPath, "utf8");
+	content = content.replace(
+		/s\.swift_version\s*=\s*['"][^'"]+['"]/,
+		"s.swift_version  = '5.0'"
+	);
+	if (!content.includes("'SWIFT_STRICT_CONCURRENCY'")) {
+		content = content.replace(
+			"'CLANG_CXX_LANGUAGE_STANDARD' => 'c++20',",
+			"'CLANG_CXX_LANGUAGE_STANDARD' => 'c++20',\n    'SWIFT_VERSION' => '5.0',\n    'SWIFT_STRICT_CONCURRENCY' => 'targeted',"
+		);
+	}
+	fs.writeFileSync(podspecPath, content, "utf8");
+	console.log(
+		"✓ Patched ExpoModulesJSI.podspec (SWIFT_VERSION = 5.0, SWIFT_STRICT_CONCURRENCY = targeted)"
+	);
+}
+
+// 3. Patch RuntimeScheduler.h
 const headerPath = path.resolve(
 	"node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI-Cxx/include/RuntimeScheduler.h"
 );
@@ -58,7 +90,7 @@ inline expo::RuntimeScheduler *createRuntimeSchedulerWithDispatch(void *schedule
 	);
 }
 
-// 3. Patch HostFunctionClosure.h
+// 4. Patch HostFunctionClosure.h
 const hfcPath = path.resolve(
 	"node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI-Cxx/include/HostFunctionClosure.h"
 );
@@ -84,15 +116,20 @@ inline expo::HostFunctionClosure *createHostFunctionClosure(
 	);
 }
 
-// 4. Patch HostObjectCallbacks.h to add appendPropNameId C++ helper inside namespace expo
-const hocPath = path.resolve('node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI-Cxx/include/HostObjectCallbacks.h');
+// 5. Patch HostObjectCallbacks.h to add appendPropNameId C++ helper inside namespace expo
+const hocPath = path.resolve(
+	"node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI-Cxx/include/HostObjectCallbacks.h"
+);
 if (fs.existsSync(hocPath)) {
-  let content = fs.readFileSync(hocPath, 'utf8');
-  if (!content.includes('#include "IRuntimeCompat.h"')) {
-    content = content.replace('#include <jsi/jsi.h>', '#include <jsi/jsi.h>\n#include "IRuntimeCompat.h"');
-  }
-  if (!content.includes('appendPropNameId')) {
-    const appendHelper = `
+	let content = fs.readFileSync(hocPath, "utf8");
+	if (!content.includes('#include "IRuntimeCompat.h"')) {
+		content = content.replace(
+			"#include <jsi/jsi.h>",
+			'#include <jsi/jsi.h>\n#include "IRuntimeCompat.h"'
+		);
+	}
+	if (!content.includes("appendPropNameId")) {
+		const appendHelper = `
 // Helper function to safely append move-only PropNameID from C++ without triggering Swift __construct_at
 inline void appendPropNameId(HostObjectCallbacks::PropNameIds &vector, facebook::jsi::IRuntime &runtime, const char *name) {
   vector.push_back(facebook::jsi::PropNameID::forUtf8(runtime, name));
@@ -100,15 +137,23 @@ inline void appendPropNameId(HostObjectCallbacks::PropNameIds &vector, facebook:
 
 } // namespace expo
 `;
-    content = content.replace(/\}\s*\/\/\s*namespace expo/, appendHelper);
-  } else {
-    content = content.replace(/facebook::jsi::(?:I)?Runtime\s*&\s*runtime/g, 'facebook::jsi::IRuntime &runtime');
-  }
-  fs.writeFileSync(hocPath, content, 'utf8');
-  console.log('✓ Patched HostObjectCallbacks.h (appendPropNameId helper with IRuntime)');
+		content = content.replace(
+			/\}\s*\/\/\s*namespace expo/,
+			appendHelper
+		);
+	} else {
+		content = content.replace(
+			/facebook::jsi::(?:I)?Runtime\s*&\s*runtime/g,
+			"facebook::jsi::IRuntime &runtime"
+		);
+	}
+	fs.writeFileSync(hocPath, content, "utf8");
+	console.log(
+		"✓ Patched HostObjectCallbacks.h (appendPropNameId helper with IRuntime)"
+	);
 }
 
-// 5. Patch Swift files
+// 6. Patch Swift files
 function walk(dir) {
 	let results = [];
 	if (!fs.existsSync(dir)) return results;
@@ -132,22 +177,21 @@ const swiftFiles = walk(sourcesDir);
 let weakLetCount = 0;
 let trailingCommaCount = 0;
 let sendableClassCount = 0;
-let swift62PatchCount = 0;
+let swiftConcurrencyPatchCount = 0;
 
 for (const file of swiftFiles) {
 	let content = fs.readFileSync(file, "utf8");
 	let changed = false;
 
-	// 5a. Replace weak let with weak var
+	// 6a. Replace weak let with weak var
 	if (content.includes("weak let")) {
-		const matches = (content.match(/weak\s+let/g) || [])
-			.length;
+		const matches = (content.match(/weak\s+let/g) || []).length;
 		content = content.replace(/weak\s+let/g, "weak var");
 		weakLetCount += matches;
 		changed = true;
 	}
 
-	// 5b. Remove trailing comma in closure parameter list
+	// 6b. Remove trailing comma in closure parameter list
 	if (
 		content.includes(
 			"_ arguments: consuming JavaScriptValuesBuffer,"
@@ -161,7 +205,7 @@ for (const file of swiftFiles) {
 		changed = true;
 	}
 
-	// 5c. Fix Swift 6 Sendable class concurrency errors
+	// 6c. Fix Swift 6 Sendable class concurrency errors
 	if (file.endsWith("JavaScriptPropNameID.swift")) {
 		content = content.replace(
 			/class JavaScriptPropNameID:\s*JavaScriptType(?!,\s*@unchecked Sendable)/,
@@ -201,7 +245,7 @@ for (const file of swiftFiles) {
 		changed = true;
 	}
 
-	// 5d. Patch Task+immediate.swift
+	// 6d. Patch Task+immediate.swift
 	if (file.endsWith("Task+immediate.swift")) {
 		content = `// swift-format-ignore-file: AlwaysUseLowerCamelCase
 // Patched for Swift 6.1 compatibility: Task.immediate and Task(name:) are Swift 6.2+ only
@@ -216,11 +260,11 @@ extension Task where Failure == any Error {
   }
 }
 `;
-		swift62PatchCount++;
+		swiftConcurrencyPatchCount++;
 		changed = true;
 	}
 
-	// 5e. Patch JavaScriptRuntime.swift
+	// 6e. Patch JavaScriptRuntime.swift
 	if (file.endsWith("JavaScriptRuntime.swift")) {
 		// Replace constructors with factory functions
 		content = content.replace(
@@ -237,11 +281,6 @@ extension Task where Failure == any Error {
 		);
 
 		// Replace push_back(consuming:) with C++ helper appendPropNameId
-		// Original lines:
-		//   for propertyName in propertyNames {
-		//     let propNameId = facebook.jsi.PropNameID.forUtf8(iRuntime, std.string(propertyName))
-		//     vector.push_back(consuming: propNameId)
-		//   }
 		const propLoopOld =
 			/for propertyName in propertyNames \{\s*let propNameId = facebook\.jsi\.PropNameID\.forUtf8\(iRuntime,\s*std\.string\(propertyName\)\)\s*vector\.push_back\(consuming:\s*propNameId\)\s*\}/;
 		if (propLoopOld.test(content)) {
@@ -250,7 +289,6 @@ extension Task where Failure == any Error {
 				`for propertyName in propertyNames {\n        expo.appendPropNameId(&vector, iRuntime, propertyName)\n      }`
 			);
 		} else {
-			// Fallback in case of formatting variation
 			content = content.replace(
 				/vector\.push_back\(consuming:\s*\w+\)/g,
 				"expo.appendPropNameId(&vector, iRuntime, propertyName)"
@@ -261,7 +299,73 @@ extension Task where Failure == any Error {
 			);
 		}
 
-		swift62PatchCount++;
+		// 6e-1: Fix pointer data races in getter (around line 188)
+		// Change raw resultPtr to UInt bitPattern before closure and reconstruct inside
+		const getterOld =
+			/let propertyName = String\(cString: propertyName\)\s*(?:nonisolated\(unsafe\)\s+let\s+resultPtr\s*=\s*resultPtr|let\s+resBits\s*=\s*UInt\(bitPattern:\s*resultPtr\))\s*return withGuaranteedContext\(context\) \{\s*\(context:\s*HostObjectContext,\s*runtime\)\s*in\s*return JavaScriptActor\.assumeIsolated \{\s*return forwardingSwiftErrorsToJS\(runtime: runtime\) \{\s*(?:let resultPtr = UnsafeMutablePointer<facebook\.jsi\.Value>\(bitPattern: resBits\)!\s*)?try context\.get\(propertyName\)\.writeJSIValue\(to: resultPtr\)/;
+		const getterNew = `let propertyName = String(cString: propertyName)
+      let resBits = UInt(bitPattern: resultPtr)
+
+      return withGuaranteedContext(context) { (context: HostObjectContext, runtime) in
+        return JavaScriptActor.assumeIsolated {
+          return forwardingSwiftErrorsToJS(runtime: runtime) {
+            let resultPtr = UnsafeMutablePointer<facebook.jsi.Value>(bitPattern: resBits)!
+            try context.get(propertyName).writeJSIValue(to: resultPtr)`;
+		if (getterOld.test(content)) {
+			content = content.replace(getterOld, getterNew);
+		}
+
+		// 6e-2: Fix callerRunLoop in schedule (around line 476)
+		content = content.replace(
+			/nonisolated\(unsafe\) let callerRunLoop = CFRunLoopGetCurrent\(\)/g,
+			"let callerRunLoop = NonisolatedUnsafeVar(CFRunLoopGetCurrent())"
+		);
+		content = content.replace(
+			/CFRunLoopPerformBlock\(callerRunLoop,/g,
+			"CFRunLoopPerformBlock(callerRunLoop.value,"
+		);
+		content = content.replace(
+			/CFRunLoopWakeUp\(callerRunLoop\)/g,
+			"CFRunLoopWakeUp(callerRunLoop.value)"
+		);
+
+		// 6e-3: Fix pointer data races in createFunctionClosure (SyncFunctionClosure)
+		const funcClosureOld1 =
+			/nonisolated\(unsafe\) let thisPtr = thisPtr\s*nonisolated\(unsafe\) let argumentsPtr = argumentsPtr\s*nonisolated\(unsafe\) let resultPtr = resultPtr\s*\/\/ See `withGuaranteedContext`[^\n]*\n\s*\/\/[^\n]*\n\s*return withGuaranteedContext\(context\) \{\s*\(context:\s*HostFunctionContext,\s*runtime\)\s*in\s*return JavaScriptActor\.assumeIsolated \{\s*return forwardingSwiftErrorsToJS\(runtime: runtime\) \{\s*let this = UnsafeMutablePointer\(mutating: thisPtr\)\.move\(\)/;
+		const funcClosureNew1 = `let thisBits = UInt(bitPattern: thisPtr)
+    let argsBits = UInt(bitPattern: argumentsPtr)
+    let resBits = UInt(bitPattern: resultPtr)
+
+    return withGuaranteedContext(context) { (context: HostFunctionContext, runtime) in
+      return JavaScriptActor.assumeIsolated {
+        return forwardingSwiftErrorsToJS(runtime: runtime) {
+          let thisPtr = UnsafePointer<facebook.jsi.Value>(bitPattern: thisBits)!
+          let argumentsPtr = UnsafePointer<facebook.jsi.Value>(bitPattern: argsBits)!
+          let resultPtr = UnsafeMutablePointer<facebook.jsi.Value>(bitPattern: resBits)!
+          let this = UnsafeMutablePointer(mutating: thisPtr).move()`;
+		if (funcClosureOld1.test(content)) {
+			content = content.replace(funcClosureOld1, funcClosureNew1);
+		}
+
+		// 6e-4: Fix pointer data races in createFunctionClosure (UnownedThisSyncFunctionClosure)
+		const funcClosureOld2 =
+			/nonisolated\(unsafe\) let thisPtr = thisPtr\s*nonisolated\(unsafe\) let argumentsPtr = argumentsPtr\s*nonisolated\(unsafe\) let resultPtr = resultPtr\s*\/\/ See `withGuaranteedContext`[^\n]*\n\s*\/\/[^\n]*\n\s*return withGuaranteedContext\(context\) \{\s*\(context:\s*UnownedThisHostFunctionContext,\s*runtime\)\s*in\s*return JavaScriptActor\.assumeIsolated \{\s*return forwardingSwiftErrorsToJS\(runtime: runtime\) \{\s*let arguments = JavaScriptValuesBuffer\(runtime, start: argumentsPtr, count: argumentsCount\)/;
+		const funcClosureNew2 = `let thisBits = UInt(bitPattern: thisPtr)
+    let argsBits = UInt(bitPattern: argumentsPtr)
+    let resBits = UInt(bitPattern: resultPtr)
+
+    return withGuaranteedContext(context) { (context: UnownedThisHostFunctionContext, runtime) in
+      return JavaScriptActor.assumeIsolated {
+        return forwardingSwiftErrorsToJS(runtime: runtime) {
+          let thisPtr = UnsafePointer<facebook.jsi.Value>(bitPattern: thisBits)!
+          let argumentsPtr = UnsafePointer<facebook.jsi.Value>(bitPattern: argsBits)!
+          let resultPtr = UnsafeMutablePointer<facebook.jsi.Value>(bitPattern: resBits)!
+          let arguments = JavaScriptValuesBuffer(runtime, start: argumentsPtr, count: argumentsCount)`;
+		if (funcClosureOld2.test(content)) {
+			content = content.replace(funcClosureOld2, funcClosureNew2);
+		}
+
+		swiftConcurrencyPatchCount++;
 		changed = true;
 	}
 
@@ -280,10 +384,10 @@ console.log(
 	`✓ Patched ${sendableClassCount} Sendable classes with nonisolated(unsafe) and @unchecked Sendable`
 );
 console.log(
-	`✓ Patched ${swift62PatchCount} files with Swift 6.2 -> 6.1 compatibility fixes`
+	`✓ Patched ${swiftConcurrencyPatchCount} files with Swift concurrency / UInt pointer fixes`
 );
 
-// 6. Patch build-xcframework.sh
+// 7. Patch build-xcframework.sh
 const scriptPath = path.resolve(
 	"node_modules/expo-modules-jsi/apple/scripts/build-xcframework.sh"
 );
@@ -296,13 +400,18 @@ if (fs.existsSync(scriptPath)) {
 	) {
 		content = content.replace(
 			/CLANG_COVERAGE_MAPPING=NO/g,
-			'CLANG_COVERAGE_MAPPING=NO CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""'
+			'CLANG_COVERAGE_MAPPING=NO CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" SWIFT_VERSION=5.0 SWIFT_STRICT_CONCURRENCY=targeted'
+		);
+	} else if (!content.includes("SWIFT_STRICT_CONCURRENCY=targeted")) {
+		content = content.replace(
+			/CODE_SIGN_IDENTITY=""/g,
+			'CODE_SIGN_IDENTITY="" SWIFT_VERSION=5.0 SWIFT_STRICT_CONCURRENCY=targeted'
 		);
 	}
 	content = content.replace(/-quiet/g, "");
 	fs.writeFileSync(scriptPath, content, "utf8");
 	console.log(
-		"✓ Patched build-xcframework.sh (disabled signing and removed -quiet)"
+		"✓ Patched build-xcframework.sh (disabled signing, removed -quiet, set SWIFT_VERSION=5.0 and SWIFT_STRICT_CONCURRENCY=targeted)"
 	);
 }
 
