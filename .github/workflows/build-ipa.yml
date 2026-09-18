@@ -213,9 +213,16 @@ jobs:
                   fi
 
                   echo "Found application bundle: $APP_PATH"
-                  cp -r "$APP_PATH" build/Payload/
+                  cp -R "$APP_PATH" build/Payload/
+
+                  # Устанавливаем права на исполнение для бинарников и фреймворков
+                  chmod -R 755 build/Payload/
+
+                  # Выполняем базовую ad-hoc подпись бандла и вложенных фреймворков
+                  codesign --force --deep --sign - build/Payload/*.app || true
+
                   cd build
-                  zip -r -q Apkify.ipa Payload
+                  zip -r -y -q Apkify.ipa Payload
                   cd ..
                   ls -lh build/Apkify.ipa
 
