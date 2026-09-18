@@ -253,6 +253,88 @@ for (const file of swiftFiles) {
 		changed = true;
 	}
 
+	if (file.endsWith("SharedObjectRegistry.swift")) {
+		content = content.replace(
+			/public final class SharedObjectRegistry:\s*Sendable/,
+			"public final class SharedObjectRegistry: @unchecked Sendable"
+		);
+		sendableClassCount++;
+		changed = true;
+	}
+
+	if (file.endsWith("SceneGeometry.swift")) {
+		content = content.replace(
+			/public enum SceneGeometry\b/,
+			"@MainActor public enum SceneGeometry"
+		);
+		swiftConcurrencyPatchCount++;
+		changed = true;
+	}
+
+	if (file.endsWith("PersistentFileLog.swift")) {
+		content = content.replace(
+			/private static let serialQueue = DispatchQueue/,
+			"nonisolated(unsafe) private static let serialQueue = DispatchQueue"
+		);
+		swiftConcurrencyPatchCount++;
+		changed = true;
+	}
+
+	if (file.endsWith("SwiftUIHostingView.swift")) {
+		if (content.includes("@MainActor AnyExpoSwiftUIHostingView")) {
+			content = content.replace(
+				": ExpoView, @MainActor AnyExpoSwiftUIHostingView",
+				": ExpoView, AnyExpoSwiftUIHostingView"
+			);
+			content = content.replace(
+				"public final class HostingView<",
+				"@MainActor public final class HostingView<"
+			);
+			swiftConcurrencyPatchCount++;
+			changed = true;
+		}
+	}
+
+	if (file.endsWith("SwiftUIVirtualView.swift")) {
+		if (content.includes("@MainActor ExpoSwiftUIView")) {
+			content = content.replace(
+				": SwiftUIVirtualViewObjC, @MainActor ExpoSwiftUIView",
+				": SwiftUIVirtualViewObjC, ExpoSwiftUIView"
+			);
+			content = content.replace(
+				": SwiftUIVirtualViewObjCDev, @MainActor ExpoSwiftUIView",
+				": SwiftUIVirtualViewObjCDev, ExpoSwiftUIView"
+			);
+			content = content.replace(
+				"final class SwiftUIVirtualView<",
+				"@MainActor final class SwiftUIVirtualView<"
+			);
+			content = content.replace(
+				"final class SwiftUIVirtualViewDev<",
+				"@MainActor final class SwiftUIVirtualViewDev<"
+			);
+			content = content.replace(
+				/extension ExpoSwiftUI\.SwiftUIVirtualView:\s*@MainActor\s+ExpoSwiftUI\.ViewWrapper/g,
+				"@MainActor extension ExpoSwiftUI.SwiftUIVirtualView: ExpoSwiftUI.ViewWrapper"
+			);
+			content = content.replace(
+				/extension ExpoSwiftUI\.SwiftUIVirtualViewDev:\s*@MainActor\s+ExpoSwiftUI\.ViewWrapper/g,
+				"@MainActor extension ExpoSwiftUI.SwiftUIVirtualViewDev: ExpoSwiftUI.ViewWrapper"
+			);
+			swiftConcurrencyPatchCount++;
+			changed = true;
+		}
+	}
+
+	if (file.endsWith("ViewDefinition.swift")) {
+		content = content.replace(
+			/extension UIView:\s*@MainActor\s+AnyArgument/,
+			"@MainActor extension UIView: AnyArgument"
+		);
+		swiftConcurrencyPatchCount++;
+		changed = true;
+	}
+
 	// 6d. Patch Task+immediate.swift
 	if (file.endsWith("Task+immediate.swift")) {
 		content = `// swift-format-ignore-file: AlwaysUseLowerCamelCase
@@ -479,8 +561,6 @@ if (fs.existsSync(scriptPath)) {
 	);
 }
 
-
-
 // 10. Strict Verification of All Required Files and Changes
 console.log("--- Verifying applied patches ---");
 const filesToVerify = [
@@ -538,6 +618,22 @@ const filesToVerify = [
 		checks: [
 			'CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""',
 		],
+	},
+	{
+		path: "node_modules/expo-modules-core/ios/Core/SharedObjects/SharedObjectRegistry.swift",
+		checks: ["public final class SharedObjectRegistry: @unchecked Sendable"],
+	},
+	{
+		path: "node_modules/expo-modules-core/ios/Utilities/SceneGeometry.swift",
+		checks: ["@MainActor public enum SceneGeometry"],
+	},
+	{
+		path: "node_modules/expo-modules-core/ios/Core/Logging/PersistentFileLog.swift",
+		checks: ["nonisolated(unsafe) private static let serialQueue = DispatchQueue"],
+	},
+	{
+		path: "node_modules/expo-modules-core/ios/Core/Views/SwiftUI/SwiftUIHostingView.swift",
+		checks: ["@MainActor public final class HostingView<Props: ViewProps, ContentView: View<Props>>: ExpoView, AnyExpoSwiftUIHostingView"],
 	},
 ];
 
