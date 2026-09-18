@@ -22,7 +22,7 @@ jobs:
         name: Build Unsigned IPA on macOS
         runs-on: macos-15
         env:
-            EXPO_USE_PRECOMPILED_MODULES: "1"
+            EXPO_USE_PRECOMPILED_MODULES: "0"
 
         steps:
             - name: 📥 Checkout repository
@@ -121,8 +121,11 @@ jobs:
               shell: bash
               run: |
                   set -euo pipefail
+                  export EXPO_USE_PRECOMPILED_MODULES=0
 
-                  # Внедряем отключение обязательной подписи в post_install Podfile
+                  echo "EXPO_USE_PRECOMPILED_MODULES=${EXPO_USE_PRECOMPILED_MODULES:-unset}"
+
+                  # Внедряем отключение обязательной подписи и настраиваем мягкую конкурентность Swift
                   ruby -e '
                     path = "ios/Podfile"
                     content = File.read(path)
@@ -132,6 +135,9 @@ jobs:
                           config.build_settings["CODE_SIGNING_ALLOWED"] = "NO"
                           config.build_settings["CODE_SIGNING_REQUIRED"] = "NO"
                           config.build_settings["EXPANDED_CODE_SIGN_IDENTITY"] = ""
+                          config.build_settings["SWIFT_STRICT_CONCURRENCY"] = "minimal"
+                          config.build_settings["SWIFT_TREAT_WARNINGS_AS_ERRORS"] = "NO"
+                          config.build_settings["GCC_WARN_INHIBIT_ALL_WARNINGS"] = "YES"
                         end
                       end
                     }
@@ -145,10 +151,6 @@ jobs:
                   rm -rf Pods Podfile.lock
                   pod install --repo-update
                   cd ..
-
-                  # Согласовываем версию Swift в .swiftinterface с компилятором раннера (Xcode 16.4 / Swift 6.1)
-                  find ios/Pods -name "*.swiftinterface" -type f -exec sed -i '' -E 's/Apple Swift version [0-9.]+/Apple Swift version 6.1/g' {} + 2>/dev/null || true
-                  find ios/Pods -name "*.swiftinterface" -type f -exec sed -i '' -E 's/interface-compiler-version [0-9.]+/interface-compiler-version 6.1/g' {} + 2>/dev/null || true
 
                   # Отключаем обязательную автоматическую подпись Xcode для сборки без Apple ID
                   sed -i '' 's/ProvisioningStyle = Automatic;/ProvisioningStyle = Manual;/g' ios/*.xcodeproj/project.pbxproj 2>/dev/null || true
@@ -174,6 +176,9 @@ jobs:
                   fi
 
                   SCHEME="Apkify"
+                  echo "Listing workspace schemes:"
+                  xcodebuild -workspace "$WORKSPACE" -list || true
+
                   echo "Building workspace: $WORKSPACE with scheme: $SCHEME"
                   xcodebuild -workspace "$WORKSPACE" \
                     -scheme "$SCHEME" \
@@ -196,11 +201,17 @@ jobs:
                   set -euo pipefail
 
                   mkdir -p build/Payload
-                  if [ -d "build/DerivedData/Build/Products/Release-iphoneos/Apkify.app" ]; then
-                    APP_PATH="build/DerivedData/Build/Products/Release-iphoneos/Apkify.app"
-                  else
-                    APP_PATH=$(find build/DerivedData -name "*.app" | head -n 1)
+                  APP_PATH="build/DerivedData/Build/Products/Release-iphoneos/Apkify.app"
+                  if [ ! -d "$APP_PATH" ]; then
+                    APP_PATH=$(find build/DerivedData/Build/Products -type d -name "*.app" -print -quit)
                   fi
+
+                  if [ -z "$APP_PATH" ] || [ ! -d "$APP_PATH" ]; then
+                    echo "::error::No .app bundle was produced"
+                    find build/DerivedData/Build/Products -maxdepth 3 -print || true
+                    exit 1
+                  fi
+
                   echo "Found application bundle: $APP_PATH"
                   cp -r "$APP_PATH" build/Payload/
                   cd build
