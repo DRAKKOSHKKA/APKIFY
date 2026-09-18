@@ -479,8 +479,11 @@ if (fs.existsSync(scriptPath)) {
 	);
 }
 
-// 8. Remove prebuilt xcframework tarballs to guarantee CocoaPods cannot link stale Swift 6.3.1 artifacts
-// (Note: EXPO_USE_PRECOMPILED_MODULES=0 and package.json buildFromSource already safely instruct autolinking to build from source)
+// 8. Patch prebuilt xcframework tarballs to fix Swift compiler version mismatch
+// Expo SDK 57 tarballs contain .swiftinterface with "Apple Swift version 6.3.1"
+// which causes Xcode 16.4 (Swift 6.1) to reject them with "this SDK is not supported by the compiler".
+// We patch all .swiftinterface files inside the prebuild tarballs and re-pack them.
+const { execSync } = require("child_process");
 const prebuiltTarballs = [
 	"node_modules/expo-modules-core/prebuilds/output/release/xcframeworks/ExpoModulesCore.tar.gz",
 	"node_modules/expo-modules-core/prebuilds/output/debug/xcframeworks/ExpoModulesCore.tar.gz",
@@ -491,17 +494,56 @@ const prebuiltTarballs = [
 	"node_modules/expo/node_modules/expo-file-system/prebuilds/output/release/xcframeworks/ExpoFileSystem.tar.gz",
 	"node_modules/expo/node_modules/expo-file-system/prebuilds/output/debug/xcframeworks/ExpoFileSystem.tar.gz",
 ];
-let removedTarballs = 0;
+
+function findSwiftInterfaces(dir) {
+	let results = [];
+	if (!fs.existsSync(dir)) return results;
+	for (const file of fs.readdirSync(dir)) {
+		const full = path.join(dir, file);
+		if (fs.statSync(full).isDirectory()) {
+			results = results.concat(findSwiftInterfaces(full));
+		} else if (file.endsWith(".swiftinterface")) {
+			results.push(full);
+		}
+	}
+	return results;
+}
+
+let patchedTarballs = 0;
 for (const relPath of prebuiltTarballs) {
 	const fullPath = path.resolve(relPath);
 	if (fs.existsSync(fullPath)) {
-		fs.unlinkSync(fullPath);
-		removedTarballs++;
+		const dir = path.dirname(fullPath);
+		const base = path.basename(fullPath);
+		const tmpDir = path.join(dir, "_patch_tmp_" + base);
+		try {
+			fs.mkdirSync(tmpDir, { recursive: true });
+			execSync("tar -xzf " + base + " -C " + tmpDir, { cwd: dir });
+			const interfaces = findSwiftInterfaces(tmpDir);
+			for (const f of interfaces) {
+				let content = fs.readFileSync(f, "utf8");
+				content = content.replace(
+					/Apple Swift version [0-9.]+/g,
+					"Apple Swift version 6.1"
+				);
+				content = content.replace(
+					/interface-compiler-version [0-9.]+/g,
+					"interface-compiler-version 6.1"
+				);
+				fs.writeFileSync(f, content, "utf8");
+			}
+			execSync("tar -czf " + base + " -C " + tmpDir + " .", { cwd: dir });
+			patchedTarballs++;
+		} catch (e) {
+			console.warn("Warning patching tarball " + relPath + ": " + e.message);
+		} finally {
+			if (fs.existsSync(tmpDir)) {
+				fs.rmSync(tmpDir, { recursive: true, force: true });
+			}
+		}
 	}
 }
-console.log(
-	`✓ Removed ${removedTarballs} prebuilt xcframework tarballs`
-);
+console.log(`✓ Patched Swift compiler version in ${patchedTarballs} prebuilt xcframework tarballs`);
 
 // 10. Strict Verification of All Required Files and Changes
 console.log("--- Verifying applied patches ---");
