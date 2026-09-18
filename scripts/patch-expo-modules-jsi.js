@@ -192,7 +192,8 @@ for (const file of swiftFiles) {
 
 	// 6a. Replace weak let with weak var
 	if (content.includes("weak let")) {
-		const matches = (content.match(/weak\s+let/g) || []).length;
+		const matches = (content.match(/weak\s+let/g) || [])
+			.length;
 		content = content.replace(/weak\s+let/g, "weak var");
 		weakLetCount += matches;
 		changed = true;
@@ -278,7 +279,11 @@ extension Task where Failure == any Error {
 	// We make it uninitialized and explicitly initialize in BOTH initializers before any use of self.
 	if (file.endsWith("JavaScriptPromise.swift")) {
 		// 1. Change property to uninitialized let
-		if (content.includes("private let longLivedState = LongLivedState()")) {
+		if (
+			content.includes(
+				"private let longLivedState = LongLivedState()"
+			)
+		) {
 			content = content.replace(
 				"private let longLivedState = LongLivedState()",
 				"private let longLivedState: LongLivedState"
@@ -398,7 +403,10 @@ extension Task where Failure == any Error {
           let resultPtr = UnsafeMutablePointer<facebook.jsi.Value>(bitPattern: resBits)!
           let this = UnsafeMutablePointer(mutating: thisPtr).move()`;
 		if (funcClosureOld1.test(content)) {
-			content = content.replace(funcClosureOld1, funcClosureNew1);
+			content = content.replace(
+				funcClosureOld1,
+				funcClosureNew1
+			);
 		}
 
 		// 6f-5: Fix pointer data races in createFunctionClosure (UnownedThisSyncFunctionClosure)
@@ -416,7 +424,10 @@ extension Task where Failure == any Error {
           let resultPtr = UnsafeMutablePointer<facebook.jsi.Value>(bitPattern: resBits)!
           let arguments = JavaScriptValuesBuffer(runtime, start: argumentsPtr, count: argumentsCount)`;
 		if (funcClosureOld2.test(content)) {
-			content = content.replace(funcClosureOld2, funcClosureNew2);
+			content = content.replace(
+				funcClosureOld2,
+				funcClosureNew2
+			);
 		}
 
 		swiftConcurrencyPatchCount++;
@@ -514,7 +525,9 @@ for (const relPath of prebuiltTarballs) {
 		removedTarballs++;
 	}
 }
-console.log(`✓ Removed ${removedTarballs} prebuilt xcframework tarballs`);
+console.log(
+	`✓ Removed ${removedTarballs} prebuilt xcframework tarballs`
+);
 
 // 10. Strict Verification of All Required Files and Changes
 console.log("--- Verifying applied patches ---");
@@ -543,11 +556,13 @@ const filesToVerify = [
 	},
 	{
 		path: "node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptPromise.swift",
-		checks: [
-			"private let longLivedState: LongLivedState",
-		],
+		checks: ["private let longLivedState: LongLivedState"],
 		customCheck: (content) => {
-			const count = (content.match(/self\.longLivedState = LongLivedState\(\)/g) || []).length;
+			const count = (
+				content.match(
+					/self\.longLivedState = LongLivedState\(\)/g
+				) || []
+			).length;
 			if (count !== 2) {
 				throw new Error(
 					`Expected exactly 2 occurrences of 'self.longLivedState = LongLivedState()' in JavaScriptPromise.swift, but found ${count}`
@@ -574,13 +589,15 @@ const filesToVerify = [
 	},
 	{
 		path: "node_modules/expo-modules-autolinking/scripts/ios/precompiled_modules.rb",
-		checks: [
-			"def enabled?\n        false",
-		],
+		checks: ["def enabled?\n        false"],
 	},
 ];
 
-for (const { path: relPath, checks, customCheck } of filesToVerify) {
+for (const {
+	path: relPath,
+	checks,
+	customCheck,
+} of filesToVerify) {
 	const fullPath = path.resolve(relPath);
 	if (!fs.existsSync(fullPath)) {
 		throw new Error(
