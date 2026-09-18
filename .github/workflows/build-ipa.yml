@@ -63,7 +63,15 @@ jobs:
 
             - name: ☕ Configure Podfile & Install CocoaPods
               run: |
-                  # Внедряем отключение подписи в post_install Podfile
+                  # 1. Заменяем build-xcframework.sh на заглушку, чтобы отключить SwiftPM 6.2
+                  if [ -f "node_modules/expo-modules-jsi/apple/scripts/build-xcframework.sh" ]; then
+                    echo '#!/bin/bash' > node_modules/expo-modules-jsi/apple/scripts/build-xcframework.sh
+                    echo 'echo "[ExpoModulesJSI] Using stub xcframework, skipping SwiftPM rebuild"' >> node_modules/expo-modules-jsi/apple/scripts/build-xcframework.sh
+                    echo 'exit 0' >> node_modules/expo-modules-jsi/apple/scripts/build-xcframework.sh
+                    chmod +x node_modules/expo-modules-jsi/apple/scripts/build-xcframework.sh
+                  fi
+
+                  # 2. Внедряем отключение подписи в post_install Podfile
                   ruby -e '
                     path = "ios/Podfile"
                     content = File.read(path)
@@ -84,12 +92,12 @@ jobs:
                   cd ios
                   pod install
                   cd ..
-                  # Отключаем обязательную автоматическую подпись Xcode для сборки без Apple ID
+
+                  # 3. Отключаем обязательную автоматическую подпись Xcode для сборки без Apple ID
                   sed -i '' 's/ProvisioningStyle = Automatic;/ProvisioningStyle = Manual;/g' ios/*.xcodeproj/project.pbxproj 2>/dev/null || true
                   sed -i '' 's/ProvisioningStyle = "Automatic";/ProvisioningStyle = "Manual";/g' ios/*.xcodeproj/project.pbxproj 2>/dev/null || true
                   sed -i '' 's/DevelopmentTeam = [^;]*;/DevelopmentTeam = "";/g' ios/*.xcodeproj/project.pbxproj 2>/dev/null || true
                   sed -i '' 's/DEVELOPMENT_TEAM = [^;]*;/DEVELOPMENT_TEAM = "";/g' ios/*.xcodeproj/project.pbxproj 2>/dev/null || true
-                  sed -i '' 's/CLANG_COVERAGE_MAPPING=NO/CLANG_COVERAGE_MAPPING=NO CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""/g' node_modules/expo-modules-jsi/apple/scripts/build-xcframework.sh 2>/dev/null || true
 
             - name: 🍏 Compile iOS App (Unsigned)
               run: |
