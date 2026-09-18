@@ -289,15 +289,50 @@ for (const file of swiftFiles) {
 	}
 
 	if (file.endsWith("DynamicSwiftUIViewType.swift")) {
-		if (!content.includes("MainActor.assumeIsolated")) {
-			content = content.replace(
-				/return try performSynchronouslyOnMainThread \{/,
-				"return try performSynchronouslyOnMainThread {\n    return try MainActor.assumeIsolated {"
-			);
-			content = content.replace(
-				/return view\.getContentView\(\)\s*\}/,
-				"return view.getContentView()\n    }"
-			);
+		const fullCastFunc = `func cast<ValueType>(_ value: ValueType, appContext: AppContext) throws -> Any {
+    guard let viewTag = value as? Int else {
+      throw InvalidViewTagException()
+    }
+    nonisolated(unsafe) var result: Any?
+    try performSynchronouslyOnMainThread {
+      try MainActor.assumeIsolated {
+        if let view = appContext.findView(withTag: viewTag, ofType: ExpoSwiftUI.SwiftUIVirtualView<ViewType.Props, ViewType>.self) {
+          result = view.contentView
+          return
+        }
+        if let view = appContext.findView(withTag: viewTag, ofType: ExpoSwiftUI.SwiftUIVirtualViewDev<ViewType.Props, ViewType>.self) {
+          result = view.contentView
+          return
+        }
+        // For wrapper types
+        // e.g. ExpoUIView(SecureFieldView.self)
+        if let provider = appContext.findView(withTag: viewTag, ofType: ExpoSwiftUI.ViewWrapper.self),
+           let innerView = provider.getWrappedView() as? ViewType {
+          result = innerView
+          return
+        }
+        // For views using WithHostingView protocol.
+        // e.g. View(HostView.self) where HostView conforms to WithHostingView
+        guard let view = appContext.findView(withTag: viewTag, ofType: AnyExpoSwiftUIHostingView.self) else {
+          throw Exceptions.SwiftUIViewNotFound((tag: viewTag, type: innerType.self))
+        }
+        result = view.getContentView()
+      }
+    }
+    guard let result else {
+      throw Exceptions.SwiftUIViewNotFound((tag: viewTag, type: innerType.self))
+    }
+    return result
+  }`;
+
+		const castFuncRegex =
+			/func cast<ValueType>\(.*?appContext: AppContext\) throws -> Any \{[\s\S]*?(return result\}|return view\.getContentView\(\)\s*\}[\s\S]*?\n  \})/;
+
+		if (
+			content.includes("performSynchronouslyOnMainThread") ||
+			content.includes("MainActor.assumeIsolated")
+		) {
+			content = content.replace(castFuncRegex, fullCastFunc);
 			swiftConcurrencyPatchCount++;
 			changed = true;
 		}
@@ -353,26 +388,37 @@ for (const file of swiftFiles) {
 		}
 	}
 
-	if (file.endsWith("URLAuthenticationChallengeForwardSender.swift")) {
-		content = content.replace(
-			/class URLAuthenticationChallengeForwardSender:\s*NSObject,\s*URLAuthenticationChallengeSender\b/,
-			"class URLAuthenticationChallengeForwardSender: NSObject, URLAuthenticationChallengeSender, @unchecked Sendable"
-		);
-		content = content.replace(
-			/let completionHandler:\s*\(URLSession\.AuthChallengeDisposition/,
-			"let completionHandler: @Sendable (URLSession.AuthChallengeDisposition"
-		);
-		sendableClassCount++;
-		changed = true;
+	if (
+		file.endsWith(
+			"URLAuthenticationChallengeForwardSender.swift"
+		)
+	) {
+		if (!content.includes("@unchecked Sendable")) {
+			content = content.replace(
+				/class URLAuthenticationChallengeForwardSender:\s*NSObject,\s*URLAuthenticationChallengeSender\b/,
+				"class URLAuthenticationChallengeForwardSender: NSObject, URLAuthenticationChallengeSender, @unchecked Sendable"
+			);
+			sendableClassCount++;
+			changed = true;
+		}
+		if (!content.includes("nonisolated(unsafe) let completionHandler")) {
+			content = content.replace(
+				/((nonisolated\(unsafe\)\s*)?let completionHandler:\s*)(@Sendable\s*)?(\(URLSession\.AuthChallengeDisposition)/,
+				"nonisolated(unsafe) let completionHandler: $4"
+			);
+			changed = true;
+		}
 	}
 
 	if (file.endsWith("URLSessionSessionDelegateProxy.swift")) {
-		content = content.replace(
-			/class URLSessionSessionDelegateProxy:\s*NSObject,\s*URLSessionDataDelegate\b/,
-			"class URLSessionSessionDelegateProxy: NSObject, URLSessionDataDelegate, @unchecked Sendable"
-		);
-		sendableClassCount++;
-		changed = true;
+		if (!content.includes("@unchecked Sendable")) {
+			content = content.replace(
+				/class URLSessionSessionDelegateProxy:\s*NSObject,\s*URLSessionDataDelegate\b/,
+				"class URLSessionSessionDelegateProxy: NSObject, URLSessionDataDelegate, @unchecked Sendable"
+			);
+			sendableClassCount++;
+			changed = true;
+		}
 	}
 
 	if (file.endsWith("SwiftUIVirtualView.swift")) {
@@ -719,6 +765,20 @@ const filesToVerify = [
 		path: "node_modules/expo-modules-core/ios/Core/Views/SwiftUI/SwiftUIHostingView.swift",
 		checks: [
 			"@MainActor public final class HostingView<Props: ViewProps, ContentView: View<Props>>: ExpoView, AnyExpoSwiftUIHostingView",
+		],
+	},
+	{
+		path: "node_modules/expo-modules-core/ios/Core/DynamicTypes/DynamicSwiftUIViewType.swift",
+		checks: [
+			"nonisolated(unsafe) var result: Any?",
+			"try MainActor.assumeIsolated {",
+		],
+	},
+	{
+		path: "node_modules/expo-modules-core/ios/DevTools/URLAuthenticationChallengeForwardSender.swift",
+		checks: [
+			"class URLAuthenticationChallengeForwardSender: NSObject, URLAuthenticationChallengeSender, @unchecked Sendable",
+			"nonisolated(unsafe) let completionHandler: (URLSession.AuthChallengeDisposition",
 		],
 	},
 ];
