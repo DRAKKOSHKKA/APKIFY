@@ -1,0 +1,46 @@
+# Сборочные директории и артефакты Expo / React Native
+node_modules/
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Нативные папки (если проект управляется через EAS Build или пребилд)
+/ios
+/android
+
+# Скомпилированные сборки и архивы приложений
+*.ipa
+*.apk
+*.aab
+Payload/
+
+# Окружение и секреты
+.env
+.env.*
+!.env.example
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+
+# Логи и временные файлы
+*.log
+tree.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+.metro-health-check*
+
+# Системные файлы и редакторы
+.DS_Store
+.idea/
+.vscode/
+*.tsbuildinfo
+
+# Прочее
+.kotlin/
+*.orig.*
+```[cite: 3]
