@@ -185,7 +185,8 @@ for (const file of swiftFiles) {
 
 	// 6a. Replace weak let with weak var
 	if (content.includes("weak let")) {
-		const matches = (content.match(/weak\s+let/g) || []).length;
+		const matches = (content.match(/weak\s+let/g) || [])
+			.length;
 		content = content.replace(/weak\s+let/g, "weak var");
 		weakLetCount += matches;
 		changed = true;
@@ -270,7 +271,11 @@ extension Task where Failure == any Error {
 	// "error: call to global actor 'JavaScriptActor'-isolated initializer"
 	// Move initialization inside the @JavaScriptActor initializers.
 	if (file.endsWith("JavaScriptPromise.swift")) {
-		if (content.includes("private let longLivedState = LongLivedState()")) {
+		if (
+			content.includes(
+				"private let longLivedState = LongLivedState()"
+			)
+		) {
 			content = content.replace(
 				"private let longLivedState = LongLivedState()",
 				"private let longLivedState: LongLivedState"
@@ -389,7 +394,10 @@ extension Task where Failure == any Error {
           let resultPtr = UnsafeMutablePointer<facebook.jsi.Value>(bitPattern: resBits)!
           let this = UnsafeMutablePointer(mutating: thisPtr).move()`;
 		if (funcClosureOld1.test(content)) {
-			content = content.replace(funcClosureOld1, funcClosureNew1);
+			content = content.replace(
+				funcClosureOld1,
+				funcClosureNew1
+			);
 		}
 
 		// 6f-5: Fix pointer data races in createFunctionClosure (UnownedThisSyncFunctionClosure)
@@ -407,7 +415,10 @@ extension Task where Failure == any Error {
           let resultPtr = UnsafeMutablePointer<facebook.jsi.Value>(bitPattern: resBits)!
           let arguments = JavaScriptValuesBuffer(runtime, start: argumentsPtr, count: argumentsCount)`;
 		if (funcClosureOld2.test(content)) {
-			content = content.replace(funcClosureOld2, funcClosureNew2);
+			content = content.replace(
+				funcClosureOld2,
+				funcClosureNew2
+			);
 		}
 
 		swiftConcurrencyPatchCount++;
@@ -464,7 +475,10 @@ console.log("--- Verifying applied patches ---");
 const filesToVerify = [
 	{
 		path: "node_modules/expo-modules-jsi/apple/Package.swift",
-		checks: ["swift-tools-version: 6.0", "swiftLanguageModes: [.v6]"],
+		checks: [
+			"swift-tools-version: 6.0",
+			"swiftLanguageModes: [.v6]",
+		],
 	},
 	{
 		path: "node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI-Cxx/include/RuntimeScheduler.h",
@@ -476,7 +490,10 @@ const filesToVerify = [
 	},
 	{
 		path: "node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI-Cxx/include/HostObjectCallbacks.h",
-		checks: ["appendPropNameId", "facebook::jsi::IRuntime &runtime"],
+		checks: [
+			"appendPropNameId",
+			"facebook::jsi::IRuntime &runtime",
+		],
 	},
 	{
 		path: "node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptPromise.swift",
@@ -507,7 +524,9 @@ const filesToVerify = [
 for (const { path: relPath, checks } of filesToVerify) {
 	const fullPath = path.resolve(relPath);
 	if (!fs.existsSync(fullPath)) {
-		throw new Error(`Expected ExpoModulesJSI file not found: ${relPath}`);
+		throw new Error(
+			`Expected ExpoModulesJSI file not found: ${relPath}`
+		);
 	}
 	const content = fs.readFileSync(fullPath, "utf8");
 	for (const check of checks) {

@@ -24,25 +24,38 @@ jobs:
             - name: 📥 Checkout repository
               uses: actions/checkout@v4
 
-            - name: 🍏 Select Xcode
+            - name: 🍏 Select Xcode and verify iOS SDK
+              shell: bash
               run: |
+                  set -euo pipefail
+
                   echo "Available Xcode installations:"
                   ls -d /Applications/Xcode*.app || true
 
+                  CANDIDATES=(
+                    "/Applications/Xcode_16.4.app"
+                    "/Applications/Xcode.app"
+                    "/Applications/Xcode_16.3.app"
+                    "/Applications/Xcode_16.2.app"
+                    "/Applications/Xcode_16.1.app"
+                    "/Applications/Xcode_16.0.app"
+                  )
+
                   XCODE_PATH=""
-                  for ver in 16.3 16.2 16.1 16.0 16.4 16; do
-                    if [ -d "/Applications/Xcode_${ver}.app" ]; then
-                      XCODE_PATH="/Applications/Xcode_${ver}.app"
-                      break
+                  for candidate in "${CANDIDATES[@]}"; do
+                    if [ -d "$candidate/Contents/Developer" ]; then
+                      echo "Checking candidate: $candidate"
+                      if "$candidate/Contents/Developer/usr/bin/xcodebuild" -showsdks 2>/dev/null | grep -q "iOS SDKs"; then
+                        XCODE_PATH="$candidate"
+                        break
+                      else
+                        echo "Candidate $candidate does not have iOS SDK installed, skipping."
+                      fi
                     fi
                   done
 
-                  if [ -z "$XCODE_PATH" ] && [ -d "/Applications/Xcode.app" ]; then
-                    XCODE_PATH="/Applications/Xcode.app"
-                  fi
-
                   if [ -z "$XCODE_PATH" ]; then
-                    echo "No compatible Xcode installation found"
+                    echo "No compatible Xcode installation with iOS SDK found"
                     exit 1
                   fi
 
@@ -51,7 +64,12 @@ jobs:
                   echo "DEVELOPER_DIR=$XCODE_PATH/Contents/Developer" >> "$GITHUB_ENV"
 
                   xcodebuild -version
-                  swift --version
+                  xcodebuild -showsdks
+
+                  if ! xcodebuild -showsdks | grep -q "iOS SDKs"; then
+                    echo "Selected Xcode does not contain an iOS SDK"
+                    exit 1
+                  fi
 
             - name: 🟢 Setup Node.js 22 LTS
               uses: actions/setup-node@v4
@@ -72,7 +90,10 @@ jobs:
               run: node scripts/patch-expo-modules-jsi.js
 
             - name: ☕ Configure Podfile & Install CocoaPods
+              shell: bash
               run: |
+                  set -euo pipefail
+
                   # Внедряем отключение обязательной подписи в post_install Podfile
                   ruby -e '
                     path = "ios/Podfile"
@@ -93,7 +114,7 @@ jobs:
                   '
                   cd ios
                   pod deintegrate || true
-                  rm -rf Pods
+                  rm -rf Pods Podfile.lock
                   pod install --repo-update
                   cd ..
 
@@ -104,16 +125,28 @@ jobs:
                   sed -i '' 's/DEVELOPMENT_TEAM = [^;]*;/DEVELOPMENT_TEAM = "";/g' ios/*.xcodeproj/project.pbxproj 2>/dev/null || true
 
             - name: 🍏 Compile iOS App (Unsigned)
+              shell: bash
               run: |
+                  set -euo pipefail
+
+                  rm -rf build/DerivedData
+
                   WORKSPACE="ios/Apkify.xcworkspace"
                   if [ ! -d "$WORKSPACE" ]; then
-                    WORKSPACE=$(ls -d ios/*.xcworkspace | head -n 1)
+                    WORKSPACE=$(find ios -maxdepth 1 -name "*.xcworkspace" -print -quit)
                   fi
+
+                  if [ -z "$WORKSPACE" ]; then
+                    echo "No Xcode workspace found"
+                    exit 1
+                  fi
+
                   SCHEME="Apkify"
                   echo "Building workspace: $WORKSPACE with scheme: $SCHEME"
                   xcodebuild -workspace "$WORKSPACE" \
                     -scheme "$SCHEME" \
                     -configuration Release \
+                    -sdk iphoneos \
                     -destination 'generic/platform=iOS' \
                     -derivedDataPath build/DerivedData \
                     CODE_SIGNING_ALLOWED=NO \
@@ -126,7 +159,10 @@ jobs:
                     build
 
             - name: 📦 Package .ipa file
+              shell: bash
               run: |
+                  set -euo pipefail
+
                   mkdir -p build/Payload
                   if [ -d "build/DerivedData/Build/Products/Release-iphoneos/Apkify.app" ]; then
                     APP_PATH="build/DerivedData/Build/Products/Release-iphoneos/Apkify.app"
