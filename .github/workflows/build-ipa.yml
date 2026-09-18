@@ -24,25 +24,32 @@ jobs:
             - name: 📥 Checkout repository
               uses: actions/checkout@v4
 
-            - name: 🍏 Select Xcode 16.2
+            - name: 🍏 Select Xcode
               run: |
                   echo "Available Xcode installations:"
                   ls -d /Applications/Xcode*.app || true
 
                   XCODE_PATH=""
-                  for ver in 16.2 16.1 16.0 16 16.4; do
+                  for ver in 16.4 16.3 16.2 16.1 16.0 16; do
                     if [ -d "/Applications/Xcode_${ver}.app" ]; then
                       XCODE_PATH="/Applications/Xcode_${ver}.app"
                       break
                     fi
                   done
+
                   if [ -z "$XCODE_PATH" ] && [ -d "/Applications/Xcode.app" ]; then
                     XCODE_PATH="/Applications/Xcode.app"
                   fi
 
+                  if [ -z "$XCODE_PATH" ]; then
+                    echo "No compatible Xcode installation found"
+                    exit 1
+                  fi
+
                   echo "Selected Xcode: $XCODE_PATH"
                   sudo xcode-select -s "$XCODE_PATH/Contents/Developer"
-                  echo "DEVELOPER_DIR=$XCODE_PATH/Contents/Developer" >> $GITHUB_ENV
+                  echo "DEVELOPER_DIR=$XCODE_PATH/Contents/Developer" >> "$GITHUB_ENV"
+
                   xcodebuild -version
                   swift --version
 
@@ -63,15 +70,10 @@ jobs:
 
             - name: ☕ Configure Podfile & Install CocoaPods
               run: |
-                  # 1. Заменяем build-xcframework.sh на заглушку, чтобы отключить SwiftPM 6.2
-                  if [ -f "node_modules/expo-modules-jsi/apple/scripts/build-xcframework.sh" ]; then
-                    echo '#!/bin/bash' > node_modules/expo-modules-jsi/apple/scripts/build-xcframework.sh
-                    echo 'echo "[ExpoModulesJSI] Using stub xcframework, skipping SwiftPM rebuild"' >> node_modules/expo-modules-jsi/apple/scripts/build-xcframework.sh
-                    echo 'exit 0' >> node_modules/expo-modules-jsi/apple/scripts/build-xcframework.sh
-                    chmod +x node_modules/expo-modules-jsi/apple/scripts/build-xcframework.sh
-                  fi
+                  # Отключаем обязательную подпись для nested xcodebuild внутри скрипта сборки XCFramework
+                  sed -i '' 's/CLANG_COVERAGE_MAPPING=NO/CLANG_COVERAGE_MAPPING=NO CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""/g' node_modules/expo-modules-jsi/apple/scripts/build-xcframework.sh 2>/dev/null || true
 
-                  # 2. Внедряем отключение подписи в post_install Podfile
+                  # Внедряем отключение подписи в post_install Podfile
                   ruby -e '
                     path = "ios/Podfile"
                     content = File.read(path)
@@ -90,10 +92,12 @@ jobs:
                     end
                   '
                   cd ios
-                  pod install
+                  pod deintegrate || true
+                  rm -rf Pods
+                  pod install --repo-update
                   cd ..
 
-                  # 3. Отключаем обязательную автоматическую подпись Xcode для сборки без Apple ID
+                  # Отключаем обязательную автоматическую подпись Xcode для сборки без Apple ID
                   sed -i '' 's/ProvisioningStyle = Automatic;/ProvisioningStyle = Manual;/g' ios/*.xcodeproj/project.pbxproj 2>/dev/null || true
                   sed -i '' 's/ProvisioningStyle = "Automatic";/ProvisioningStyle = "Manual";/g' ios/*.xcodeproj/project.pbxproj 2>/dev/null || true
                   sed -i '' 's/DevelopmentTeam = [^;]*;/DevelopmentTeam = "";/g' ios/*.xcodeproj/project.pbxproj 2>/dev/null || true
