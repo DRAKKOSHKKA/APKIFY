@@ -218,8 +218,20 @@ jobs:
                   # Устанавливаем права на исполнение для бинарников и фреймворков
                   chmod -R 755 build/Payload/
 
-                  # Выполняем базовую ad-hoc подпись бандла и вложенных фреймворков
-                  codesign --force --deep --sign - build/Payload/*.app || true
+                  # Удаляем существующие подписи для чистого переподписания через Sideloadly
+                  find build/Payload -name "_CodeSignature" -type d -exec rm -rf {} + 2>/dev/null || true
+                  find build/Payload -name "*.mobileprovision" -delete 2>/dev/null || true
+
+                  # Подписываем каждый фреймворк ОТДЕЛЬНО (frameworks first — обязательный порядок iOS)
+                  for fw in build/Payload/*.app/Frameworks/*.framework; do
+                    if [ -d "$fw" ]; then
+                      echo "Signing framework: $fw"
+                      codesign --force --sign - "$fw"
+                    fi
+                  done
+
+                  # Подписываем главный бандл БЕЗ --deep (не трогаем уже подписанные фреймворки)
+                  codesign --force --sign - build/Payload/*.app
 
                   cd build
                   zip -r -y -q Apkify.ipa Payload
