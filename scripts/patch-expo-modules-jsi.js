@@ -479,34 +479,8 @@ if (fs.existsSync(scriptPath)) {
 	);
 }
 
-// 8. Patch expo-modules-autolinking to disable prebuilt XCFrameworks
-// This forces ExpoModulesCore, ExpoFont, ExpoFileSystem, and ExpoModulesWorklets
-// to compile from source with the runner's Xcode compiler instead of using prebuilt
-// tarballs compiled with Swift 6.3.1 (which causes "this SDK is not supported by the compiler").
-const autolinkScriptPath = path.resolve(
-	"node_modules/expo-modules-autolinking/scripts/ios/precompiled_modules.rb"
-);
-if (fs.existsSync(autolinkScriptPath)) {
-	let content = fs.readFileSync(autolinkScriptPath, "utf8");
-	content = content.replace(
-		/def enabled\?[\s\S]*?end\n/m,
-		"def enabled?\n        false\n      end\n"
-	);
-	content = content.replace(
-		/def try_link_with_prebuilt_xcframework\(spec\)[\s\S]*?end\n/m,
-		"def try_link_with_prebuilt_xcframework(spec)\n        false\n      end\n"
-	);
-	content = content.replace(
-		/def has_prebuilt_xcframework\?\(pod_name\)[\s\S]*?end\n/m,
-		"def has_prebuilt_xcframework?(pod_name)\n        false\n      end\n"
-	);
-	fs.writeFileSync(autolinkScriptPath, content, "utf8");
-	console.log(
-		"✓ Patched precompiled_modules.rb (disabled precompiled xcframeworks so all modules build from source)"
-	);
-}
-
-// 9. Remove prebuilt xcframework tarballs to guarantee CocoaPods cannot link stale Swift 6.3.1 artifacts
+// 8. Remove prebuilt xcframework tarballs to guarantee CocoaPods cannot link stale Swift 6.3.1 artifacts
+// (Note: EXPO_USE_PRECOMPILED_MODULES=0 and package.json buildFromSource already safely instruct autolinking to build from source)
 const prebuiltTarballs = [
 	"node_modules/expo-modules-core/prebuilds/output/release/xcframeworks/ExpoModulesCore.tar.gz",
 	"node_modules/expo-modules-core/prebuilds/output/debug/xcframeworks/ExpoModulesCore.tar.gz",
@@ -586,10 +560,6 @@ const filesToVerify = [
 		checks: [
 			'CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""',
 		],
-	},
-	{
-		path: "node_modules/expo-modules-autolinking/scripts/ios/precompiled_modules.rb",
-		checks: ["def enabled?\n        false"],
 	},
 ];
 
