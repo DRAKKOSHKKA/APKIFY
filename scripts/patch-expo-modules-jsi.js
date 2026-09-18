@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 
 console.log(
-	"--- Patching expo-modules-jsi for Swift 6.0/6.1 compatibility ---"
+	"--- Patching expo-modules-jsi & expo-modules-core for Swift 6.0/6.1 compatibility ---"
 );
 
 // 1. Patch Package.swift
@@ -153,7 +153,7 @@ inline void appendPropNameId(HostObjectCallbacks::PropNameIds &vector, facebook:
 	);
 }
 
-// 6. Patch Swift files
+// 6. Patch Swift files in expo-modules-jsi and expo-modules-core
 function walk(dir) {
 	let results = [];
 	if (!fs.existsSync(dir)) return results;
@@ -170,10 +170,17 @@ function walk(dir) {
 	return results;
 }
 
-const sourcesDir = path.resolve(
-	"node_modules/expo-modules-jsi/apple/Sources"
-);
-const swiftFiles = walk(sourcesDir);
+const sourcesDirs = [
+	path.resolve("node_modules/expo-modules-jsi/apple/Sources"),
+	path.resolve("node_modules/expo-modules-core/ios"),
+];
+let swiftFiles = [];
+for (const dir of sourcesDirs) {
+	if (fs.existsSync(dir)) {
+		swiftFiles = swiftFiles.concat(walk(dir));
+	}
+}
+
 let weakLetCount = 0;
 let trailingCommaCount = 0;
 let sendableClassCount = 0;
@@ -461,7 +468,55 @@ if (fs.existsSync(scriptPath)) {
 	);
 }
 
-// 8. Strict Verification of All Required Files and Changes
+// 8. Patch expo-modules-autolinking to disable prebuilt XCFrameworks
+// This forces ExpoModulesCore, ExpoFont, ExpoFileSystem, and ExpoModulesWorklets
+// to compile from source with the runner's Xcode compiler instead of using prebuilt
+// tarballs compiled with Swift 6.3.1 (which causes "this SDK is not supported by the compiler").
+const autolinkScriptPath = path.resolve(
+	"node_modules/expo-modules-autolinking/scripts/ios/precompiled_modules.rb"
+);
+if (fs.existsSync(autolinkScriptPath)) {
+	let content = fs.readFileSync(autolinkScriptPath, "utf8");
+	content = content.replace(
+		/def enabled\?[\s\S]*?end\n/m,
+		"def enabled?\n        false\n      end\n"
+	);
+	content = content.replace(
+		/def try_link_with_prebuilt_xcframework\(spec\)[\s\S]*?end\n/m,
+		"def try_link_with_prebuilt_xcframework(spec)\n        false\n      end\n"
+	);
+	content = content.replace(
+		/def has_prebuilt_xcframework\?\(pod_name\)[\s\S]*?end\n/m,
+		"def has_prebuilt_xcframework?(pod_name)\n        false\n      end\n"
+	);
+	fs.writeFileSync(autolinkScriptPath, content, "utf8");
+	console.log(
+		"✓ Patched precompiled_modules.rb (disabled precompiled xcframeworks so all modules build from source)"
+	);
+}
+
+// 9. Remove prebuilt xcframework tarballs to guarantee CocoaPods cannot link stale Swift 6.3.1 artifacts
+const prebuiltTarballs = [
+	"node_modules/expo-modules-core/prebuilds/output/release/xcframeworks/ExpoModulesCore.tar.gz",
+	"node_modules/expo-modules-core/prebuilds/output/debug/xcframeworks/ExpoModulesCore.tar.gz",
+	"node_modules/expo-modules-core/prebuilds/output/release/xcframeworks/ExpoModulesWorklets.tar.gz",
+	"node_modules/expo-modules-core/prebuilds/output/debug/xcframeworks/ExpoModulesWorklets.tar.gz",
+	"node_modules/expo-font/prebuilds/output/release/xcframeworks/ExpoFont.tar.gz",
+	"node_modules/expo-font/prebuilds/output/debug/xcframeworks/ExpoFont.tar.gz",
+	"node_modules/expo/node_modules/expo-file-system/prebuilds/output/release/xcframeworks/ExpoFileSystem.tar.gz",
+	"node_modules/expo/node_modules/expo-file-system/prebuilds/output/debug/xcframeworks/ExpoFileSystem.tar.gz",
+];
+let removedTarballs = 0;
+for (const relPath of prebuiltTarballs) {
+	const fullPath = path.resolve(relPath);
+	if (fs.existsSync(fullPath)) {
+		fs.unlinkSync(fullPath);
+		removedTarballs++;
+	}
+}
+console.log(`✓ Removed ${removedTarballs} prebuilt xcframework tarballs`);
+
+// 10. Strict Verification of All Required Files and Changes
 console.log("--- Verifying applied patches ---");
 const filesToVerify = [
 	{
@@ -515,6 +570,12 @@ const filesToVerify = [
 		path: "node_modules/expo-modules-jsi/apple/scripts/build-xcframework.sh",
 		checks: [
 			'CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""',
+		],
+	},
+	{
+		path: "node_modules/expo-modules-autolinking/scripts/ios/precompiled_modules.rb",
+		checks: [
+			"def enabled?\n        false",
 		],
 	},
 ];

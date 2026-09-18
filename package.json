@@ -29,5 +29,16 @@
 		"ios": "expo start --ios",
 		"web": "expo start --web"
 	},
+	"expo": {
+		"autolinking": {
+			"buildFromSource": [
+				".*",
+				"ExpoModulesCore",
+				"ExpoFont",
+				"ExpoFileSystem",
+				"ExpoModulesWorklets"
+			]
+		}
+	},
 	"private": true
 }
