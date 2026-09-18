@@ -289,12 +289,14 @@ for (const file of swiftFiles) {
 	}
 
 	if (file.endsWith("DynamicSwiftUIViewType.swift")) {
+		if (!content.includes("class ResultBox")) {
+			content =
+				`private final class ResultBox: @unchecked Sendable {\n  var value: Any?\n  init(_ value: Any? = nil) { self.value = value }\n}\n` +
+				content;
+		}
 		const fullCastFunc = `func cast<ValueType>(_ value: ValueType, appContext: AppContext) throws -> Any {
     guard let viewTag = value as? Int else {
       throw InvalidViewTagException()
-    }
-    final class ResultBox: @unchecked Sendable {
-      var value: Any?
     }
     let box = ResultBox()
     try performSynchronouslyOnMainThread {
