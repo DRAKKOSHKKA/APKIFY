@@ -276,12 +276,70 @@ for (const file of swiftFiles) {
 			/private static let serialQueue = DispatchQueue/,
 			"nonisolated(unsafe) private static let serialQueue = DispatchQueue"
 		);
+		content = content.replace(
+			/public typealias PersistentFileLogFilter = \(String\)/,
+			"public typealias PersistentFileLogFilter = @Sendable (String)"
+		);
+		content = content.replace(
+			/public typealias PersistentFileLogCompletionHandler = \(Error\?\)/,
+			"public typealias PersistentFileLogCompletionHandler = @Sendable (Error?)"
+		);
+		swiftConcurrencyPatchCount++;
+		changed = true;
+	}
+
+	if (file.endsWith("DynamicSwiftUIViewType.swift")) {
+		if (!content.includes("MainActor.assumeIsolated")) {
+			content = content.replace(
+				/return try performSynchronouslyOnMainThread \{/,
+				"return try performSynchronouslyOnMainThread {\n    return try MainActor.assumeIsolated {"
+			);
+			content = content.replace(
+				/return view\.getContentView\(\)\s*\}/,
+				"return view.getContentView()\n    }"
+			);
+			swiftConcurrencyPatchCount++;
+			changed = true;
+		}
+	}
+
+	if (file.endsWith("ExpoReactDelegate.swift")) {
+		content = content.replace(
+			/\?\? UIViewController\(\)/,
+			"?? MainActor.assumeIsolated { UIViewController() }"
+		);
+		swiftConcurrencyPatchCount++;
+		changed = true;
+	}
+
+	if (file.endsWith("SwiftUIViewFrameObserver.swift")) {
+		content = content.replace(
+			/callback\(CGRect\(origin: view\.frame\.origin, size: newValue\.size\)\)/,
+			"let origin = MainActor.assumeIsolated { view.frame.origin }\n        callback(CGRect(origin: origin, size: newValue.size))"
+		);
+		swiftConcurrencyPatchCount++;
+		changed = true;
+	}
+
+	if (file.endsWith("ExpoSwiftUI.swift")) {
+		content = content.replace(
+			/public protocol ViewWrapper \{/,
+			"@MainActor public protocol ViewWrapper {"
+		);
 		swiftConcurrencyPatchCount++;
 		changed = true;
 	}
 
 	if (file.endsWith("SwiftUIHostingView.swift")) {
-		if (content.includes("@MainActor AnyExpoSwiftUIHostingView")) {
+		content = content.replace(
+			/internal protocol AnyExpoSwiftUIHostingView \{/,
+			"@MainActor internal protocol AnyExpoSwiftUIHostingView {"
+		);
+		if (
+			content.includes(
+				"@MainActor AnyExpoSwiftUIHostingView"
+			)
+		) {
 			content = content.replace(
 				": ExpoView, @MainActor AnyExpoSwiftUIHostingView",
 				": ExpoView, AnyExpoSwiftUIHostingView"
@@ -293,6 +351,28 @@ for (const file of swiftFiles) {
 			swiftConcurrencyPatchCount++;
 			changed = true;
 		}
+	}
+
+	if (file.endsWith("URLAuthenticationChallengeForwardSender.swift")) {
+		content = content.replace(
+			/class URLAuthenticationChallengeForwardSender:\s*NSObject,\s*URLAuthenticationChallengeSender\b/,
+			"class URLAuthenticationChallengeForwardSender: NSObject, URLAuthenticationChallengeSender, @unchecked Sendable"
+		);
+		content = content.replace(
+			/let completionHandler:\s*\(URLSession\.AuthChallengeDisposition/,
+			"let completionHandler: @Sendable (URLSession.AuthChallengeDisposition"
+		);
+		sendableClassCount++;
+		changed = true;
+	}
+
+	if (file.endsWith("URLSessionSessionDelegateProxy.swift")) {
+		content = content.replace(
+			/class URLSessionSessionDelegateProxy:\s*NSObject,\s*URLSessionDataDelegate\b/,
+			"class URLSessionSessionDelegateProxy: NSObject, URLSessionDataDelegate, @unchecked Sendable"
+		);
+		sendableClassCount++;
+		changed = true;
 	}
 
 	if (file.endsWith("SwiftUIVirtualView.swift")) {
@@ -621,7 +701,9 @@ const filesToVerify = [
 	},
 	{
 		path: "node_modules/expo-modules-core/ios/Core/SharedObjects/SharedObjectRegistry.swift",
-		checks: ["public final class SharedObjectRegistry: @unchecked Sendable"],
+		checks: [
+			"public final class SharedObjectRegistry: @unchecked Sendable",
+		],
 	},
 	{
 		path: "node_modules/expo-modules-core/ios/Utilities/SceneGeometry.swift",
@@ -629,11 +711,15 @@ const filesToVerify = [
 	},
 	{
 		path: "node_modules/expo-modules-core/ios/Core/Logging/PersistentFileLog.swift",
-		checks: ["nonisolated(unsafe) private static let serialQueue = DispatchQueue"],
+		checks: [
+			"nonisolated(unsafe) private static let serialQueue = DispatchQueue",
+		],
 	},
 	{
 		path: "node_modules/expo-modules-core/ios/Core/Views/SwiftUI/SwiftUIHostingView.swift",
-		checks: ["@MainActor public final class HostingView<Props: ViewProps, ContentView: View<Props>>: ExpoView, AnyExpoSwiftUIHostingView"],
+		checks: [
+			"@MainActor public final class HostingView<Props: ViewProps, ContentView: View<Props>>: ExpoView, AnyExpoSwiftUIHostingView",
+		],
 	},
 ];
 
