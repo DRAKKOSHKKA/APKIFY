@@ -89,6 +89,20 @@ jobs:
             - name: 🩹 Patch ExpoModulesJSI for Swift 6.1 compatibility
               run: node scripts/patch-expo-modules-jsi.js
 
+            - name: ✅ Verify ExpoModulesJSI patch
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  FILE="node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptPromise.swift"
+                  test -f "$FILE"
+                  COUNT=$(grep -c 'self.longLivedState = LongLivedState()' "$FILE" || true)
+                  echo "Found $COUNT occurrences of 'self.longLivedState = LongLivedState()' in $FILE"
+                  sed -n '60,105p' "$FILE"
+                  if [ "$COUNT" -ne 2 ]; then
+                    echo "::error::JavaScriptPromise.swift was not patched in both initializers (found $COUNT, expected 2)"
+                    exit 1
+                  fi
+
             - name: ☕ Configure Podfile & Install CocoaPods
               shell: bash
               run: |

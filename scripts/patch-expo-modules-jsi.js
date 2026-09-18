@@ -185,8 +185,7 @@ for (const file of swiftFiles) {
 
 	// 6a. Replace weak let with weak var
 	if (content.includes("weak let")) {
-		const matches = (content.match(/weak\s+let/g) || [])
-			.length;
+		const matches = (content.match(/weak\s+let/g) || []).length;
 		content = content.replace(/weak\s+let/g, "weak var");
 		weakLetCount += matches;
 		changed = true;
@@ -269,35 +268,33 @@ extension Task where Failure == any Error {
 	// In Swift 6.1, initializing an @JavaScriptActor-isolated class at the property declaration level
 	// (`private let longLivedState = LongLivedState()`) fails with:
 	// "error: call to global actor 'JavaScriptActor'-isolated initializer"
-	// Move initialization inside the @JavaScriptActor initializers.
+	// We make it uninitialized and explicitly initialize in BOTH initializers before any use of self.
 	if (file.endsWith("JavaScriptPromise.swift")) {
-		if (
-			content.includes(
-				"private let longLivedState = LongLivedState()"
-			)
-		) {
+		// 1. Change property to uninitialized let
+		if (content.includes("private let longLivedState = LongLivedState()")) {
 			content = content.replace(
 				"private let longLivedState = LongLivedState()",
 				"private let longLivedState: LongLivedState"
 			);
 		}
 
-		// Patch initializers to initialize self.longLivedState = LongLivedState()
-		const initObjectOld =
-			/@JavaScriptActor\s*public init\(_ runtime: JavaScriptRuntime, _ object: consuming JavaScriptObject\) throws \{\s*self\.runtime = runtime\s*(?:self\.longLivedState = LongLivedState\(\)\s*)?longLivedState\.object\.reset/;
-		if (initObjectOld.test(content)) {
+		// 2. Patch init(_ runtime: JavaScriptRuntime, _ object: consuming JavaScriptObject)
+		const init1Pattern =
+			/(@JavaScriptActor\s+public init\(_ runtime: JavaScriptRuntime, _ object: consuming JavaScriptObject\) throws \{\s*self\.runtime = runtime)(?!\s*self\.longLivedState = LongLivedState\(\))/;
+		if (init1Pattern.test(content)) {
 			content = content.replace(
-				initObjectOld,
-				`@JavaScriptActor\n  public init(_ runtime: JavaScriptRuntime, _ object: consuming JavaScriptObject) throws {\n    self.runtime = runtime\n    self.longLivedState = LongLivedState()\n    longLivedState.object.reset`
+				init1Pattern,
+				"$1\n    self.longLivedState = LongLivedState()"
 			);
 		}
 
-		const initDeferredOld =
-			/@JavaScriptActor\s*public init\(_ runtime: JavaScriptRuntime\) throws \{\s*self\.runtime = runtime\s*(?:self\.longLivedState = LongLivedState\(\)\s*)?(?:\/\/[^\n]*\n\s*)?let triple = try runtime\.deferredPromiseFactory/;
-		if (initDeferredOld.test(content)) {
+		// 3. Patch init(_ runtime: JavaScriptRuntime)
+		const init2Pattern =
+			/(@JavaScriptActor\s+public init\(_ runtime: JavaScriptRuntime\) throws \{\s*self\.runtime = runtime)(?!\s*self\.longLivedState = LongLivedState\(\))/;
+		if (init2Pattern.test(content)) {
 			content = content.replace(
-				initDeferredOld,
-				`@JavaScriptActor\n  public init(_ runtime: JavaScriptRuntime) throws {\n    self.runtime = runtime\n    self.longLivedState = LongLivedState()\n\n    let triple = try runtime.deferredPromiseFactory`
+				init2Pattern,
+				"$1\n    self.longLivedState = LongLivedState()"
 			);
 		}
 
@@ -394,10 +391,7 @@ extension Task where Failure == any Error {
           let resultPtr = UnsafeMutablePointer<facebook.jsi.Value>(bitPattern: resBits)!
           let this = UnsafeMutablePointer(mutating: thisPtr).move()`;
 		if (funcClosureOld1.test(content)) {
-			content = content.replace(
-				funcClosureOld1,
-				funcClosureNew1
-			);
+			content = content.replace(funcClosureOld1, funcClosureNew1);
 		}
 
 		// 6f-5: Fix pointer data races in createFunctionClosure (UnownedThisSyncFunctionClosure)
@@ -415,10 +409,7 @@ extension Task where Failure == any Error {
           let resultPtr = UnsafeMutablePointer<facebook.jsi.Value>(bitPattern: resBits)!
           let arguments = JavaScriptValuesBuffer(runtime, start: argumentsPtr, count: argumentsCount)`;
 		if (funcClosureOld2.test(content)) {
-			content = content.replace(
-				funcClosureOld2,
-				funcClosureNew2
-			);
+			content = content.replace(funcClosureOld2, funcClosureNew2);
 		}
 
 		swiftConcurrencyPatchCount++;
@@ -499,8 +490,15 @@ const filesToVerify = [
 		path: "node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptPromise.swift",
 		checks: [
 			"private let longLivedState: LongLivedState",
-			"self.longLivedState = LongLivedState()",
 		],
+		customCheck: (content) => {
+			const count = (content.match(/self\.longLivedState = LongLivedState\(\)/g) || []).length;
+			if (count !== 2) {
+				throw new Error(
+					`Expected exactly 2 occurrences of 'self.longLivedState = LongLivedState()' in JavaScriptPromise.swift, but found ${count}`
+				);
+			}
+		},
 	},
 	{
 		path: "node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/JavaScriptRuntime.swift",
@@ -521,7 +519,7 @@ const filesToVerify = [
 	},
 ];
 
-for (const { path: relPath, checks } of filesToVerify) {
+for (const { path: relPath, checks, customCheck } of filesToVerify) {
 	const fullPath = path.resolve(relPath);
 	if (!fs.existsSync(fullPath)) {
 		throw new Error(
@@ -535,6 +533,9 @@ for (const { path: relPath, checks } of filesToVerify) {
 				`Patch verification failed: '${check}' not found in ${relPath}`
 			);
 		}
+	}
+	if (customCheck) {
+		customCheck(content);
 	}
 }
 
