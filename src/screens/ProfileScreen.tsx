@@ -661,7 +661,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 								{ color: theme.textSecondary },
 							]}
 						>
-							{APP_CONFIG.name} v{APP_CONFIG.version} (Сборка {APP_CONFIG.buildNumber})
+							{APP_CONFIG.name} v
+							{APP_CONFIG.version} (Сборка{" "}
+							{APP_CONFIG.buildNumber})
 							{debugTaps >= 4
 								? ` • ещё ${7 - debugTaps} до Debug`
 								: ""}
