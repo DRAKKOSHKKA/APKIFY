@@ -70,11 +70,11 @@ if (fs.existsSync(headerPath)) {
 	if (!content.includes("createRuntimeScheduler")) {
 		const factoryCode = `
 // Factory functions for Swift 6.1 compatibility.
-inline expo::RuntimeScheduler *createRuntimeScheduler() {
+inline SWIFT_RETURNS_RETAINED expo::RuntimeScheduler *createRuntimeScheduler() {
   return new expo::RuntimeScheduler();
 }
 
-inline expo::RuntimeScheduler *createRuntimeSchedulerWithDispatch(void *scheduler, expo::RuntimeScheduler::ScheduleFn fn) {
+inline SWIFT_RETURNS_RETAINED expo::RuntimeScheduler *createRuntimeSchedulerWithDispatch(void *scheduler, expo::RuntimeScheduler::ScheduleFn fn) {
   return new expo::RuntimeScheduler(scheduler, fn);
 }
 
@@ -645,14 +645,14 @@ extension Task where Failure == any Error {
 
 		// 6f-2: Fix pointer data races in getter (around line 188)
 		const getterOld =
-			/let propertyName = String\(cString: propertyName\)\s*(?:nonisolated\(unsafe\)\s+let\s+resultPtr\s*=\s*resultPtr|let\s+resBits\s*=\s*UInt\(bitPattern:\s*resultPtr\))\s*return withGuaranteedContext\(context\) \{\s*\(context:\s*HostObjectContext,\s*runtime\)\s*in\s*return JavaScriptActor\.assumeIsolated \{\s*return forwardingSwiftErrorsToJS\(runtime: runtime\) \{\s*(?:let resultPtr = UnsafeMutablePointer<facebook\.jsi\.Value>\(bitPattern: resBits\)!\s*)?try context\.get\(propertyName\)\.writeJSIValue\(to: resultPtr\)/;
+			/let propertyName = String\(cString: propertyName\)\s*(?:nonisolated\(unsafe\)\s+let\s+resultPtr\s*=\s*resultPtr|let\s+resBits\s*=\s*UInt\(bitPattern:\s*resultPtr\))\s*return withGuaranteedContext\(context\) \{\s*\(context:\s*HostObjectContext,\s*runtime\)\s*in\s*return JavaScriptActor\.assumeIsolated \{\s*return forwardingSwiftErrorsToJS\(runtime: runtime\) \{\s*(?:let resultPtr = UnsafeMutablePointer<facebook\.jsi\.Value>\(bitPattern: resBits\)!|guard let resultPtr = UnsafeMutablePointer<facebook\.jsi\.Value>\(bitPattern: resBits\)[^}]*\}\s*)try context\.get\(propertyName\)\.writeJSIValue\(to: resultPtr\)/;
 		const getterNew = `let propertyName = String(cString: propertyName)
       let resBits = UInt(bitPattern: resultPtr)
 
       return withGuaranteedContext(context) { (context: HostObjectContext, runtime) in
         return JavaScriptActor.assumeIsolated {
           return forwardingSwiftErrorsToJS(runtime: runtime) {
-            let resultPtr = UnsafeMutablePointer<facebook.jsi.Value>(bitPattern: resBits)!
+            guard let resultPtr = UnsafeMutablePointer<facebook.jsi.Value>(bitPattern: resBits) else { return }
             try context.get(propertyName).writeJSIValue(to: resultPtr)`;
 		if (getterOld.test(content)) {
 			content = content.replace(getterOld, getterNew);
@@ -672,45 +672,97 @@ extension Task where Failure == any Error {
 			"CFRunLoopWakeUp(callerRunLoop.value)"
 		);
 
-		// 6f-4: Fix pointer data races in createFunctionClosure (SyncFunctionClosure)
-		const funcClosureOld1 =
-			/nonisolated\(unsafe\) let thisPtr = thisPtr\s*nonisolated\(unsafe\) let argumentsPtr = argumentsPtr\s*nonisolated\(unsafe\) let resultPtr = resultPtr\s*\/\/ See `withGuaranteedContext`[^\n]*\n\s*\/\/[^\n]*\n\s*return withGuaranteedContext\(context\) \{\s*\(context:\s*HostFunctionContext,\s*runtime\)\s*in\s*return JavaScriptActor\.assumeIsolated \{\s*return forwardingSwiftErrorsToJS\(runtime: runtime\) \{\s*let this = UnsafeMutablePointer\(mutating: thisPtr\)\.move\(\)/;
-		const funcClosureNew1 = `let thisBits = UInt(bitPattern: thisPtr)
+		// 6f-4 & 6f-5: Replace both createFunctionClosure definitions with thread-safe and null-safe implementations.
+		// Note: argumentsPtr MUST remain optional (no force-unwrap !) because when a host function
+		// is called with 0 arguments, C++ passes nullptr (argsBits == 0). Force-unwrapping nil
+		// causes EXC_BREAKPOINT (SIGTRAP) crash on launch.
+		const createFuncClosureBlockRegex =
+			/private func createFunctionClosure\(\s*runtime: JavaScriptRuntime,\s*name: String\? = nil,\s*_ closure: @escaping JavaScriptRuntime\.SyncFunctionClosure\s*\) -> expo\.HostFunctionClosure \{[\s\S]*?return createHostFunctionClosure\(context, call, deallocate\)\s*\}\s*private func createFunctionClosure\(\s*runtime: JavaScriptRuntime,\s*name: String\? = nil,\s*_ closure: @escaping JavaScriptRuntime\.UnownedThisSyncFunctionClosure\s*\) -> expo\.HostFunctionClosure \{[\s\S]*?return createHostFunctionClosure\(context, call, deallocate\)\s*\}/;
+
+		const fullCreateFuncClosureBlock = `private func createFunctionClosure(
+  runtime: JavaScriptRuntime, name: String? = nil, _ closure: @escaping JavaScriptRuntime.SyncFunctionClosure
+) -> expo.HostFunctionClosure {
+  let context = Unmanaged.passRetained(HostFunctionContext(runtime: runtime, name: name, closure)).toOpaque()
+
+  func call(
+    context: UnsafeMutableRawPointer,
+    thisPtr: UnsafePointer<facebook.jsi.Value>,
+    argumentsPtr: UnsafePointer<facebook.jsi.Value>,
+    argumentsCount: Int,
+    resultPtr: UnsafeMutablePointer<facebook.jsi.Value>
+  ) -> Bool {
+    let thisBits = UInt(bitPattern: thisPtr)
     let argsBits = UInt(bitPattern: argumentsPtr)
     let resBits = UInt(bitPattern: resultPtr)
 
     return withGuaranteedContext(context) { (context: HostFunctionContext, runtime) in
       return JavaScriptActor.assumeIsolated {
         return forwardingSwiftErrorsToJS(runtime: runtime) {
-          let thisPtr = UnsafePointer<facebook.jsi.Value>(bitPattern: thisBits)!
-          let argumentsPtr = UnsafePointer<facebook.jsi.Value>(bitPattern: argsBits)!
-          let resultPtr = UnsafeMutablePointer<facebook.jsi.Value>(bitPattern: resBits)!
-          let this = UnsafeMutablePointer(mutating: thisPtr).move()`;
-		if (funcClosureOld1.test(content)) {
-			content = content.replace(
-				funcClosureOld1,
-				funcClosureNew1
-			);
-		}
+          guard let thisPtr = UnsafePointer<facebook.jsi.Value>(bitPattern: thisBits),
+                let resultPtr = UnsafeMutablePointer<facebook.jsi.Value>(bitPattern: resBits) else {
+            return
+          }
+          let argumentsPtr = UnsafePointer<facebook.jsi.Value>(bitPattern: argsBits)
+          let this = UnsafeMutablePointer(mutating: thisPtr).move()
+          let arguments = JavaScriptValuesBuffer(runtime, start: argumentsPtr, count: argumentsCount)
+          let thisValue = JavaScriptValue(runtime, this)
+          try context.call(thisValue, consume arguments).writeJSIValue(to: resultPtr)
+        }
+      }
+    }
+  }
 
-		// 6f-5: Fix pointer data races in createFunctionClosure (UnownedThisSyncFunctionClosure)
-		const funcClosureOld2 =
-			/nonisolated\(unsafe\) let thisPtr = thisPtr\s*nonisolated\(unsafe\) let argumentsPtr = argumentsPtr\s*nonisolated\(unsafe\) let resultPtr = resultPtr\s*\/\/ See `withGuaranteedContext`[^\n]*\n\s*\/\/[^\n]*\n\s*return withGuaranteedContext\(context\) \{\s*\(context:\s*UnownedThisHostFunctionContext,\s*runtime\)\s*in\s*return JavaScriptActor\.assumeIsolated \{\s*return forwardingSwiftErrorsToJS\(runtime: runtime\) \{\s*let arguments = JavaScriptValuesBuffer\(runtime, start: argumentsPtr, count: argumentsCount\)/;
-		const funcClosureNew2 = `let thisBits = UInt(bitPattern: thisPtr)
+  func deallocate(context: UnsafeMutableRawPointer) {
+    Unmanaged<HostFunctionContext>.fromOpaque(context).release()
+  }
+
+  return createHostFunctionClosure(context, call, deallocate)
+}
+
+private func createFunctionClosure(
+  runtime: JavaScriptRuntime, name: String? = nil,
+  _ closure: @escaping JavaScriptRuntime.UnownedThisSyncFunctionClosure
+) -> expo.HostFunctionClosure {
+  let context = Unmanaged.passRetained(UnownedThisHostFunctionContext(runtime: runtime, name: name, closure)).toOpaque()
+
+  func call(
+    context: UnsafeMutableRawPointer,
+    thisPtr: UnsafePointer<facebook.jsi.Value>,
+    argumentsPtr: UnsafePointer<facebook.jsi.Value>,
+    argumentsCount: Int,
+    resultPtr: UnsafeMutablePointer<facebook.jsi.Value>
+  ) -> Bool {
+    let thisBits = UInt(bitPattern: thisPtr)
     let argsBits = UInt(bitPattern: argumentsPtr)
     let resBits = UInt(bitPattern: resultPtr)
 
     return withGuaranteedContext(context) { (context: UnownedThisHostFunctionContext, runtime) in
       return JavaScriptActor.assumeIsolated {
         return forwardingSwiftErrorsToJS(runtime: runtime) {
-          let thisPtr = UnsafePointer<facebook.jsi.Value>(bitPattern: thisBits)!
-          let argumentsPtr = UnsafePointer<facebook.jsi.Value>(bitPattern: argsBits)!
-          let resultPtr = UnsafeMutablePointer<facebook.jsi.Value>(bitPattern: resBits)!
-          let arguments = JavaScriptValuesBuffer(runtime, start: argumentsPtr, count: argumentsCount)`;
-		if (funcClosureOld2.test(content)) {
+          guard let thisPtr = UnsafePointer<facebook.jsi.Value>(bitPattern: thisBits),
+                let resultPtr = UnsafeMutablePointer<facebook.jsi.Value>(bitPattern: resBits) else {
+            return
+          }
+          let argumentsPtr = UnsafePointer<facebook.jsi.Value>(bitPattern: argsBits)
+          let arguments = JavaScriptValuesBuffer(runtime, start: argumentsPtr, count: argumentsCount)
+          let thisValue = JavaScriptUnownedValue(runtime.pointee, thisPtr)
+          try context.call(thisValue, consume arguments).writeJSIValue(to: resultPtr)
+        }
+      }
+    }
+  }
+
+  func deallocate(context: UnsafeMutableRawPointer) {
+    Unmanaged<UnownedThisHostFunctionContext>.fromOpaque(context).release()
+  }
+
+  return createHostFunctionClosure(context, call, deallocate)
+}`;
+
+		if (createFuncClosureBlockRegex.test(content)) {
 			content = content.replace(
-				funcClosureOld2,
-				funcClosureNew2
+				createFuncClosureBlockRegex,
+				fullCreateFuncClosureBlock
 			);
 		}
 
