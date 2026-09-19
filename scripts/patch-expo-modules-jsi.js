@@ -334,10 +334,15 @@ for (const file of swiftFiles) {
 			/func cast<ValueType>\(.*?appContext: AppContext\) throws -> Any \{[\s\S]*?(return result\}|return result\s*\}|return view\.getContentView\(\)\s*\}[\s\S]*?\n  \})/;
 
 		if (
-			content.includes("performSynchronouslyOnMainThread") ||
+			content.includes(
+				"performSynchronouslyOnMainThread"
+			) ||
 			content.includes("MainActor.assumeIsolated")
 		) {
-			content = content.replace(castFuncRegex, fullCastFunc);
+			content = content.replace(
+				castFuncRegex,
+				fullCastFunc
+			);
 			swiftConcurrencyPatchCount++;
 			changed = true;
 		}
@@ -477,7 +482,11 @@ for (const file of swiftFiles) {
 			sendableClassCount++;
 			changed = true;
 		}
-		if (!content.includes("nonisolated(unsafe) let completionHandler")) {
+		if (
+			!content.includes(
+				"nonisolated(unsafe) let completionHandler"
+			)
+		) {
 			content = content.replace(
 				/((nonisolated\(unsafe\)\s*)?let completionHandler:\s*)(@Sendable\s*)?(\(URLSession\.AuthChallengeDisposition)/,
 				"nonisolated(unsafe) let completionHandler: $4"
@@ -644,18 +653,29 @@ extension Task where Failure == any Error {
 		}
 
 		// 6f-2: Fix pointer data races in getter (around line 188)
-		const getterOld =
-			/let propertyName = String\(cString: propertyName\)\s*(?:nonisolated\(unsafe\)\s+let\s+resultPtr\s*=\s*resultPtr|let\s+resBits\s*=\s*UInt\(bitPattern:\s*resultPtr\))\s*return withGuaranteedContext\(context\) \{\s*\(context:\s*HostObjectContext,\s*runtime\)\s*in\s*return JavaScriptActor\.assumeIsolated \{\s*return forwardingSwiftErrorsToJS\(runtime: runtime\) \{\s*(?:let resultPtr = UnsafeMutablePointer<facebook\.jsi\.Value>\(bitPattern: resBits\)!|guard let resultPtr = UnsafeMutablePointer<facebook\.jsi\.Value>\(bitPattern: resBits\)[^}]*\}\s*)try context\.get\(propertyName\)\.writeJSIValue\(to: resultPtr\)/;
-		const getterNew = `let propertyName = String(cString: propertyName)
+		const getterBlockRegex =
+			/func getter\(\s*context: UnsafeMutableRawPointer,\s*propertyName: UnsafePointer<CChar>,\s*resultPtr: UnsafeMutablePointer<facebook\.jsi\.Value>\s*\) -> Bool \{[\s\S]*?return withGuaranteedContext\(context\) \{ \(context: HostObjectContext, runtime\) in[\s\S]*?try context\.get\(propertyName\)\.writeJSIValue\(to: [^\)]+\)[\s\S]*?\}\s*\}\s*\}\s*\}/;
+
+		const fullGetterBlock = `func getter(
+      context: UnsafeMutableRawPointer,
+      propertyName: UnsafePointer<CChar>,
+      resultPtr: UnsafeMutablePointer<facebook.jsi.Value>
+    ) -> Bool {
+      let propertyName = String(cString: propertyName)
       let resBits = UInt(bitPattern: resultPtr)
 
       return withGuaranteedContext(context) { (context: HostObjectContext, runtime) in
         return JavaScriptActor.assumeIsolated {
           return forwardingSwiftErrorsToJS(runtime: runtime) {
-            guard let resultPtr = UnsafeMutablePointer<facebook.jsi.Value>(bitPattern: resBits) else { return }
-            try context.get(propertyName).writeJSIValue(to: resultPtr)`;
-		if (getterOld.test(content)) {
-			content = content.replace(getterOld, getterNew);
+            let resultPtr = UnsafeMutablePointer<facebook.jsi.Value>(bitPattern: resBits)!
+            try context.get(propertyName).writeJSIValue(to: resultPtr)
+          }
+        }
+      }
+    }`;
+
+		if (getterBlockRegex.test(content)) {
+			content = content.replace(getterBlockRegex, fullGetterBlock);
 		}
 
 		// 6f-3: Fix callerRunLoop in schedule (around line 476)
