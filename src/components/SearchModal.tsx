@@ -509,7 +509,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 												}
 											>
 												<Text
-													numberOfLines={1}
+													numberOfLines={
+														1
+													}
 													style={[
 														styles.resultName,
 														{
@@ -522,7 +524,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 													}
 												</Text>
 												<Text
-													numberOfLines={1}
+													numberOfLines={
+														1
+													}
 													style={[
 														styles.resultType,
 														{

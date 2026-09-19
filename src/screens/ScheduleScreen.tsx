@@ -470,7 +470,9 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 												]}
 												numberOfLines={1}
 												adjustsFontSizeToFit
-												minimumFontScale={0.8}
+												minimumFontScale={
+													0.8
+												}
 											>
 												Сегодня
 											</Text>
@@ -548,7 +550,8 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 									adjustsFontSizeToFit
 									minimumFontScale={0.8}
 								>
-									Суббота • пары по 60 мин (08:00 — 14:35)
+									Суббота • пары по 60 мин
+									(08:00 — 14:35)
 								</Text>
 								<Text
 									style={[

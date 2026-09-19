@@ -7,7 +7,12 @@ on:
                 description: "Опубликовать в GitHub Releases?"
                 required: false
                 type: boolean
-                default: false
+                default: true
+            tag_name:
+                description: "Тег релиза (например, v1.B3)"
+                required: false
+                type: string
+                default: "v1.B3"
 
 permissions:
     contents: write
@@ -236,7 +241,11 @@ jobs:
               if: ${{ startsWith(github.ref, 'refs/tags/') || inputs.create_release == true }}
               uses: softprops/action-gh-release@v2
               with:
+                  tag_name: ${{ inputs.tag_name || (startsWith(github.ref, 'refs/tags/') && github.ref_name) || 'v1.B3' }}
+                  name: ${{ format('Apkify {0}', inputs.tag_name || (startsWith(github.ref, 'refs/tags/') && github.ref_name) || 'v1.B3') }}
                   files: build/Apkify.ipa
                   generate_release_notes: true
+                  draft: false
+                  prerelease: false
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

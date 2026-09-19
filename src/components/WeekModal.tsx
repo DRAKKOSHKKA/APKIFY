@@ -215,7 +215,9 @@ export const WeekModal: React.FC<WeekModalProps> = ({
 											</Text>
 											{week.dateRange ? (
 												<Text
-													numberOfLines={1}
+													numberOfLines={
+														1
+													}
 													style={[
 														styles.weekDates,
 														{
@@ -256,7 +258,9 @@ export const WeekModal: React.FC<WeekModalProps> = ({
 													]}
 												/>
 												<Text
-													numberOfLines={1}
+													numberOfLines={
+														1
+													}
 													style={[
 														styles.currentBadgeText,
 														{

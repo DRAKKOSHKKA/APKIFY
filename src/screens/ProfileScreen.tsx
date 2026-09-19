@@ -122,40 +122,376 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 					</Text>
 				</View>
 
+				{/* СЕКЦИЯ 2: ОФОРМЛЕНИЕ */}
+				<View style={styles.section}>
+					<Text
+						style={[
+							styles.sectionTitle,
+							{ color: theme.textSecondary },
+						]}
+					>
+						ОФОРМЛЕНИЕ
+					</Text>
+					<View
+						style={[
+							styles.card,
+							{
+								backgroundColor:
+									theme.groupedCell,
+								borderColor: theme.border,
+							},
+						]}
+					>
+						<View style={styles.columnRow}>
+							<View style={styles.labelRow}>
+								<View
+									style={[
+										styles.iconSquare,
+										{
+											backgroundColor:
+												"#AF52DE",
+										},
+									]}
+								>
+									<Ionicons
+										name="moon"
+										size={17}
+										color="#FFFFFF"
+									/>
+								</View>
+								<Text
+									style={[
+										styles.rowLabel,
+										{ color: theme.text },
+									]}
+								>
+									Тема оформления
+								</Text>
+							</View>
 
+							<View
+								style={[
+									styles.segmented,
+									{
+										backgroundColor:
+											theme.chipBackground,
+									},
+								]}
+							>
+								{[
+									{
+										mode: "system" as ThemeMode,
+										title: "Авто",
+									},
+									{
+										mode: "light" as ThemeMode,
+										title: "Светлая",
+									},
+									{
+										mode: "gray" as ThemeMode,
+										title: "Серая",
+									},
+									{
+										mode: "dark" as ThemeMode,
+										title: "Тёмная",
+									},
+									{
+										mode: "oled" as ThemeMode,
+										title: "OLED",
+									},
+								].map(({ mode, title }) => {
+									const isSelected =
+										settings.themeMode ===
+										mode;
 
-			{/* СЕКЦИЯ 2: ОФОРМЛЕНИЕ */}
-			<View style={styles.section}>
-				<Text
-					style={[
-						styles.sectionTitle,
-						{ color: theme.textSecondary },
-					]}
-				>
-					ОФОРМЛЕНИЕ
-				</Text>
-				<View
-					style={[
-						styles.card,
-						{
-							backgroundColor: theme.groupedCell,
-							borderColor: theme.border,
-						},
-					]}
-				>
-					<View style={styles.columnRow}>
-						<View style={styles.labelRow}>
+									return (
+										<TouchableOpacity
+											key={mode}
+											style={[
+												styles.segmentBtn,
+												isSelected && [
+													styles.segmentBtnActive,
+													{
+														backgroundColor:
+															theme.card,
+													},
+												],
+											]}
+											activeOpacity={0.7}
+											onPress={() => {
+												try {
+													Haptics.selectionAsync();
+												} catch {}
+												onUpdateSettings(
+													{
+														themeMode:
+															mode,
+													}
+												);
+											}}
+										>
+											<Text
+												style={[
+													styles.segmentBtnText,
+													{
+														color: isSelected
+															? theme.text
+															: theme.textSecondary,
+														fontWeight:
+															isSelected
+																? "700"
+																: "500",
+													},
+												]}
+												numberOfLines={1}
+												adjustsFontSizeToFit
+												minimumFontScale={
+													0.75
+												}
+											>
+												{title}
+											</Text>
+										</TouchableOpacity>
+									);
+								})}
+							</View>
+						</View>
+
+						<View
+							style={[
+								styles.divider,
+								{
+									backgroundColor:
+										theme.separator,
+								},
+							]}
+						/>
+
+						{/* Выбор акцентного цвета */}
+						<View style={styles.columnRow}>
+							<View style={styles.labelRow}>
+								<View
+									style={[
+										styles.iconSquare,
+										{
+											backgroundColor:
+												theme.accent,
+										},
+									]}
+								>
+									<Ionicons
+										name="color-palette"
+										size={17}
+										color="#FFFFFF"
+									/>
+								</View>
+								<View style={{ flex: 1 }}>
+									<Text
+										style={[
+											styles.rowLabel,
+											{
+												color: theme.text,
+											},
+										]}
+									>
+										Акцентный цвет
+									</Text>
+									<Text
+										style={[
+											styles.colorSelectedLabel,
+											{
+												color: theme.textSecondary,
+											},
+										]}
+									>
+										{
+											ACCENT_PALETTES[
+												settings.accentColor ||
+													"blue"
+											]?.name
+										}
+									</Text>
+								</View>
+							</View>
+
+							<View style={styles.colorPaletteRow}>
+								{(
+									[
+										"blue",
+										"purple",
+										"green",
+										"orange",
+										"pink",
+										"teal",
+									] as AccentColor[]
+								).map((cKey) => {
+									const pal =
+										ACCENT_PALETTES[cKey];
+									const isSelected =
+										(settings.accentColor ||
+											"blue") === cKey;
+
+									return (
+										<TouchableOpacity
+											key={cKey}
+											style={[
+												styles.colorCircle,
+												{
+													backgroundColor:
+														pal.color,
+												},
+												isSelected && [
+													styles.colorCircleSelected,
+													{
+														borderColor:
+															theme.text,
+													},
+												],
+											]}
+											activeOpacity={0.75}
+											onPress={() => {
+												try {
+													Haptics.selectionAsync();
+												} catch {}
+												onUpdateSettings(
+													{
+														accentColor:
+															cKey,
+													}
+												);
+											}}
+											accessibilityLabel={
+												pal.name
+											}
+										>
+											{isSelected && (
+												<Ionicons
+													name="checkmark"
+													size={16}
+													color="#FFFFFF"
+												/>
+											)}
+										</TouchableOpacity>
+									);
+								})}
+							</View>
+						</View>
+
+						<View
+							style={[
+								styles.divider,
+								{
+									backgroundColor:
+										theme.separator,
+								},
+							]}
+						/>
+
+						{/* Переключатель Liquid Glass */}
+						<View style={styles.switchRow}>
+							<View style={styles.labelRowCompact}>
+								<View
+									style={[
+										styles.iconSquare,
+										{
+											backgroundColor:
+												"#5AC8FA",
+										},
+									]}
+								>
+									<Ionicons
+										name="sparkles"
+										size={17}
+										color="#FFFFFF"
+									/>
+								</View>
+								<View style={styles.textColumn}>
+									<Text
+										style={[
+											styles.rowLabel,
+											{
+												color: theme.text,
+											},
+										]}
+									>
+										Эффект Liquid Glass
+									</Text>
+									<Text
+										style={[
+											styles.rowSubLabel,
+											{
+												color: theme.textSecondary,
+											},
+										]}
+									>
+										Полупрозрачные акриловые
+										подложки iOS
+									</Text>
+								</View>
+							</View>
+							<Switch
+								value={settings.glassEffect}
+								onValueChange={(val) => {
+									try {
+										Haptics.selectionAsync();
+									} catch {}
+									onUpdateSettings({
+										glassEffect: val,
+									});
+								}}
+								trackColor={{
+									false: theme.chipBackground,
+									true: theme.success,
+								}}
+								thumbColor="#FFFFFF"
+								ios_backgroundColor={
+									theme.chipBackground
+								}
+							/>
+						</View>
+					</View>
+				</View>
+
+				{/* СЕКЦИЯ 3: СПРАВОЧНИК И ЗВОНКИ */}
+				<View style={styles.section}>
+					<Text
+						style={[
+							styles.sectionTitle,
+							{ color: theme.textSecondary },
+						]}
+					>
+						СПРАВОЧНИК И ЗВОНКИ
+					</Text>
+					<View
+						style={[
+							styles.card,
+							{
+								backgroundColor:
+									theme.groupedCell,
+								borderColor: theme.border,
+							},
+						]}
+					>
+						{/* Расписание звонков */}
+						<TouchableOpacity
+							style={styles.row}
+							activeOpacity={0.6}
+							onPress={() => {
+								triggerLight();
+								onOpenCallsModal();
+							}}
+						>
 							<View
 								style={[
 									styles.iconSquare,
 									{
 										backgroundColor:
-											"#AF52DE",
+											"#FF9500",
 									},
 								]}
 							>
 								<Ionicons
-									name="moon"
+									name="notifications"
 									size={17}
 									color="#FFFFFF"
 								/>
@@ -166,477 +502,174 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 									{ color: theme.text },
 								]}
 							>
-								Тема оформления
+								Расписание звонков
 							</Text>
-						</View>
+							<Text
+								style={[
+									styles.rowValue,
+									{
+										color: theme.textSecondary,
+									},
+								]}
+							>
+								Пн—Пт и Сб
+							</Text>
+							<Ionicons
+								name="chevron-forward"
+								size={17}
+								color={theme.separator}
+							/>
+						</TouchableOpacity>
 
 						<View
 							style={[
-								styles.segmented,
+								styles.divider,
 								{
 									backgroundColor:
-										theme.chipBackground,
+										theme.separator,
 								},
 							]}
-						>
-							{[
-								{
-									mode: "system" as ThemeMode,
-									title: "Авто",
-								},
-								{
-									mode: "light" as ThemeMode,
-									title: "Светлая",
-								},
-								{
-									mode: "gray" as ThemeMode,
-									title: "Серая",
-								},
-								{
-									mode: "dark" as ThemeMode,
-									title: "Тёмная",
-								},
-								{
-									mode: "oled" as ThemeMode,
-									title: "OLED",
-								},
-							].map(({ mode, title }) => {
-								const isSelected =
-									settings.themeMode === mode;
+						/>
 
-								return (
-									<TouchableOpacity
-										key={mode}
-										style={[
-											styles.segmentBtn,
-											isSelected && [
-												styles.segmentBtnActive,
-												{
-													backgroundColor:
-														theme.card,
-												},
-											],
-										]}
-										activeOpacity={0.7}
-										onPress={() => {
-											try {
-												Haptics.selectionAsync();
-											} catch {}
-											onUpdateSettings({
-												themeMode: mode,
-											});
-										}}
-									>
-										<Text
-											style={[
-												styles.segmentBtnText,
-												{
-													color: isSelected
-														? theme.text
-														: theme.textSecondary,
-													fontWeight:
-														isSelected
-															? "700"
-															: "500",
-												},
-											]}
-											numberOfLines={1}
-											adjustsFontSizeToFit
-											minimumFontScale={0.75}
-										>
-											{title}
-										</Text>
-									</TouchableOpacity>
+						{/* Портал колледжа */}
+						<TouchableOpacity
+							style={styles.row}
+							activeOpacity={0.6}
+							onPress={() => {
+								Linking.openURL(
+									APP_CONFIG.websiteUrl
 								);
-							})}
-						</View>
-					</View>
-
-					<View
-						style={[
-							styles.divider,
-							{ backgroundColor: theme.separator },
-						]}
-					/>
-
-					{/* Выбор акцентного цвета */}
-					<View style={styles.columnRow}>
-						<View style={styles.labelRow}>
+							}}
+						>
 							<View
 								style={[
 									styles.iconSquare,
 									{
 										backgroundColor:
-											theme.accent,
+											"#5856D6",
 									},
 								]}
 							>
 								<Ionicons
-									name="color-palette"
+									name="globe-outline"
 									size={17}
 									color="#FFFFFF"
 								/>
 							</View>
-							<View style={{ flex: 1 }}>
-								<Text
-									style={[
-										styles.rowLabel,
-										{ color: theme.text },
-									]}
-								>
-									Акцентный цвет
-								</Text>
-								<Text
-									style={[
-										styles.colorSelectedLabel,
-										{
-											color: theme.textSecondary,
-										},
-									]}
-								>
-									{
-										ACCENT_PALETTES[
-											settings.accentColor ||
-												"blue"
-										]?.name
-									}
-								</Text>
-							</View>
-						</View>
-
-						<View style={styles.colorPaletteRow}>
-							{(
-								[
-									"blue",
-									"purple",
-									"green",
-									"orange",
-									"pink",
-									"teal",
-								] as AccentColor[]
-							).map((cKey) => {
-								const pal =
-									ACCENT_PALETTES[cKey];
-								const isSelected =
-									(settings.accentColor ||
-										"blue") === cKey;
-
-								return (
-									<TouchableOpacity
-										key={cKey}
-										style={[
-											styles.colorCircle,
-											{
-												backgroundColor:
-													pal.color,
-											},
-											isSelected && [
-												styles.colorCircleSelected,
-												{
-													borderColor:
-														theme.text,
-												},
-											],
-										]}
-										activeOpacity={0.75}
-										onPress={() => {
-											try {
-												Haptics.selectionAsync();
-											} catch {}
-											onUpdateSettings({
-												accentColor:
-													cKey,
-											});
-										}}
-										accessibilityLabel={
-											pal.name
-										}
-									>
-										{isSelected && (
-											<Ionicons
-												name="checkmark"
-												size={16}
-												color="#FFFFFF"
-											/>
-										)}
-									</TouchableOpacity>
-								);
-							})}
-						</View>
-					</View>
-
-					<View
-						style={[
-							styles.divider,
-							{ backgroundColor: theme.separator },
-						]}
-					/>
-
-					{/* Переключатель Liquid Glass */}
-					<View style={styles.switchRow}>
-						<View style={styles.labelRowCompact}>
-							<View
+							<Text
 								style={[
-									styles.iconSquare,
+									styles.rowLabel,
+									{ color: theme.text },
+								]}
+							>
+								Сайт колледжа
+							</Text>
+							<Text
+								style={[
+									styles.rowValue,
 									{
-										backgroundColor:
-											"#5AC8FA",
+										color: theme.textSecondary,
 									},
 								]}
 							>
-								<Ionicons
-									name="sparkles"
-									size={17}
-									color="#FFFFFF"
-								/>
-							</View>
-							<View style={styles.textColumn}>
-								<Text
-									style={[
-										styles.rowLabel,
-										{ color: theme.text },
-									]}
-								>
-									Эффект Liquid Glass
-								</Text>
-								<Text
-									style={[
-										styles.rowSubLabel,
-										{
-											color: theme.textSecondary,
-										},
-									]}
-								>
-									Полупрозрачные акриловые
-									подложки iOS
-								</Text>
-							</View>
-						</View>
-						<Switch
-							value={settings.glassEffect}
-							onValueChange={(val) => {
-								try {
-									Haptics.selectionAsync();
-								} catch {}
-								onUpdateSettings({
-									glassEffect: val,
-								});
-							}}
-							trackColor={{
-								false: theme.chipBackground,
-								true: theme.success,
-							}}
-							thumbColor="#FFFFFF"
-							ios_backgroundColor={
-								theme.chipBackground
-							}
-						/>
+								it-institut.ru
+							</Text>
+							<Ionicons
+								name="open-outline"
+								size={16}
+								color={theme.separator}
+							/>
+						</TouchableOpacity>
 					</View>
 				</View>
-			</View>
 
-			{/* СЕКЦИЯ 3: СПРАВОЧНИК И ЗВОНКИ */}
-			<View style={styles.section}>
-				<Text
-					style={[
-						styles.sectionTitle,
-						{ color: theme.textSecondary },
-					]}
-				>
-					СПРАВОЧНИК И ЗВОНКИ
-				</Text>
-				<View
-					style={[
-						styles.card,
-						{
-							backgroundColor: theme.groupedCell,
-							borderColor: theme.border,
-						},
-					]}
-				>
-					{/* Расписание звонков */}
-					<TouchableOpacity
-						style={styles.row}
-						activeOpacity={0.6}
-						onPress={() => {
-							triggerLight();
-							onOpenCallsModal();
-						}}
-					>
-						<View
-							style={[
-								styles.iconSquare,
-								{ backgroundColor: "#FF9500" },
-							]}
-						>
-							<Ionicons
-								name="notifications"
-								size={17}
-								color="#FFFFFF"
-							/>
-						</View>
-						<Text
-							style={[
-								styles.rowLabel,
-								{ color: theme.text },
-							]}
-						>
-							Расписание звонков
-						</Text>
-						<Text
-							style={[
-								styles.rowValue,
-								{ color: theme.textSecondary },
-							]}
-						>
-							Пн—Пт и Сб
-						</Text>
-						<Ionicons
-							name="chevron-forward"
-							size={17}
-							color={theme.separator}
-						/>
-					</TouchableOpacity>
-
-					<View
-						style={[
-							styles.divider,
-							{ backgroundColor: theme.separator },
-						]}
-					/>
-
-					{/* Портал колледжа */}
-					<TouchableOpacity
-						style={styles.row}
-						activeOpacity={0.6}
-						onPress={() => {
-							Linking.openURL(
-								APP_CONFIG.websiteUrl
-							);
-						}}
-					>
-						<View
-							style={[
-								styles.iconSquare,
-								{ backgroundColor: "#5856D6" },
-							]}
-						>
-							<Ionicons
-								name="globe-outline"
-								size={17}
-								color="#FFFFFF"
-							/>
-						</View>
-						<Text
-							style={[
-								styles.rowLabel,
-								{ color: theme.text },
-							]}
-						>
-							Сайт колледжа
-						</Text>
-						<Text
-							style={[
-								styles.rowValue,
-								{ color: theme.textSecondary },
-							]}
-						>
-							it-institut.ru
-						</Text>
-						<Ionicons
-							name="open-outline"
-							size={16}
-							color={theme.separator}
-						/>
-					</TouchableOpacity>
-				</View>
-			</View>
-
-
-
-			<View style={styles.section}>
-				<Text
-					style={[
-						styles.sectionTitle,
-						{ color: theme.textSecondary },
-					]}
-				>
-					ХРАНИЛИЩЕ ДАННЫХ
-				</Text>
-				<View
-					style={[
-						styles.card,
-						{
-							backgroundColor: theme.groupedCell,
-							borderColor: theme.border,
-						},
-					]}
-				>
-					<TouchableOpacity
-						style={styles.row}
-						activeOpacity={0.6}
-						onPress={handleClear}
-						disabled={clearing}
-					>
-						<View
-							style={[
-								styles.iconSquare,
-								{ backgroundColor: "#FF3B30" },
-							]}
-						>
-							<Ionicons
-								name="trash-outline"
-								size={17}
-								color="#FFFFFF"
-							/>
-						</View>
-						<Text
-							style={[
-								styles.rowLabel,
-								{ color: theme.danger },
-							]}
-						>
-							Очистить сохранённый кэш
-						</Text>
-					</TouchableOpacity>
-				</View>
-			</View>
-
-			{/* Футер: единая версия из APP_CONFIG + 7 тапов для открытия Debug */}
-			<View style={styles.footer}>
-				<Text
-					style={[
-						styles.footerText,
-						{ color: theme.textSecondary },
-					]}
-				>
-					{APP_CONFIG.collegeName}
-				</Text>
-				<TouchableOpacity
-					activeOpacity={0.7}
-					onPress={handleVersionPress}
-					hitSlop={{
-						top: 12,
-						bottom: 16,
-						left: 24,
-						right: 24,
-					}}
-				>
+				<View style={styles.section}>
 					<Text
 						style={[
-							styles.footerSub,
+							styles.sectionTitle,
 							{ color: theme.textSecondary },
 						]}
 					>
-						{APP_CONFIG.name} v{APP_CONFIG.version}
-						{debugTaps >= 4
-							? ` (ещё ${7 - debugTaps} до Debug)`
-							: ""}
+						ХРАНИЛИЩЕ ДАННЫХ
 					</Text>
-				</TouchableOpacity>
+					<View
+						style={[
+							styles.card,
+							{
+								backgroundColor:
+									theme.groupedCell,
+								borderColor: theme.border,
+							},
+						]}
+					>
+						<TouchableOpacity
+							style={styles.row}
+							activeOpacity={0.6}
+							onPress={handleClear}
+							disabled={clearing}
+						>
+							<View
+								style={[
+									styles.iconSquare,
+									{
+										backgroundColor:
+											"#FF3B30",
+									},
+								]}
+							>
+								<Ionicons
+									name="trash-outline"
+									size={17}
+									color="#FFFFFF"
+								/>
+							</View>
+							<Text
+								style={[
+									styles.rowLabel,
+									{ color: theme.danger },
+								]}
+							>
+								Очистить сохранённый кэш
+							</Text>
+						</TouchableOpacity>
+					</View>
+				</View>
+
+				{/* Футер: единая версия из APP_CONFIG + 7 тапов для открытия Debug */}
+				<View style={styles.footer}>
+					<Text
+						style={[
+							styles.footerText,
+							{ color: theme.textSecondary },
+						]}
+					>
+						{APP_CONFIG.collegeName}
+					</Text>
+					<TouchableOpacity
+						activeOpacity={0.7}
+						onPress={handleVersionPress}
+						hitSlop={{
+							top: 12,
+							bottom: 16,
+							left: 24,
+							right: 24,
+						}}
+					>
+						<Text
+							style={[
+								styles.footerSub,
+								{ color: theme.textSecondary },
+							]}
+						>
+							{APP_CONFIG.name} v{APP_CONFIG.version} (Сборка {APP_CONFIG.buildNumber})
+							{debugTaps >= 4
+								? ` • ещё ${7 - debugTaps} до Debug`
+								: ""}
+						</Text>
+					</TouchableOpacity>
+				</View>
 			</View>
-		</View>
-	</ScrollView>
+		</ScrollView>
 	);
 };
 

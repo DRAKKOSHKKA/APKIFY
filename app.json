@@ -2,13 +2,13 @@
 	"expo": {
 		"name": "Apkify",
 		"slug": "apkify",
-		"version": "1.0.2",
+		"version": "1.0.3",
 		"scheme": "apkify",
 		"orientation": "portrait",
 		"icon": "./assets/icon.png",
 		"userInterfaceStyle": "automatic",
 		"ios": {
-			"buildNumber": "1",
+			"buildNumber": "3",
 			"supportsTablet": true,
 			"bundleIdentifier": "ru.apk.schedule",
 			"infoPlist": {
