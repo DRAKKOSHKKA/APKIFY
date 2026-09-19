@@ -447,6 +447,17 @@ export default function App() {
 				<CallsScheduleModal
 					visible={isCallsOpen}
 					theme={theme}
+					initialScheduleType={
+						selectedDayIndex === 5 ||
+						(activeSchedule?.days[
+							selectedDayIndex
+						]?.dayName
+							.toLowerCase()
+							.includes("суббот") ??
+							false)
+							? "saturday"
+							: "weekday"
+					}
 					onClose={() => setIsCallsOpen(false)}
 				/>
 

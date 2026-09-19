@@ -19,15 +19,27 @@ import { ThemeColors } from "../theme/colors";
 interface CallsScheduleModalProps {
 	visible: boolean;
 	theme: ThemeColors;
+	initialScheduleType?: "weekday" | "saturday";
 	onClose: () => void;
 }
 
 export const CallsScheduleModal: React.FC<
 	CallsScheduleModalProps
-> = ({ visible, theme, onClose }) => {
+> = ({
+	visible,
+	theme,
+	initialScheduleType = "weekday",
+	onClose,
+}) => {
 	const [scheduleType, setScheduleType] = useState<
 		"weekday" | "saturday"
-	>("weekday");
+	>(initialScheduleType);
+
+	React.useEffect(() => {
+		if (visible && initialScheduleType) {
+			setScheduleType(initialScheduleType);
+		}
+	}, [visible, initialScheduleType]);
 
 	const isSaturday = scheduleType === "saturday";
 	const activeList = isSaturday

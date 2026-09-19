@@ -7,6 +7,11 @@ import {
 	Lesson,
 	DebugStats,
 } from "../types/schedule";
+import {
+	CALLS_SCHEDULE,
+	SATURDAY_CALLS_SCHEDULE,
+	normalizeSaturdayTimes,
+} from "../utils/timeUtils";
 
 export const BASE_URL = "https://it-institut.ru";
 export const DEFAULT_OWNER_ID = 37; // Альметьевский профессиональный колледж
@@ -252,13 +257,31 @@ export function parseScheduleHtml(
 		}
 
 		const isToday = dayDate === todayStr;
+		const isSaturday =
+			dayName.toLowerCase().includes("суббот") ||
+			rowIdx === 5;
 
 		const lessons: Lesson[] = [];
 		const tds = row.querySelectorAll("td");
 
 		tds.forEach((td, colIndex) => {
-			const time =
-				timeSlots[colIndex] || `Пара ${colIndex + 1}`;
+			let time = "";
+			if (isSaturday) {
+				const satCall =
+					SATURDAY_CALLS_SCHEDULE.find(
+						(c) => c.pair === colIndex + 1
+					) || SATURDAY_CALLS_SCHEDULE[colIndex];
+				time = satCall
+					? `${satCall.start} - ${satCall.end}`
+					: timeSlots[colIndex] || `Пара ${colIndex + 1}`;
+			} else {
+				time =
+					timeSlots[colIndex] ||
+					(CALLS_SCHEDULE[colIndex]
+						? `${CALLS_SCHEDULE[colIndex].start} - ${CALLS_SCHEDULE[colIndex].end}`
+						: `Пара ${colIndex + 1}`);
+			}
+
 			const contentDivs = td.querySelectorAll(
 				'> div, div[style*="margin"]'
 			);
@@ -312,7 +335,7 @@ export function parseScheduleHtml(
 		});
 	});
 
-	return {
+	const rawSchedule: ScheduleData = {
 		entity,
 		weekId: activeWeekId,
 		currentWeekNum,
@@ -322,4 +345,6 @@ export function parseScheduleHtml(
 		lastUpdated: Date.now(),
 		debugStats,
 	};
+
+	return normalizeSaturdayTimes(rawSchedule);
 }

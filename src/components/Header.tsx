@@ -16,6 +16,7 @@ interface HeaderProps {
 	theme: ThemeColors;
 	onOpenSearch: () => void;
 	onOpenWeeks: () => void;
+	onOpenCalls?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -24,6 +25,7 @@ export const Header: React.FC<HeaderProps> = ({
 	theme,
 	onOpenSearch,
 	onOpenWeeks,
+	onOpenCalls,
 }) => {
 	return (
 		<View
@@ -59,8 +61,36 @@ export const Header: React.FC<HeaderProps> = ({
 				/>
 			</TouchableOpacity>
 
-			{/* Правая часть: кнопка недели (поиск открывается по тапу на название со стрелочкой) */}
+			{/* Правая часть: кнопка расписания звонков и недели */}
 			<View style={styles.rightActions}>
+				{onOpenCalls && (
+					<TouchableOpacity
+						style={[
+							styles.callsBtn,
+							{
+								backgroundColor:
+									theme.chipBackground,
+							},
+						]}
+						activeOpacity={0.7}
+						onPress={() => {
+							try {
+								Haptics.impactAsync(
+									Haptics.ImpactFeedbackStyle.Light
+								);
+							} catch {}
+							onOpenCalls();
+						}}
+						accessibilityLabel="Расписание звонков"
+					>
+						<Ionicons
+							name="notifications-outline"
+							size={16}
+							color={theme.accent}
+						/>
+					</TouchableOpacity>
+				)}
+
 				{/* Кнопка недели */}
 				<TouchableOpacity
 					style={[
@@ -106,7 +136,7 @@ const styles = StyleSheet.create({
 	entityRow: {
 		flexDirection: "row",
 		alignItems: "center",
-		maxWidth: "75%",
+		maxWidth: "65%",
 	},
 	title: {
 		fontSize: 26,
@@ -120,6 +150,14 @@ const styles = StyleSheet.create({
 	rightActions: {
 		flexDirection: "row",
 		alignItems: "center",
+		gap: 8,
+	},
+	callsBtn: {
+		width: 34,
+		height: 34,
+		borderRadius: 17,
+		alignItems: "center",
+		justifyContent: "center",
 	},
 	weekPill: {
 		paddingHorizontal: 13,

@@ -19,7 +19,8 @@ import {
 	SearchResultItem,
 } from "../types/schedule";
 import { ThemeColors } from "../theme/colors";
-import { formatFullDate } from "../utils/timeUtils";
+import { formatFullDate, getCurrentDayLiveStatus } from "../utils/timeUtils";
+import * as Haptics from "expo-haptics";
 
 import { Header } from "../components/Header";
 import { DaySelector } from "../components/DaySelector";
@@ -75,12 +76,36 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 	onSelectDayIndex,
 	onOpenSearch,
 	onOpenWeeks,
+	onOpenCalls,
 	onRefresh,
 	onRetry,
 	onDismissUpdateNotice,
 	onResetMockTime,
 }) => {
 	const selectedDay = schedule?.days[selectedDayIndex];
+
+	// Индекс сегодняшнего дня
+	const todayIndex = schedule?.days
+		? schedule.days.findIndex((d, idx) =>
+				mockDate
+					? (mockDate.getDay() === 0 ? 0 : mockDate.getDay() - 1) ===
+					  idx
+					: d.isToday
+		  )
+		: -1;
+
+	const isDayCurrentlyToday =
+		mockDate
+			? (mockDate.getDay() === 0 ? 0 : mockDate.getDay() - 1) ===
+			  selectedDayIndex
+			: selectedDay
+			? selectedDay.isToday
+			: false;
+
+	const isSaturday = selectedDay
+		? selectedDay.dayName.toLowerCase().includes("суббот") ||
+		  selectedDayIndex === 5
+		: false;
 
 	// Анимация при переключении дня
 	const handleSelectDay = (idx: number) => {
@@ -119,6 +144,12 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 		? filterLessons(selectedDay.lessons)
 		: [];
 
+	const liveStatus = getCurrentDayLiveStatus(
+		displayedLessons,
+		isDayCurrentlyToday,
+		mockDate
+	);
+
 	const firstLesson =
 		displayedLessons.length > 0 ? displayedLessons[0] : null;
 	const firstPairNum = firstLesson ? firstLesson.pairIndex : 1;
@@ -140,6 +171,7 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 				theme={theme}
 				onOpenSearch={onOpenSearch}
 				onOpenWeeks={onOpenWeeks}
+				onOpenCalls={onOpenCalls}
 			/>
 
 			{/* Уведомление об обновлении расписания */}
@@ -336,31 +368,581 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 					<View>
 						{/* Дата выбранного дня */}
 						<View style={styles.dayHeader}>
-							<Text
-								style={[
-									styles.dayTitle,
-									{ color: theme.text },
-								]}
-							>
-								{formatFullDate(
-									selectedDay.dayDate,
-									selectedDay.dayName
-								)}
-							</Text>
-							{settings.subgroup !== "all" && (
+							<View style={styles.dayHeaderLeft}>
 								<Text
 									style={[
-										styles.subgroupNotice,
+										styles.dayTitle,
+										{ color: theme.text },
+									]}
+								>
+									{formatFullDate(
+										selectedDay.dayDate,
+										selectedDay.dayName
+									)}
+								</Text>
+								{settings.subgroup !== "all" && (
+									<Text
+										style={[
+											styles.subgroupNotice,
+											{
+												color: theme.textSecondary,
+											},
+										]}
+									>
+										{settings.subgroup}-я
+										подгруппа
+									</Text>
+								)}
+							</View>
+							{selectedDayIndex !== todayIndex &&
+								todayIndex !== -1 && (
+									<TouchableOpacity
+										style={[
+											styles.todayJumpBtn,
+											{
+												backgroundColor:
+													theme.accentSubtle,
+											},
+										]}
+										activeOpacity={0.7}
+										onPress={() => {
+											try {
+												Haptics.impactAsync(
+													Haptics
+														.ImpactFeedbackStyle
+														.Light
+												);
+											} catch {}
+											handleSelectDay(
+												todayIndex
+											);
+										}}
+									>
+										<Ionicons
+											name="arrow-undo"
+											size={12}
+											color={theme.accent}
+											style={{
+												marginRight: 4,
+											}}
+										/>
+										<Text
+											style={[
+												styles.todayJumpText,
+												{
+													color: theme.accent,
+												},
+											]}
+										>
+											Сегодня
+										</Text>
+									</TouchableOpacity>
+								)}
+						</View>
+
+						{/* Специальный субботний баннер */}
+						{isSaturday && (
+							<TouchableOpacity
+								style={[
+									styles.saturdayBanner,
+									{
+										backgroundColor: theme.isDark
+											? "rgba(10, 132, 255, 0.12)"
+											: "rgba(0, 122, 255, 0.08)",
+										borderColor: theme.accent,
+									},
+								]}
+								activeOpacity={0.75}
+								onPress={() => {
+									try {
+										Haptics.impactAsync(
+											Haptics.ImpactFeedbackStyle
+												.Light
+										);
+									} catch {}
+									onOpenCalls?.();
+								}}
+							>
+								<View
+									style={
+										styles.saturdayBannerLeft
+									}
+								>
+									<Ionicons
+										name="time-outline"
+										size={20}
+										color={theme.accent}
+										style={{ marginRight: 8 }}
+									/>
+									<View style={{ flex: 1 }}>
+										<Text
+											style={[
+												styles.saturdayBannerTitle,
+												{
+													color: theme.accent,
+												},
+											]}
+										>
+											Суббота • Пары по 60
+											минут
+										</Text>
+										<Text
+											style={[
+												styles.saturdayBannerSubtitle,
+												{
+													color: theme.textSecondary,
+												},
+											]}
+										>
+											08:00 — 14:35 (перемены
+											5-15 мин)
+										</Text>
+									</View>
+								</View>
+								<View
+									style={[
+										styles.saturdayBannerBtn,
 										{
-											color: theme.textSecondary,
+											backgroundColor:
+												theme.accent,
 										},
 									]}
 								>
-									{settings.subgroup}-я
-									подгруппа
-								</Text>
-							)}
-						</View>
+									<Text
+										style={
+											styles.saturdayBannerBtnText
+										}
+									>
+										Звонки
+									</Text>
+									<Ionicons
+										name="chevron-forward"
+										size={12}
+										color="#FFFFFF"
+									/>
+								</View>
+							</TouchableOpacity>
+						)}
+
+						{/* Живой трекер текущей пары / перемены */}
+						{liveStatus && (
+							<View
+								style={
+									styles.liveWidgetContainer
+								}
+							>
+								{liveStatus.type ===
+									"in_lesson" && (
+									<View
+										style={[
+											styles.liveCard,
+											{
+												backgroundColor:
+													theme.isDark
+														? "#092412"
+														: "#EBF9EE",
+												borderColor:
+													theme.success,
+											},
+										]}
+									>
+										<View
+											style={
+												styles.liveCardHeader
+											}
+										>
+											<View
+												style={
+													styles.liveCardBadge
+												}
+											>
+												<View
+													style={[
+														styles.pulseDot,
+														{
+															backgroundColor:
+																theme.success,
+														},
+													]}
+												/>
+												<Text
+													style={[
+														styles.liveCardBadgeText,
+														{
+															color: theme.success,
+														},
+													]}
+												>
+													ИДЁТ{" "}
+													{
+														liveStatus
+															.lesson
+															.pairIndex
+													}{" "}
+													ПАРА
+												</Text>
+											</View>
+											<Text
+												style={[
+													styles.liveCardCountdown,
+													{
+														color: theme.success,
+													},
+												]}
+											>
+												ост.{" "}
+												{
+													liveStatus.leftMinutes
+												}{" "}
+												мин
+											</Text>
+										</View>
+
+										<Text
+											style={[
+												styles.liveSubject,
+												{
+													color: theme.text,
+												},
+											]}
+											numberOfLines={1}
+										>
+											{
+												liveStatus
+													.lesson
+													.subject
+											}
+										</Text>
+
+										<View
+											style={
+												styles.liveMetaRow
+											}
+										>
+											{liveStatus.lesson
+												.room ? (
+												<Text
+													style={[
+														styles.liveMetaText,
+														{
+															color: theme.textSecondary,
+														},
+													]}
+												>
+													📍{" "}
+													{liveStatus.lesson.room
+														.toLowerCase()
+														.startsWith(
+															"каб"
+														)
+														? liveStatus
+																.lesson
+																.room
+														: `каб. ${liveStatus.lesson.room}`}
+												</Text>
+											) : null}
+											{liveStatus.lesson
+												.teacher ? (
+												<Text
+													style={[
+														styles.liveMetaText,
+														{
+															color: theme.textSecondary,
+														},
+													]}
+												>
+													👤{" "}
+													{
+														liveStatus
+															.lesson
+															.teacher
+													}
+												</Text>
+											) : null}
+										</View>
+
+										{/* Прогресс пары */}
+										<View
+											style={[
+												styles.progressBarTrack,
+												{
+													backgroundColor:
+														theme.isDark
+															? "rgba(255, 255, 255, 0.12)"
+															: "rgba(0, 0, 0, 0.08)",
+												},
+											]}
+										>
+											<View
+												style={[
+													styles.progressBarFill,
+													{
+														backgroundColor:
+															theme.success,
+														width: `${Math.round(liveStatus.progress * 100)}%`,
+													},
+												]}
+											/>
+										</View>
+									</View>
+								)}
+
+								{liveStatus.type ===
+									"break" && (
+									<View
+										style={[
+											styles.liveCard,
+											{
+												backgroundColor:
+													theme.isDark
+														? "#281D06"
+														: "#FFF8EB",
+												borderColor:
+													theme.warning,
+											},
+										]}
+									>
+										<View
+											style={
+												styles.liveCardHeader
+											}
+										>
+											<View
+												style={
+													styles.liveCardBadge
+												}
+											>
+												<Ionicons
+													name="cafe"
+													size={14}
+													color={
+														theme.warning
+													}
+													style={{
+														marginRight: 6,
+													}}
+												/>
+												<Text
+													style={[
+														styles.liveCardBadgeText,
+														{
+															color: theme.warning,
+														},
+													]}
+												>
+													ПЕРЕМЕНА
+												</Text>
+											</View>
+											<Text
+												style={[
+													styles.liveCardCountdown,
+													{
+														color: theme.warning,
+													},
+												]}
+											>
+												до звонка{" "}
+												{
+													liveStatus.breakLeftMinutes
+												}{" "}
+												мин
+											</Text>
+										</View>
+
+										<Text
+											style={[
+												styles.liveSubject,
+												{
+													color: theme.text,
+												},
+											]}
+											numberOfLines={1}
+										>
+											Далее:{" "}
+											{
+												liveStatus
+													.nextLesson
+													.pairIndex
+											}{" "}
+											пара —{" "}
+											{
+												liveStatus
+													.nextLesson
+													.subject
+											}
+										</Text>
+
+										{liveStatus.nextLesson
+											.room ? (
+											<Text
+												style={[
+													styles.liveMetaText,
+													{
+														color: theme.textSecondary,
+													},
+												]}
+											>
+												📍{" "}
+												{liveStatus.nextLesson.room
+													.toLowerCase()
+													.startsWith(
+														"каб"
+													)
+													? liveStatus
+															.nextLesson
+															.room
+													: `каб. ${liveStatus.nextLesson.room}`}
+											</Text>
+										) : null}
+									</View>
+								)}
+
+								{liveStatus.type ===
+									"before_start" && (
+									<View
+										style={[
+											styles.liveCard,
+											{
+												backgroundColor:
+													theme.isDark
+														? "#0A1D30"
+														: "#EDF5FF",
+												borderColor:
+													theme.accent,
+											},
+										]}
+									>
+										<View
+											style={
+												styles.liveCardHeader
+											}
+										>
+											<View
+												style={
+													styles.liveCardBadge
+												}
+											>
+												<Ionicons
+													name="time"
+													size={14}
+													color={
+														theme.accent
+													}
+													style={{
+														marginRight: 6,
+													}}
+												/>
+												<Text
+													style={[
+														styles.liveCardBadgeText,
+														{
+															color: theme.accent,
+														},
+													]}
+												>
+													СКОРО НАЧАЛО
+												</Text>
+											</View>
+											<Text
+												style={[
+													styles.liveCardCountdown,
+													{
+														color: theme.accent,
+													},
+												]}
+											>
+												через{" "}
+												{
+													liveStatus.minutesUntilStart
+												}{" "}
+												мин
+											</Text>
+										</View>
+
+										<Text
+											style={[
+												styles.liveSubject,
+												{
+													color: theme.text,
+												},
+											]}
+											numberOfLines={1}
+										>
+											1-я пара:{" "}
+											{
+												liveStatus
+													.firstLesson
+													.subject
+											}
+										</Text>
+
+										{liveStatus
+											.firstLesson
+											.room ? (
+											<Text
+												style={[
+													styles.liveMetaText,
+													{
+														color: theme.textSecondary,
+													},
+												]}
+											>
+												📍{" "}
+												{liveStatus.firstLesson.room
+													.toLowerCase()
+													.startsWith(
+														"каб"
+													)
+													? liveStatus
+															.firstLesson
+															.room
+													: `каб. ${liveStatus.firstLesson.room}`}
+											</Text>
+										) : null}
+									</View>
+								)}
+
+								{liveStatus.type ===
+									"day_ended" && (
+									<View
+										style={[
+											styles.liveCardMini,
+											{
+												backgroundColor:
+													theme.isDark
+														? "rgba(52, 199, 89, 0.12)"
+														: "rgba(52, 199, 89, 0.10)",
+												borderColor:
+													theme.success,
+											},
+										]}
+									>
+										<Ionicons
+											name="checkmark-circle"
+											size={16}
+											color={
+												theme.success
+											}
+											style={{
+												marginRight: 8,
+											}}
+										/>
+										<Text
+											style={[
+												styles.liveEndedText,
+												{
+													color: theme.success,
+												},
+											]}
+										>
+											Все пары на сегодня
+											закончились!
+											Хорошего отдыха 🎉
+										</Text>
+									</View>
+								)}
+							</View>
+						)}
 
 						{/* Уведомление серым текстом: если нужно прийти к n-й паре */}
 						{firstPairNum > 1 && (
@@ -456,16 +1038,149 @@ const styles = StyleSheet.create({
 	},
 	dayHeader: {
 		flexDirection: "row",
-		alignItems: "baseline",
+		alignItems: "center",
 		justifyContent: "space-between",
 		paddingHorizontal: 20,
-		marginBottom: 14,
+		marginBottom: 12,
 		marginTop: 6,
+	},
+	dayHeaderLeft: {
+		flexDirection: "row",
+		alignItems: "baseline",
+		gap: 8,
+	},
+	todayJumpBtn: {
+		flexDirection: "row",
+		alignItems: "center",
+		paddingHorizontal: 9,
+		paddingVertical: 4,
+		borderRadius: 12,
+	},
+	todayJumpText: {
+		fontSize: 12,
+		fontWeight: "700",
 	},
 	dayTitle: {
 		fontSize: 18,
 		fontWeight: "700",
 		letterSpacing: -0.3,
+	},
+	saturdayBanner: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		marginHorizontal: 18,
+		marginBottom: 12,
+		paddingVertical: 10,
+		paddingHorizontal: 14,
+		borderRadius: RADIUS.card,
+		borderWidth: 1,
+	},
+	saturdayBannerLeft: {
+		flexDirection: "row",
+		alignItems: "center",
+		flex: 1,
+		marginRight: 10,
+	},
+	saturdayBannerTitle: {
+		fontSize: 14,
+		fontWeight: "700",
+		letterSpacing: -0.2,
+	},
+	saturdayBannerSubtitle: {
+		fontSize: 12,
+		fontWeight: "500",
+		marginTop: 1,
+	},
+	saturdayBannerBtn: {
+		flexDirection: "row",
+		alignItems: "center",
+		paddingHorizontal: 10,
+		paddingVertical: 6,
+		borderRadius: 12,
+		gap: 2,
+	},
+	saturdayBannerBtnText: {
+		fontSize: 12,
+		fontWeight: "700",
+		color: "#FFFFFF",
+	},
+	liveWidgetContainer: {
+		marginHorizontal: 18,
+		marginBottom: 14,
+	},
+	liveCard: {
+		padding: 14,
+		borderRadius: RADIUS.card,
+		borderWidth: 1,
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.05,
+		shadowRadius: 6,
+		elevation: 2,
+	},
+	liveCardMini: {
+		flexDirection: "row",
+		alignItems: "center",
+		paddingVertical: 10,
+		paddingHorizontal: 14,
+		borderRadius: RADIUS.card,
+		borderWidth: 1,
+	},
+	liveCardHeader: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		marginBottom: 6,
+	},
+	liveCardBadge: {
+		flexDirection: "row",
+		alignItems: "center",
+	},
+	pulseDot: {
+		width: 6,
+		height: 6,
+		borderRadius: 3,
+		marginRight: 6,
+	},
+	liveCardBadgeText: {
+		fontSize: 11,
+		fontWeight: "800",
+		letterSpacing: 0.5,
+	},
+	liveCardCountdown: {
+		fontSize: 13,
+		fontWeight: "700",
+	},
+	liveSubject: {
+		fontSize: 15,
+		fontWeight: "700",
+		marginBottom: 4,
+	},
+	liveMetaRow: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		alignItems: "center",
+		gap: 10,
+		marginBottom: 8,
+	},
+	liveMetaText: {
+		fontSize: 12,
+		fontWeight: "500",
+	},
+	progressBarTrack: {
+		height: 4,
+		borderRadius: 2,
+		overflow: "hidden",
+		marginTop: 2,
+	},
+	progressBarFill: {
+		height: "100%",
+		borderRadius: 2,
+	},
+	liveEndedText: {
+		fontSize: 13,
+		fontWeight: "600",
 	},
 	lateStartRow: {
 		flexDirection: "row",

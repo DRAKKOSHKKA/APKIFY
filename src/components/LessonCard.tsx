@@ -1,6 +1,7 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, TouchableOpacity, Share } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { Lesson } from "../types/schedule";
 import { getLessonStatus } from "../utils/timeUtils";
 import { ThemeColors } from "../theme/colors";
@@ -97,6 +98,26 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 
 	const subgroupBadge = getSubgroupTitle(lesson.group);
 
+	const handleShareLesson = async () => {
+		try {
+			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+			const lines = [
+				`🏛 АПК • Расписание`,
+				`🔔 ${lesson.pairIndex} пара (${lesson.time})`,
+				`📚 ${lesson.subject}`,
+				formattedRoom ? `📍 ${formattedRoom}` : null,
+				lesson.teacher ? `👤 ${lesson.teacher}` : null,
+				subgroupBadge ? `👥 ${subgroupBadge}` : null,
+			].filter(Boolean);
+
+			await Share.share({
+				message: lines.join("\n"),
+			});
+		} catch (err) {
+			console.warn("Share error:", err);
+		}
+	};
+
 	return (
 		<View
 			style={[
@@ -131,7 +152,10 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 			</View>
 
 			{/* Правая карточка пары */}
-			<View
+			<TouchableOpacity
+				activeOpacity={0.88}
+				onLongPress={handleShareLesson}
+				delayLongPress={350}
 				style={[
 					styles.card,
 					{
@@ -141,7 +165,7 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 					isCurrent && styles.cardCurrent,
 				]}
 			>
-				{/* Верхняя строка: пара и статус (если идет) */}
+				{/* Верхняя строка: пара и статус (если идет) + кнопка поделиться */}
 				<View style={styles.cardHeader}>
 					<Text
 						style={[
@@ -156,36 +180,56 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 						{lesson.pairIndex} пара
 					</Text>
 
-					{isCurrent && (
-						<View
-							style={[
-								styles.statusBadge,
-								{
-									backgroundColor: theme.isDark
-										? "#0F3819"
-										: "#D1F2D9",
-								},
-							]}
-						>
+					<View style={styles.headerRightRow}>
+						{isCurrent && (
 							<View
 								style={[
-									styles.pulseDot,
+									styles.statusBadge,
 									{
-										backgroundColor:
-											theme.success,
+										backgroundColor: theme.isDark
+											? "#0F3819"
+											: "#D1F2D9",
 									},
 								]}
-							/>
-							<Text
-								style={[
-									styles.statusText,
-									{ color: theme.success },
-								]}
 							>
-								{badgeText || "Идёт"}
-							</Text>
-						</View>
-					)}
+								<View
+									style={[
+										styles.pulseDot,
+										{
+											backgroundColor:
+												theme.success,
+										},
+									]}
+								/>
+								<Text
+									style={[
+										styles.statusText,
+										{ color: theme.success },
+									]}
+								>
+									{badgeText || "Идёт"}
+								</Text>
+							</View>
+						)}
+
+						<TouchableOpacity
+							style={styles.shareBtn}
+							onPress={handleShareLesson}
+							hitSlop={{
+								top: 8,
+								bottom: 8,
+								left: 8,
+								right: 8,
+							}}
+							accessibilityLabel="Поделиться парой"
+						>
+							<Ionicons
+								name="share-outline"
+								size={14}
+								color={theme.textSecondary}
+							/>
+						</TouchableOpacity>
+					</View>
 				</View>
 
 				{/* Название предмета (без обрезки, аккуратный перенос) */}
@@ -293,7 +337,7 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 						</View>
 					) : null}
 				</View>
-			</View>
+			</TouchableOpacity>
 		</View>
 	);
 };
@@ -347,6 +391,15 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "space-between",
 		marginBottom: 4,
+	},
+	headerRightRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 8,
+	},
+	shareBtn: {
+		padding: 3,
+		opacity: 0.7,
 	},
 	pairIndex: {
 		fontSize: 11,

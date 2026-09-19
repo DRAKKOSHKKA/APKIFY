@@ -1,3 +1,5 @@
+import { Lesson, ScheduleData } from "../types/schedule";
+
 export interface TimeRange {
 	startMinutes: number; // минуты от начала дня (0-1439)
 	endMinutes: number;
@@ -208,3 +210,176 @@ export function formatFullDate(
 
 	return `${day} ${monthName}, ${dayName.toLowerCase()}`;
 }
+
+export type DayLiveStatus =
+	| {
+			type: "in_lesson";
+			lesson: Lesson;
+			leftMinutes: number;
+			progress: number; // 0..1
+	  }
+	| {
+			type: "break";
+			nextLesson: Lesson;
+			prevLesson?: Lesson;
+			breakLeftMinutes: number;
+			breakTotalMinutes: number;
+	  }
+	| {
+			type: "before_start";
+			firstLesson: Lesson;
+			minutesUntilStart: number;
+	  }
+	| {
+			type: "day_ended";
+	  };
+
+/**
+ * Определение текущего статуса дня: идет ли пара, перемена или занятия закончились
+ */
+export function getCurrentDayLiveStatus(
+	lessons: Lesson[],
+	isToday: boolean,
+	mockDate?: Date | null
+): DayLiveStatus | null {
+	if (!isToday && !mockDate) {
+		return null;
+	}
+	if (!lessons || lessons.length === 0) {
+		return null;
+	}
+
+	const refDate = mockDate || new Date();
+	const currentMinutes =
+		refDate.getHours() * 60 + refDate.getMinutes();
+
+	const parsedLessons = lessons
+		.map((l) => ({
+			lesson: l,
+			range: parseTimeRange(l.time),
+		}))
+		.filter(
+			(
+				item
+			): item is { lesson: Lesson; range: TimeRange } =>
+				item.range !== null
+		)
+		.sort((a, b) => a.range.startMinutes - b.range.startMinutes);
+
+	if (parsedLessons.length === 0) return null;
+
+	const first = parsedLessons[0];
+	const last = parsedLessons[parsedLessons.length - 1];
+
+	// До начала первой пары
+	if (currentMinutes < first.range.startMinutes) {
+		return {
+			type: "before_start",
+			firstLesson: first.lesson,
+			minutesUntilStart:
+				first.range.startMinutes - currentMinutes,
+		};
+	}
+
+	// После окончания последней пары
+	if (currentMinutes > last.range.endMinutes) {
+		return {
+			type: "day_ended",
+		};
+	}
+
+	// Проверяем: находимся ли внутри пары
+	for (const item of parsedLessons) {
+		if (
+			currentMinutes >= item.range.startMinutes &&
+			currentMinutes <= item.range.endMinutes
+		) {
+			const duration =
+				item.range.endMinutes - item.range.startMinutes;
+			const elapsed =
+				currentMinutes - item.range.startMinutes;
+			const progress =
+				duration > 0
+					? Math.min(
+							Math.max(elapsed / duration, 0),
+							1
+						)
+					: 0;
+			const leftMinutes = Math.max(
+				0,
+				item.range.endMinutes - currentMinutes
+			);
+			return {
+				type: "in_lesson",
+				lesson: item.lesson,
+				leftMinutes,
+				progress,
+			};
+		}
+	}
+
+	// Если между парами — значит, сейчас перемена!
+	for (let i = 0; i < parsedLessons.length - 1; i++) {
+		const prev = parsedLessons[i];
+		const next = parsedLessons[i + 1];
+		if (
+			currentMinutes > prev.range.endMinutes &&
+			currentMinutes < next.range.startMinutes
+		) {
+			const breakTotalMinutes =
+				next.range.startMinutes - prev.range.endMinutes;
+			const breakLeftMinutes =
+				next.range.startMinutes - currentMinutes;
+			return {
+				type: "break",
+				nextLesson: next.lesson,
+				prevLesson: prev.lesson,
+				breakLeftMinutes,
+				breakTotalMinutes,
+			};
+		}
+	}
+
+	return null;
+}
+
+/**
+ * Корректировка времени пар для субботы (на случай если расписание загружено из старого кэша
+ * или сервер прислал будничные слоты).
+ */
+export function normalizeSaturdayTimes(
+	data: ScheduleData
+): ScheduleData {
+	if (!data || !data.days) return data;
+	const updatedDays = data.days.map((day, rowIdx) => {
+		const isSaturday =
+			day.dayName.toLowerCase().includes("суббот") ||
+			rowIdx === 5;
+		if (!isSaturday) return day;
+
+		const updatedLessons = day.lessons.map((lesson) => {
+			const satCall =
+				SATURDAY_CALLS_SCHEDULE.find(
+					(s) => s.pair === lesson.pairIndex
+				) || SATURDAY_CALLS_SCHEDULE[lesson.pairIndex - 1];
+			if (satCall) {
+				return {
+					...lesson,
+					time: `${satCall.start} - ${satCall.end}`,
+				};
+			}
+			return lesson;
+		});
+
+		return {
+			...day,
+			lessons: updatedLessons,
+		};
+	});
+
+	return {
+		...data,
+		days: updatedDays,
+	};
+}
+

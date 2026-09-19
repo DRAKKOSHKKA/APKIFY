@@ -5,6 +5,7 @@ import {
 	ScheduleData,
 	SearchResultItem,
 } from "../types/schedule";
+import { normalizeSaturdayTimes } from "../utils/timeUtils";
 
 const STORAGE_KEYS = {
 	CURRENT_ENTITY: "@schedule_current_entity",
@@ -125,7 +126,8 @@ export async function getCachedSchedule(
 		const key = `${STORAGE_KEYS.SCHEDULE_CACHE_PREFIX}${entity.OwnerId}_${entity.SearchId}_${weekId || "current"}`;
 		const json = await AsyncStorage.getItem(key);
 		if (json) {
-			return JSON.parse(json);
+			const parsed = JSON.parse(json);
+			return normalizeSaturdayTimes(parsed);
 		}
 	} catch (err) {
 		console.warn("Ошибка чтения кэша расписания:", err);
