@@ -309,6 +309,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 								onPress={() => setFilter(f)}
 							>
 								<Text
+									numberOfLines={1}
 									style={[
 										styles.filterText,
 										{
@@ -411,6 +412,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 
 								<View style={styles.resultInfo}>
 									<Text
+										numberOfLines={1}
 										style={[
 											styles.resultName,
 											{
@@ -421,6 +423,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 										{item.SearchContent}
 									</Text>
 									<Text
+										numberOfLines={1}
 										style={[
 											styles.resultType,
 											{
@@ -506,6 +509,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 												}
 											>
 												<Text
+													numberOfLines={1}
 													style={[
 														styles.resultName,
 														{
@@ -518,6 +522,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 													}
 												</Text>
 												<Text
+													numberOfLines={1}
 													style={[
 														styles.resultType,
 														{
@@ -560,6 +565,9 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 20,
 		paddingVertical: 14,
 		borderBottomWidth: StyleSheet.hairlineWidth,
+		maxWidth: 680,
+		width: "100%",
+		alignSelf: "center",
 	},
 	title: {
 		fontSize: 20,
@@ -571,6 +579,9 @@ const styles = StyleSheet.create({
 	searchBarContainer: {
 		paddingHorizontal: 16,
 		paddingVertical: 10,
+		maxWidth: 680,
+		width: "100%",
+		alignSelf: "center",
 	},
 	searchBar: {
 		flexDirection: "row",
@@ -593,6 +604,9 @@ const styles = StyleSheet.create({
 		paddingVertical: 10,
 		borderBottomWidth: StyleSheet.hairlineWidth,
 		gap: 8,
+		maxWidth: 680,
+		width: "100%",
+		alignSelf: "center",
 	},
 	filterChip: {
 		paddingHorizontal: 12,
@@ -607,6 +621,9 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 16,
 		paddingTop: 16,
 		paddingBottom: 40,
+		maxWidth: 680,
+		width: "100%",
+		alignSelf: "center",
 	},
 	section: {
 		marginBottom: 24,

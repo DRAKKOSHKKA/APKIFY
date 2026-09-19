@@ -109,86 +109,20 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 			contentContainerStyle={styles.scrollContent}
 			showsVerticalScrollIndicator={false}
 		>
-			{/* Крупный заголовок в стиле Apple iOS */}
-			<View style={styles.header}>
-				<Text
-					style={[
-						styles.largeTitle,
-						{ color: theme.text },
-					]}
-				>
-					Настройки
-				</Text>
-			</View>
-
-			{/* СЕКЦИЯ 1: РАСПИСАНИЕ И ГРУППА */}
-			<View style={styles.section}>
-				<Text
-					style={[
-						styles.sectionTitle,
-						{ color: theme.textSecondary },
-					]}
-				>
-					РАСПИСАНИЕ И ГРУППА
-				</Text>
-				<View
-					style={[
-						styles.card,
-						{
-							backgroundColor: theme.groupedCell,
-							borderColor: theme.border,
-						},
-					]}
-				>
-					{/* Выбор группы */}
-					<TouchableOpacity
-						style={styles.row}
-						activeOpacity={0.6}
-						onPress={() => {
-							triggerLight();
-							onOpenGroupPicker();
-						}}
+			<View style={styles.adaptiveContent}>
+				{/* Крупный заголовок в стиле Apple iOS */}
+				<View style={styles.header}>
+					<Text
+						style={[
+							styles.largeTitle,
+							{ color: theme.text },
+						]}
 					>
-						<View
-							style={[
-								styles.iconSquare,
-								{ backgroundColor: "#007AFF" },
-							]}
-						>
-							<Ionicons
-								name="people"
-								size={17}
-								color="#FFFFFF"
-							/>
-						</View>
-						<Text
-							style={[
-								styles.rowLabel,
-								{ color: theme.text },
-							]}
-						>
-							Моя группа
-						</Text>
-						<Text
-							style={[
-								styles.rowValue,
-								{ color: theme.textSecondary },
-							]}
-						>
-							{
-								settings.defaultEntity
-									.SearchContent
-							}
-						</Text>
-						<Ionicons
-							name="chevron-forward"
-							size={17}
-							color={theme.separator}
-						/>
-					</TouchableOpacity>
-
+						Настройки
+					</Text>
 				</View>
-			</View>
+
+
 
 			{/* СЕКЦИЯ 2: ОФОРМЛЕНИЕ */}
 			<View style={styles.section}>
@@ -306,6 +240,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 															: "500",
 												},
 											]}
+											numberOfLines={1}
+											adjustsFontSizeToFit
+											minimumFontScale={0.75}
 										>
 											{title}
 										</Text>
@@ -615,77 +552,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 				</View>
 			</View>
 
-			{/* СЕКЦИЯ 4: ХРАНИЛИЩЕ ДАННЫХ */}
-			{/* СЕКЦИЯ: ИНСТРУМЕНТЫ РАЗРАБОТКИ */}
-			<View style={styles.section}>
-				<Text
-					style={[
-						styles.sectionTitle,
-						{ color: theme.textSecondary },
-					]}
-				>
-					ИНСТРУМЕНТЫ РАЗРАБОТЧИКА
-				</Text>
-				<View
-					style={[
-						styles.card,
-						{
-							backgroundColor: theme.groupedCell,
-							borderColor: theme.border,
-						},
-					]}
-				>
-					<TouchableOpacity
-						style={styles.row}
-						activeOpacity={0.7}
-						onPress={() => {
-							try {
-								Haptics.impactAsync(
-									Haptics.ImpactFeedbackStyle.Medium
-								);
-							} catch {}
-							onOpenDebugModal();
-						}}
-					>
-						<View
-							style={[
-								styles.iconSquare,
-								{ backgroundColor: theme.accent },
-							]}
-						>
-							<Ionicons
-								name="flask-outline"
-								size={17}
-								color="#FFFFFF"
-							/>
-						</View>
-						<View style={{ flex: 1 }}>
-							<Text
-								style={[
-									styles.rowLabel,
-									{ color: theme.text },
-								]}
-							>
-								Инспектор системы (Debug Menu)
-							</Text>
-							<Text
-								style={{
-									fontSize: 12,
-									color: theme.textSecondary,
-									marginTop: 1,
-								}}
-							>
-								Тесты подгрупп, времени, звонков и тем
-							</Text>
-						</View>
-						<Ionicons
-							name="chevron-forward"
-							size={17}
-							color={theme.separator}
-						/>
-					</TouchableOpacity>
-				</View>
-			</View>
+
 
 			<View style={styles.section}>
 				<Text
@@ -768,7 +635,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 					</Text>
 				</TouchableOpacity>
 			</View>
-		</ScrollView>
+		</View>
+	</ScrollView>
 	);
 };
 
@@ -780,6 +648,11 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 16,
 		paddingTop: 8,
 		paddingBottom: 110,
+	},
+	adaptiveContent: {
+		maxWidth: 680,
+		width: "100%",
+		alignSelf: "center",
 	},
 	header: {
 		marginBottom: 16,

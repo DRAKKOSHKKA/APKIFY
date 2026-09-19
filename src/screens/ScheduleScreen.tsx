@@ -121,7 +121,9 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 	};
 
 	// Все пары дня отображаются напрямую без фильтрации
-	const displayedLessons = selectedDay ? selectedDay.lessons : [];
+	const displayedLessons = selectedDay
+		? selectedDay.lessons
+		: [];
 
 	const liveStatus = getCurrentDayLiveStatus(
 		displayedLessons,
@@ -418,8 +420,11 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 								</Text>
 							</View>
 
-							<View style={styles.dayHeaderActions}>
-								{selectedDayIndex !== todayIndex &&
+							<View
+								style={styles.dayHeaderActions}
+							>
+								{selectedDayIndex !==
+									todayIndex &&
 									todayIndex !== -1 && (
 										<TouchableOpacity
 											style={[
@@ -428,7 +433,8 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 													backgroundColor:
 														theme.accentSubtle,
 													borderColor:
-														theme.accent + "40",
+														theme.accent +
+														"40",
 												},
 											]}
 											activeOpacity={0.7}
@@ -448,7 +454,9 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 											<Ionicons
 												name="arrow-undo"
 												size={12}
-												color={theme.accent}
+												color={
+													theme.accent
+												}
 												style={{
 													marginRight: 4,
 												}}
@@ -460,6 +468,9 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 														color: theme.accent,
 													},
 												]}
+												numberOfLines={1}
+												adjustsFontSizeToFit
+												minimumFontScale={0.8}
 											>
 												Сегодня
 											</Text>
@@ -473,11 +484,14 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 										{
 											backgroundColor:
 												theme.chipBackground,
-											borderColor: theme.border,
+											borderColor:
+												theme.border,
 										},
 									]}
 									activeOpacity={0.7}
-									onPress={handleShareDaySchedule}
+									onPress={
+										handleShareDaySchedule
+									}
 									hitSlop={{
 										top: 8,
 										bottom: 8,
@@ -531,6 +545,8 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 										{ color: theme.accent },
 									]}
 									numberOfLines={1}
+									adjustsFontSizeToFit
+									minimumFontScale={0.8}
 								>
 									Суббота • пары по 60 мин (08:00 — 14:35)
 								</Text>
@@ -539,6 +555,7 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 										styles.saturdayBadgeAction,
 										{ color: theme.accent },
 									]}
+									numberOfLines={1}
 								>
 									Звонки ›
 								</Text>
@@ -1043,6 +1060,9 @@ const styles = StyleSheet.create({
 	scrollContent: {
 		paddingTop: 8,
 		paddingBottom: 110,
+		maxWidth: 720,
+		width: "100%",
+		alignSelf: "center",
 	},
 	offlineNotice: {
 		alignItems: "center",
@@ -1215,6 +1235,9 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 14,
 		borderRadius: 14,
 		borderWidth: 1,
+		maxWidth: 720,
+		width: "100%",
+		alignSelf: "center",
 	},
 	updatedBannerText: {
 		fontSize: 13,
@@ -1231,6 +1254,9 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 12,
 		borderRadius: RADIUS.button,
 		borderWidth: 1,
+		maxWidth: 720,
+		width: "100%",
+		alignSelf: "center",
 	},
 	timeTravelInfo: {
 		flexDirection: "row",

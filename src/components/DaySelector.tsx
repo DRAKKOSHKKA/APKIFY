@@ -104,6 +104,7 @@ export const DaySelector: React.FC<DaySelectorProps> = ({
 											: theme.textSecondary,
 									},
 								]}
+								numberOfLines={1}
 							>
 								{shortName}
 							</Text>
@@ -119,6 +120,7 @@ export const DaySelector: React.FC<DaySelectorProps> = ({
 											: "500",
 									},
 								]}
+								numberOfLines={1}
 							>
 								{dayNum}
 							</Text>
@@ -155,6 +157,9 @@ export const DaySelector: React.FC<DaySelectorProps> = ({
 const styles = StyleSheet.create({
 	container: {
 		paddingVertical: 6,
+		maxWidth: 720,
+		width: "100%",
+		alignSelf: "center",
 	},
 	scrollContent: {
 		paddingHorizontal: 16,

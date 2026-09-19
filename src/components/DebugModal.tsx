@@ -16,7 +16,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { AccentColor, AppSettings, ScheduleData, ThemeMode } from "../types/schedule";
+import {
+	AccentColor,
+	AppSettings,
+	ScheduleData,
+	ThemeMode,
+} from "../types/schedule";
 import { ACCENT_PALETTES, ThemeColors } from "../theme/colors";
 import { RADIUS } from "../theme/tokens";
 import { APP_CONFIG } from "../constants/appInfo";
@@ -253,12 +258,14 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 			{
 				name: "Отображение подгрупп (1 и 2 п/г)",
 				status: "success",
-				details: "Подгруппы отображаются прямо в расписании с бейджами",
+				details:
+					"Подгруппы отображаются прямо в расписании с бейджами",
 			},
 			{
 				name: "Субботний график звонков (60 мин)",
 				status: "success",
-				details: "Нормализация времени по 60 мин активна",
+				details:
+					"Нормализация времени по 60 мин активна",
 			},
 			{
 				name: "Хранилище AsyncStorage",
@@ -742,7 +749,8 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 												},
 											]}
 										>
-											☕ Пн 09:25 (Перемена)
+											☕ Пн 09:25
+											(Перемена)
 										</Text>
 									</TouchableOpacity>
 
@@ -829,7 +837,8 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 												},
 											]}
 										>
-											⚡ Сб 08:30 (Пара 60м)
+											⚡ Сб 08:30 (Пара
+											60м)
 										</Text>
 									</TouchableOpacity>
 
@@ -858,7 +867,8 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 												},
 											]}
 										>
-											⚡ Сб 09:02 (Перемена 5м)
+											⚡ Сб 09:02 (Перемена
+											5м)
 										</Text>
 									</TouchableOpacity>
 
@@ -887,7 +897,8 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 												},
 											]}
 										>
-											🎉 Пн 16:30 (Конец пар)
+											🎉 Пн 16:30 (Конец
+											пар)
 										</Text>
 									</TouchableOpacity>
 								</View>
@@ -1024,7 +1035,9 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 								},
 							]}
 						>
-							<View style={styles.customActionBlock}>
+							<View
+								style={styles.customActionBlock}
+							>
 								<Text
 									style={[
 										styles.customActionDesc,
@@ -1033,10 +1046,18 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 										},
 									]}
 								>
-									Проверка отображения подгрупп прямо в расписании (1 и 2 п/г параллельно в одно время), длинных названий предметов и начала со 2-й пары:
+									Проверка отображения подгрупп
+									прямо в расписании (1 и 2 п/г
+									параллельно в одно время),
+									длинных названий предметов и
+									начала со 2-й пары:
 								</Text>
 
-								<View style={styles.customButtonsRow}>
+								<View
+									style={
+										styles.customButtonsRow
+									}
+								>
 									<TouchableOpacity
 										style={[
 											styles.customBtn,
@@ -1048,7 +1069,9 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 										onPress={() => {
 											try {
 												Haptics.notificationAsync(
-													Haptics.NotificationFeedbackType.Success
+													Haptics
+														.NotificationFeedbackType
+														.Success
 												);
 											} catch {}
 											onInjectSubgroupsSchedule?.();
@@ -1071,7 +1094,8 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 												styles.customBtnText
 											}
 										>
-											Тест подгрупп (1 и 2 п/г)
+											Тест подгрупп (1 и 2
+											п/г)
 										</Text>
 									</TouchableOpacity>
 
@@ -1086,7 +1110,9 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 										onPress={() => {
 											try {
 												Haptics.notificationAsync(
-													Haptics.NotificationFeedbackType.Success
+													Haptics
+														.NotificationFeedbackType
+														.Success
 												);
 											} catch {}
 											onInjectTestSchedule?.();
@@ -1107,7 +1133,9 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 										<Text
 											style={[
 												styles.customBtnText,
-												{ color: theme.text },
+												{
+													color: theme.text,
+												},
 											]}
 										>
 											Стресс-тест
@@ -1115,7 +1143,12 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 									</TouchableOpacity>
 								</View>
 
-								<View style={[styles.customButtonsRow, { marginTop: 8 }]}>
+								<View
+									style={[
+										styles.customButtonsRow,
+										{ marginTop: 8 },
+									]}
+								>
 									<TouchableOpacity
 										style={[
 											styles.customBtn,
@@ -1180,7 +1213,9 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 								},
 							]}
 						>
-							<View style={styles.customActionBlock}>
+							<View
+								style={styles.customActionBlock}
+							>
 								<Text
 									style={[
 										styles.customActionDesc,
@@ -1190,33 +1225,57 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 										},
 									]}
 								>
-									Мгновенное переключение тем оформления:
+									Мгновенное переключение тем
+									оформления:
 								</Text>
 								<View style={styles.chipGrid}>
-									{(
-										[
-											{ mode: "light" as ThemeMode, label: "Светлая" },
-											{ mode: "gray" as ThemeMode, label: "Серая" },
-											{ mode: "dark" as ThemeMode, label: "Тёмная" },
-											{ mode: "oled" as ThemeMode, label: "OLED" },
-											{ mode: "system" as ThemeMode, label: "Авто" },
-										]
-									).map(({ mode, label }) => {
-										const active = settings.themeMode === mode;
+									{[
+										{
+											mode: "light" as ThemeMode,
+											label: "Светлая",
+										},
+										{
+											mode: "gray" as ThemeMode,
+											label: "Серая",
+										},
+										{
+											mode: "dark" as ThemeMode,
+											label: "Тёмная",
+										},
+										{
+											mode: "oled" as ThemeMode,
+											label: "OLED",
+										},
+										{
+											mode: "system" as ThemeMode,
+											label: "Авто",
+										},
+									].map(({ mode, label }) => {
+										const active =
+											settings.themeMode ===
+											mode;
 										return (
 											<TouchableOpacity
 												key={mode}
 												style={[
 													styles.timeChip,
 													{
-														backgroundColor: active
-															? theme.accent
-															: theme.chipBackground,
+														backgroundColor:
+															active
+																? theme.accent
+																: theme.chipBackground,
 													},
 												]}
 												onPress={() => {
-													try { Haptics.selectionAsync(); } catch {}
-													onUpdateSettings?.({ themeMode: mode });
+													try {
+														Haptics.selectionAsync();
+													} catch {}
+													onUpdateSettings?.(
+														{
+															themeMode:
+																mode,
+														}
+													);
 												}}
 											>
 												<Text
@@ -1226,7 +1285,10 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 															color: active
 																? "#FFFFFF"
 																: theme.text,
-															fontWeight: active ? "700" : "500",
+															fontWeight:
+																active
+																	? "700"
+																	: "500",
 														},
 													]}
 												>
@@ -1247,28 +1309,47 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 										},
 									]}
 								>
-									Мгновенное переключение акцентного цвета:
+									Мгновенное переключение
+									акцентного цвета:
 								</Text>
 								<View style={styles.chipGrid}>
 									{(
-										Object.keys(ACCENT_PALETTES) as AccentColor[]
+										Object.keys(
+											ACCENT_PALETTES
+										) as AccentColor[]
 									).map((accKey) => {
-										const def = ACCENT_PALETTES[accKey];
-										const active = (settings.accentColor || "blue") === accKey;
+										const def =
+											ACCENT_PALETTES[
+												accKey
+											];
+										const active =
+											(settings.accentColor ||
+												"blue") ===
+											accKey;
 										return (
 											<TouchableOpacity
 												key={accKey}
 												style={[
 													styles.timeChip,
 													{
-														backgroundColor: active
-															? theme.isDark ? def.darkColor : def.lightColor
-															: theme.chipBackground,
+														backgroundColor:
+															active
+																? theme.isDark
+																	? def.darkColor
+																	: def.lightColor
+																: theme.chipBackground,
 													},
 												]}
 												onPress={() => {
-													try { Haptics.selectionAsync(); } catch {}
-													onUpdateSettings?.({ accentColor: accKey });
+													try {
+														Haptics.selectionAsync();
+													} catch {}
+													onUpdateSettings?.(
+														{
+															accentColor:
+																accKey,
+														}
+													);
 												}}
 											>
 												<Text
@@ -1278,7 +1359,10 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 															color: active
 																? "#FFFFFF"
 																: theme.text,
-															fontWeight: active ? "700" : "500",
+															fontWeight:
+																active
+																	? "700"
+																	: "500",
 														},
 													]}
 												>
@@ -1788,6 +1872,9 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 20,
 		paddingVertical: 14,
 		borderBottomWidth: StyleSheet.hairlineWidth,
+		maxWidth: 720,
+		width: "100%",
+		alignSelf: "center",
 	},
 	titleRow: {
 		flexDirection: "row",
@@ -1815,6 +1902,9 @@ const styles = StyleSheet.create({
 	scrollContent: {
 		padding: 16,
 		paddingBottom: 60,
+		maxWidth: 720,
+		width: "100%",
+		alignSelf: "center",
 	},
 	section: {
 		marginBottom: 20,

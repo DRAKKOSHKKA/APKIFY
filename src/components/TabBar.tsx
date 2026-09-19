@@ -43,9 +43,9 @@ export const TabBar: React.FC<TabBarProps> = ({
 		},
 		{
 			key: "profile",
-			label: "Профиль",
-			activeIcon: "person-circle",
-			inactiveIcon: "person-circle-outline",
+			label: "Настройки",
+			activeIcon: "settings",
+			inactiveIcon: "settings-outline",
 		},
 	];
 
@@ -101,6 +101,7 @@ export const TabBar: React.FC<TabBarProps> = ({
 										: "500",
 								},
 							]}
+							numberOfLines={1}
 						>
 							{tab.label}
 						</Text>
@@ -144,6 +145,9 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		borderTopWidth: StyleSheet.hairlineWidth,
 		paddingTop: 8,
+		maxWidth: 600,
+		width: "100%",
+		alignSelf: "center",
 	},
 	tabButton: {
 		flex: 1,

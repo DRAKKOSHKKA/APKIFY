@@ -133,6 +133,9 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 18,
 		paddingTop: 8,
 		paddingBottom: 10,
+		maxWidth: 720,
+		width: "100%",
+		alignSelf: "center",
 	},
 	entityRow: {
 		flexDirection: "row",

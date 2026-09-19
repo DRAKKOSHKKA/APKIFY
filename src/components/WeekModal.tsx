@@ -196,6 +196,7 @@ export const WeekModal: React.FC<WeekModalProps> = ({
 											}
 										>
 											<Text
+												numberOfLines={1}
 												style={[
 													styles.weekTitle,
 													{
@@ -214,6 +215,7 @@ export const WeekModal: React.FC<WeekModalProps> = ({
 											</Text>
 											{week.dateRange ? (
 												<Text
+													numberOfLines={1}
 													style={[
 														styles.weekDates,
 														{
@@ -254,6 +256,7 @@ export const WeekModal: React.FC<WeekModalProps> = ({
 													]}
 												/>
 												<Text
+													numberOfLines={1}
 													style={[
 														styles.currentBadgeText,
 														{
@@ -311,6 +314,9 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 20,
 		paddingVertical: 14,
 		borderBottomWidth: StyleSheet.hairlineWidth,
+		maxWidth: 680,
+		width: "100%",
+		alignSelf: "center",
 	},
 	titleRow: {
 		flexDirection: "row",
@@ -327,6 +333,9 @@ const styles = StyleSheet.create({
 	content: {
 		padding: 16,
 		paddingBottom: 40,
+		maxWidth: 680,
+		width: "100%",
+		alignSelf: "center",
 	},
 	subtitle: {
 		fontSize: 13,

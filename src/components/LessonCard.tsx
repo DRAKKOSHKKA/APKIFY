@@ -257,6 +257,7 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 									styles.metaBadgeText,
 									{ color: theme.text },
 								]}
+								numberOfLines={1}
 							>
 								{formattedRoom}
 							</Text>
@@ -284,6 +285,7 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 									styles.metaBadgeText,
 									{ color: theme.text },
 								]}
+								numberOfLines={1}
 							>
 								{lesson.teacher}
 							</Text>
@@ -296,8 +298,10 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 								styles.metaBadge,
 								styles.subgroupBadge,
 								{
-									backgroundColor: theme.accentSubtle,
-									borderColor: theme.accent + "40",
+									backgroundColor:
+										theme.accentSubtle,
+									borderColor:
+										theme.accent + "40",
 								},
 							]}
 						>
@@ -315,6 +319,7 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 										fontWeight: "700",
 									},
 								]}
+								numberOfLines={1}
 							>
 								{subgroupBadge}
 							</Text>
@@ -332,6 +337,9 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 18,
 		marginBottom: 12,
 		alignItems: "flex-start",
+		maxWidth: 720,
+		width: "100%",
+		alignSelf: "center",
 	},
 	containerCompleted: {
 		opacity: 0.55,

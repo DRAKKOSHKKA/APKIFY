@@ -42,7 +42,10 @@ export interface AccentDefinition {
 	subtleDark: string;
 }
 
-export const ACCENT_PALETTES: Record<AccentColor, AccentDefinition> = {
+export const ACCENT_PALETTES: Record<
+	AccentColor,
+	AccentDefinition
+> = {
 	blue: {
 		name: "Синий",
 		color: "#007AFF",
@@ -238,10 +241,12 @@ export function getActiveTheme(
 	const pal = ACCENT_PALETTES[validAccent];
 
 	// Определяем эффективный режим оформления:
-	let effectiveMode: "light" | "gray" | "dark" | "oled" = "light";
+	let effectiveMode: "light" | "gray" | "dark" | "oled" =
+		"light";
 
 	if (themeMode === "system") {
-		effectiveMode = systemScheme === "dark" ? "dark" : "light";
+		effectiveMode =
+			systemScheme === "dark" ? "dark" : "light";
 	} else if (themeMode === "light") {
 		effectiveMode = "light";
 	} else if (themeMode === "gray") {
@@ -263,7 +268,9 @@ export function getActiveTheme(
 					: baseDarkTheme;
 
 	const accent = isDark ? pal.darkColor : pal.lightColor;
-	const accentSubtle = isDark ? pal.subtleDark : pal.subtleLight;
+	const accentSubtle = isDark
+		? pal.subtleDark
+		: pal.subtleLight;
 
 	return {
 		...base,

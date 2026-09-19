@@ -137,6 +137,9 @@ export const CallsScheduleModal: React.FC<
 							}}
 						>
 							<Text
+								numberOfLines={1}
+								adjustsFontSizeToFit={true}
+								minimumFontScale={0.8}
 								style={[
 									styles.segmentText,
 									{
@@ -173,6 +176,9 @@ export const CallsScheduleModal: React.FC<
 							}}
 						>
 							<Text
+								numberOfLines={1}
+								adjustsFontSizeToFit={true}
+								minimumFontScale={0.8}
 								style={[
 									styles.segmentText,
 									{
@@ -352,6 +358,9 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 20,
 		paddingVertical: 14,
 		borderBottomWidth: StyleSheet.hairlineWidth,
+		maxWidth: 680,
+		width: "100%",
+		alignSelf: "center",
 	},
 	titleContainer: {
 		flexDirection: "row",
@@ -367,6 +376,9 @@ const styles = StyleSheet.create({
 	content: {
 		padding: 16,
 		paddingBottom: 40,
+		maxWidth: 680,
+		width: "100%",
+		alignSelf: "center",
 	},
 	segmentedWrapper: {
 		flexDirection: "row",
