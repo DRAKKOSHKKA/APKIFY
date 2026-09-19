@@ -45,7 +45,7 @@ interface ScheduleScreenProps {
 	schedule: ScheduleData | null;
 	selectedDayIndex: number;
 	selectedWeekId?: string;
-	isFav: boolean;
+	isFav?: boolean;
 	isLoading: boolean;
 	isRefreshing: boolean;
 	isOffline: boolean;
@@ -58,7 +58,7 @@ interface ScheduleScreenProps {
 	onOpenSearch: () => void;
 	onOpenWeeks: () => void;
 	onOpenCalls: () => void;
-	onToggleFav: () => void;
+	onToggleFav?: () => void;
 	onRefresh: () => void;
 	onRetry: () => void;
 	onDismissUpdateNotice?: () => void;
@@ -120,34 +120,8 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 		onSelectDayIndex(idx);
 	};
 
-	// Фильтрация по подгруппе
-	const filterLessons = (lessons: Lesson[]): Lesson[] => {
-		if (settings.subgroup === "all") return lessons;
-		return lessons.filter((l) => {
-			const g = l.group.toLowerCase();
-			if (!g.includes("подгруппа") && !g.includes("п/г"))
-				return true;
-			if (
-				settings.subgroup === "1" &&
-				(g.includes("1") ||
-					g.includes("1-я") ||
-					g.includes("1 подгруппа"))
-			)
-				return true;
-			if (
-				settings.subgroup === "2" &&
-				(g.includes("2") ||
-					g.includes("2-я") ||
-					g.includes("2 подгруппа"))
-			)
-				return true;
-			return false;
-		});
-	};
-
-	const displayedLessons = selectedDay
-		? filterLessons(selectedDay.lessons)
-		: [];
+	// Все пары дня отображаются напрямую без фильтрации
+	const displayedLessons = selectedDay ? selectedDay.lessons : [];
 
 	const liveStatus = getCurrentDayLiveStatus(
 		displayedLessons,
@@ -166,7 +140,9 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 	const handleShareDaySchedule = async () => {
 		if (!selectedDay) return;
 		try {
-			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+			Haptics.impactAsync(
+				Haptics.ImpactFeedbackStyle.Medium
+			);
 			const fullDate = formatFullDate(
 				selectedDay.dayDate,
 				selectedDay.dayName
@@ -174,15 +150,11 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 			const weekText = schedule?.currentWeekNum
 				? `${schedule.currentWeekNum}-я неделя`
 				: "";
-			const subgroupText =
-				settings.subgroup !== "all"
-					? ` (${settings.subgroup}-я подгруппа)`
-					: "";
 
 			const lines = [
 				`🏛 Альметьевский профессиональный колледж`,
 				`📅 ${fullDate}${weekText ? ` • ${weekText}` : ""}`,
-				`👤 ${entity.SearchContent}${subgroupText}`,
+				`👤 ${entity.SearchContent}`,
 				`━━━━━━━━━━━━━━━━━━━━`,
 			];
 
@@ -196,7 +168,9 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 					const meta: string[] = [];
 					if (l.room) {
 						meta.push(
-							l.room.toLowerCase().startsWith("каб")
+							l.room
+								.toLowerCase()
+								.startsWith("каб")
 								? l.room
 								: `каб. ${l.room}`
 						);
@@ -442,19 +416,6 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 										selectedDay.dayName
 									)}
 								</Text>
-								{settings.subgroup !== "all" && (
-									<Text
-										style={[
-											styles.subgroupNotice,
-											{
-												color: theme.textSecondary,
-											},
-										]}
-									>
-										{settings.subgroup}-я
-										подгруппа
-									</Text>
-								)}
 							</View>
 
 							<View style={styles.dayHeaderActions}>
@@ -466,6 +427,8 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 												{
 													backgroundColor:
 														theme.accentSubtle,
+													borderColor:
+														theme.accent + "40",
 												},
 											]}
 											activeOpacity={0.7}
@@ -503,51 +466,45 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 										</TouchableOpacity>
 									)}
 
-								{/* Единая кнопка Поделиться расписанием дня */}
+								{/* Компактная иконка Поделиться расписанием дня */}
 								<TouchableOpacity
 									style={[
-										styles.shareDayBtn,
+										styles.shareIconBtn,
 										{
 											backgroundColor:
 												theme.chipBackground,
+											borderColor: theme.border,
 										},
 									]}
 									activeOpacity={0.7}
 									onPress={handleShareDaySchedule}
+									hitSlop={{
+										top: 8,
+										bottom: 8,
+										left: 8,
+										right: 8,
+									}}
 									accessibilityLabel="Поделиться расписанием на день"
 								>
 									<Ionicons
 										name="share-outline"
-										size={14}
+										size={16}
 										color={theme.accent}
-										style={{ marginRight: 5 }}
 									/>
-									<Text
-										style={[
-											styles.shareDayBtnText,
-											{
-												color: theme.text,
-											},
-										]}
-									>
-										Поделиться
-									</Text>
 								</TouchableOpacity>
 							</View>
 						</View>
 
-						{/* Специальный субботний баннер */}
+						{/* Компактная пометка субботнего графика звонков */}
 						{isSaturday && (
 							<TouchableOpacity
 								style={[
-									styles.saturdayBanner,
+									styles.saturdayBadgeCompact,
 									{
 										backgroundColor:
-											theme.isDark
-												? "rgba(10, 132, 255, 0.12)"
-												: "rgba(0, 122, 255, 0.08)",
+											theme.accentSubtle,
 										borderColor:
-											theme.accent,
+											theme.accent + "40",
 									},
 								]}
 								activeOpacity={0.75}
@@ -562,66 +519,29 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 									onOpenCalls?.();
 								}}
 							>
-								<View
-									style={
-										styles.saturdayBannerLeft
-									}
-								>
-									<Ionicons
-										name="time-outline"
-										size={20}
-										color={theme.accent}
-										style={{
-											marginRight: 8,
-										}}
-									/>
-									<View style={{ flex: 1 }}>
-										<Text
-											style={[
-												styles.saturdayBannerTitle,
-												{
-													color: theme.accent,
-												},
-											]}
-										>
-											Суббота • Пары по 60
-											минут
-										</Text>
-										<Text
-											style={[
-												styles.saturdayBannerSubtitle,
-												{
-													color: theme.textSecondary,
-												},
-											]}
-										>
-											08:00 — 14:35
-											(перемены 5-15 мин)
-										</Text>
-									</View>
-								</View>
-								<View
+								<Ionicons
+									name="time-outline"
+									size={14}
+									color={theme.accent}
+									style={{ marginRight: 6 }}
+								/>
+								<Text
 									style={[
-										styles.saturdayBannerBtn,
-										{
-											backgroundColor:
-												theme.accent,
-										},
+										styles.saturdayBadgeText,
+										{ color: theme.accent },
+									]}
+									numberOfLines={1}
+								>
+									Суббота • пары по 60 мин (08:00 — 14:35)
+								</Text>
+								<Text
+									style={[
+										styles.saturdayBadgeAction,
+										{ color: theme.accent },
 									]}
 								>
-									<Text
-										style={
-											styles.saturdayBannerBtnText
-										}
-									>
-										Звонки
-									</Text>
-									<Ionicons
-										name="chevron-forward"
-										size={12}
-										color="#FFFFFF"
-									/>
-								</View>
+									Звонки ›
+								</Text>
 							</TouchableOpacity>
 						)}
 
@@ -1159,63 +1079,42 @@ const styles = StyleSheet.create({
 	dayHeaderActions: {
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 6,
+		gap: 8,
 	},
-	shareDayBtn: {
-		flexDirection: "row",
+	shareIconBtn: {
+		width: 32,
+		height: 32,
+		borderRadius: 16,
 		alignItems: "center",
-		paddingHorizontal: 10,
-		paddingVertical: 5,
-		borderRadius: 12,
-	},
-	shareDayBtnText: {
-		fontSize: 12,
-		fontWeight: "600",
+		justifyContent: "center",
+		borderWidth: 1,
 	},
 	dayTitle: {
 		fontSize: 18,
 		fontWeight: "700",
 		letterSpacing: -0.3,
 	},
-	saturdayBanner: {
+	saturdayBadgeCompact: {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
 		marginHorizontal: 18,
 		marginBottom: 12,
-		paddingVertical: 10,
-		paddingHorizontal: 14,
-		borderRadius: RADIUS.card,
+		paddingVertical: 8,
+		paddingHorizontal: 12,
+		borderRadius: 12,
 		borderWidth: 1,
 	},
-	saturdayBannerLeft: {
-		flexDirection: "row",
-		alignItems: "center",
+	saturdayBadgeText: {
+		fontSize: 12,
+		fontWeight: "600",
+		letterSpacing: -0.1,
 		flex: 1,
-		marginRight: 10,
 	},
-	saturdayBannerTitle: {
-		fontSize: 14,
-		fontWeight: "700",
-		letterSpacing: -0.2,
-	},
-	saturdayBannerSubtitle: {
-		fontSize: 12,
-		fontWeight: "500",
-		marginTop: 1,
-	},
-	saturdayBannerBtn: {
-		flexDirection: "row",
-		alignItems: "center",
-		paddingHorizontal: 10,
-		paddingVertical: 6,
-		borderRadius: 12,
-		gap: 2,
-	},
-	saturdayBannerBtnText: {
+	saturdayBadgeAction: {
 		fontSize: 12,
 		fontWeight: "700",
-		color: "#FFFFFF",
+		marginLeft: 6,
 	},
 	liveWidgetContainer: {
 		marginHorizontal: 18,
@@ -1353,10 +1252,6 @@ const styles = StyleSheet.create({
 		color: "#FFFFFF",
 		fontSize: 11,
 		fontWeight: "700",
-	},
-	subgroupNotice: {
-		fontSize: 12,
-		fontWeight: "500",
 	},
 	centerBox: {
 		alignItems: "center",

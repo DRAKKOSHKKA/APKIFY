@@ -12,16 +12,13 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import {
-	FavoriteItem,
-	SearchResultItem,
-} from "../types/schedule";
+import { SearchResultItem } from "../types/schedule";
 import { searchEntities } from "../services/api";
 import { ThemeColors } from "../theme/colors";
 
 interface SearchModalProps {
 	visible: boolean;
-	favorites: FavoriteItem[];
+	favorites?: any[];
 	theme: ThemeColors;
 	onSelectEntity: (entity: SearchResultItem) => void;
 	onClose: () => void;
@@ -452,103 +449,6 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 						}
 						ListHeaderComponent={
 							<>
-								{/* Избранное */}
-								{favorites.length > 0 && (
-									<View style={styles.section}>
-										<Text
-											style={[
-												styles.sectionTitle,
-												{
-													color: theme.textSecondary,
-												},
-											]}
-										>
-											ИЗБРАННОЕ
-										</Text>
-										{favorites.map(
-											(item) => (
-												<TouchableOpacity
-													key={`fav-${item.SearchId}`}
-													style={[
-														styles.resultItem,
-														{
-															backgroundColor:
-																theme.card,
-															borderColor:
-																theme.border,
-														},
-													]}
-													activeOpacity={
-														0.7
-													}
-													onPress={() =>
-														handleSelect(
-															item
-														)
-													}
-												>
-													<View
-														style={[
-															styles.typeIconBadge,
-															{
-																backgroundColor:
-																	theme.warningSubtle,
-															},
-														]}
-													>
-														<Ionicons
-															name="star"
-															size={
-																18
-															}
-															color={
-																theme.warning
-															}
-														/>
-													</View>
-													<View
-														style={
-															styles.resultInfo
-														}
-													>
-														<Text
-															style={[
-																styles.resultName,
-																{
-																	color: theme.text,
-																},
-															]}
-														>
-															{
-																item.SearchContent
-															}
-														</Text>
-														<Text
-															style={[
-																styles.resultType,
-																{
-																	color: theme.textSecondary,
-																},
-															]}
-														>
-															{getTypeLabel(
-																item.Type
-															)}
-														</Text>
-													</View>
-													<Ionicons
-														name="chevron-forward"
-														size={18}
-														color={
-															theme.textSecondary
-														}
-													/>
-												</TouchableOpacity>
-											)
-										)}
-									</View>
-								)}
-
 								{/* Быстрые подсказки */}
 								<View style={styles.section}>
 									<Text

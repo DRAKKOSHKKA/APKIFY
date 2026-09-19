@@ -187,107 +187,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 						/>
 					</TouchableOpacity>
 
-					<View
-						style={[
-							styles.divider,
-							{ backgroundColor: theme.separator },
-						]}
-					/>
-
-					{/* Выбор подгруппы */}
-					<View style={styles.columnRow}>
-						<View style={styles.labelRow}>
-							<View
-								style={[
-									styles.iconSquare,
-									{
-										backgroundColor:
-											"#34C759",
-									},
-								]}
-							>
-								<Ionicons
-									name="person"
-									size={17}
-									color="#FFFFFF"
-								/>
-							</View>
-							<Text
-								style={[
-									styles.rowLabel,
-									{ color: theme.text },
-								]}
-							>
-								Подгруппа
-							</Text>
-						</View>
-
-						<View
-							style={[
-								styles.segmented,
-								{
-									backgroundColor:
-										theme.chipBackground,
-								},
-							]}
-						>
-							{(
-								[
-									"all",
-									"1",
-									"2",
-								] as SubgroupFilter[]
-							).map((sg) => {
-								const isSelected =
-									settings.subgroup === sg;
-								let title = "Все";
-								if (sg === "1") title = "1-я";
-								if (sg === "2") title = "2-я";
-
-								return (
-									<TouchableOpacity
-										key={sg}
-										style={[
-											styles.segmentBtn,
-											isSelected && [
-												styles.segmentBtnActive,
-												{
-													backgroundColor:
-														theme.card,
-												},
-											],
-										]}
-										activeOpacity={0.7}
-										onPress={() => {
-											try {
-												Haptics.selectionAsync();
-											} catch {}
-											onUpdateSettings({
-												subgroup: sg,
-											});
-										}}
-									>
-										<Text
-											style={[
-												styles.segmentBtnText,
-												{
-													color: isSelected
-														? theme.text
-														: theme.textSecondary,
-													fontWeight:
-														isSelected
-															? "700"
-															: "500",
-												},
-											]}
-										>
-											{title}
-										</Text>
-									</TouchableOpacity>
-								);
-							})}
-						</View>
-					</View>
 				</View>
 			</View>
 
@@ -346,31 +245,30 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 								},
 							]}
 						>
-							{(
-								[
-									{
-										mode: "system" as ThemeMode,
-										title: "Авто",
-									},
-									{
-										mode: "light" as ThemeMode,
-										title: "Светлая",
-									},
-									{
-										mode: "gray" as ThemeMode,
-										title: "Серая",
-									},
-									{
-										mode: "oled" as ThemeMode,
-										title: "OLED",
-									},
-								]
-							).map(({ mode, title }) => {
+							{[
+								{
+									mode: "system" as ThemeMode,
+									title: "Авто",
+								},
+								{
+									mode: "light" as ThemeMode,
+									title: "Светлая",
+								},
+								{
+									mode: "gray" as ThemeMode,
+									title: "Серая",
+								},
+								{
+									mode: "dark" as ThemeMode,
+									title: "Тёмная",
+								},
+								{
+									mode: "oled" as ThemeMode,
+									title: "OLED",
+								},
+							].map(({ mode, title }) => {
 								const isSelected =
-									settings.themeMode === mode ||
-									(mode === "gray" &&
-										settings.themeMode ===
-											"dark");
+									settings.themeMode === mode;
 
 								return (
 									<TouchableOpacity
@@ -718,6 +616,77 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 			</View>
 
 			{/* СЕКЦИЯ 4: ХРАНИЛИЩЕ ДАННЫХ */}
+			{/* СЕКЦИЯ: ИНСТРУМЕНТЫ РАЗРАБОТКИ */}
+			<View style={styles.section}>
+				<Text
+					style={[
+						styles.sectionTitle,
+						{ color: theme.textSecondary },
+					]}
+				>
+					ИНСТРУМЕНТЫ РАЗРАБОТЧИКА
+				</Text>
+				<View
+					style={[
+						styles.card,
+						{
+							backgroundColor: theme.groupedCell,
+							borderColor: theme.border,
+						},
+					]}
+				>
+					<TouchableOpacity
+						style={styles.row}
+						activeOpacity={0.7}
+						onPress={() => {
+							try {
+								Haptics.impactAsync(
+									Haptics.ImpactFeedbackStyle.Medium
+								);
+							} catch {}
+							onOpenDebugModal();
+						}}
+					>
+						<View
+							style={[
+								styles.iconSquare,
+								{ backgroundColor: theme.accent },
+							]}
+						>
+							<Ionicons
+								name="flask-outline"
+								size={17}
+								color="#FFFFFF"
+							/>
+						</View>
+						<View style={{ flex: 1 }}>
+							<Text
+								style={[
+									styles.rowLabel,
+									{ color: theme.text },
+								]}
+							>
+								Инспектор системы (Debug Menu)
+							</Text>
+							<Text
+								style={{
+									fontSize: 12,
+									color: theme.textSecondary,
+									marginTop: 1,
+								}}
+							>
+								Тесты подгрупп, времени, звонков и тем
+							</Text>
+						</View>
+						<Ionicons
+							name="chevron-forward"
+							size={17}
+							color={theme.separator}
+						/>
+					</TouchableOpacity>
+				</View>
+			</View>
+
 			<View style={styles.section}>
 				<Text
 					style={[

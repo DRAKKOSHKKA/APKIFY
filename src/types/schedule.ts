@@ -58,7 +58,12 @@ export interface FavoriteItem extends SearchResultItem {
 	addedAt: number;
 }
 
-export type ThemeMode = "system" | "light" | "gray" | "oled" | "dark";
+export type ThemeMode =
+	| "system"
+	| "light"
+	| "gray"
+	| "dark"
+	| "oled";
 export type AccentColor =
 	| "blue"
 	| "purple"
@@ -71,7 +76,7 @@ export type SubgroupFilter = "all" | "1" | "2";
 export interface AppSettings {
 	themeMode: ThemeMode;
 	accentColor?: AccentColor;
-	subgroup: SubgroupFilter;
+	subgroup?: SubgroupFilter;
 	compactView: boolean;
 	glassEffect: boolean;
 	notificationsEnabled: boolean;

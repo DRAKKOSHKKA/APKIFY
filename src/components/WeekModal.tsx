@@ -112,11 +112,13 @@ export const WeekModal: React.FC<WeekModalProps> = ({
 					<View style={styles.list}>
 						{weeks.map((week) => {
 							const isSelected =
-								week.weekId === activeSelectedWeekId;
+								week.weekId ===
+								activeSelectedWeekId;
 							const isRealCurrent =
 								week.isCurrent ||
 								(realCurrentWeekId
-									? week.weekId === realCurrentWeekId
+									? week.weekId ===
+										realCurrentWeekId
 									: false);
 
 							const rowBg = isSelected
@@ -135,11 +137,14 @@ export const WeekModal: React.FC<WeekModalProps> = ({
 									style={[
 										styles.weekRow,
 										{
-											backgroundColor: rowBg,
-											borderColor: rowBorder,
-											borderWidth: isSelected
-												? 1.5
-												: StyleSheet.hairlineWidth,
+											backgroundColor:
+												rowBg,
+											borderColor:
+												rowBorder,
+											borderWidth:
+												isSelected
+													? 1.5
+													: StyleSheet.hairlineWidth,
 										},
 									]}
 									activeOpacity={0.7}

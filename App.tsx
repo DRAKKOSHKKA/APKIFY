@@ -319,6 +319,81 @@ export default function App() {
 		setCustomSchedule(null);
 	};
 
+	/**
+	 * Внедрение расписания с одновременными подгруппами (1 и 2 п/г)
+	 */
+	const handleInjectSubgroupsSchedule = () => {
+		const base = schedule;
+		if (!base) return;
+		const subgroupsDay = {
+			dayName: "Вторник",
+			dayDate: "15.09.2026",
+			isToday: true,
+			lessons: [
+				{
+					id: "sg-1",
+					pairIndex: 1,
+					time: "08:00 - 09:20",
+					subject: "МДК 02.01 Разработка программных модулей (Лекция)",
+					teacher: "Хайруллин Р.М.",
+					room: "312а",
+					group: "21 нмо",
+				},
+				{
+					id: "sg-2a",
+					pairIndex: 2,
+					time: "09:30 - 10:50",
+					subject: "МДК 02.01 Разработка ПО (Лабораторная работа)",
+					teacher: "Хайруллин Р.М.",
+					room: "312а",
+					group: "21 нмо (1-я подгруппа)",
+				},
+				{
+					id: "sg-2b",
+					pairIndex: 2,
+					time: "09:30 - 10:50",
+					subject: "Иностранный язык в профессиональной деятельности",
+					teacher: "Смирнова Е.А.",
+					room: "204",
+					group: "21 нмо (2-я подгруппа)",
+				},
+				{
+					id: "sg-3a",
+					pairIndex: 3,
+					time: "11:20 - 12:40",
+					subject: "Иностранный язык в профессиональной деятельности",
+					teacher: "Смирнова Е.А.",
+					room: "204",
+					group: "21 нмо 1 п/г",
+				},
+				{
+					id: "sg-3b",
+					pairIndex: 3,
+					time: "11:20 - 12:40",
+					subject: "Учебная практика (Программирование)",
+					teacher: "Закиров И.Р.",
+					room: "108",
+					group: "21 нмо 2 п/г",
+				},
+				{
+					id: "sg-4",
+					pairIndex: 4,
+					time: "12:50 - 14:10",
+					subject: "Физическая культура",
+					teacher: "Гарифуллин А.Х.",
+					room: "спортзал",
+					group: "21 нмо",
+				},
+			],
+		};
+
+		setCustomSchedule({
+			...base,
+			days: [subgroupsDay, ...base.days.slice(1)],
+		});
+		setSelectedDayIndex(0);
+	};
+
 	const handleSetMockDate = (date: Date | null) => {
 		setMockDate(date);
 		const targetSchedule = customSchedule || schedule;
@@ -364,7 +439,6 @@ export default function App() {
 						schedule={activeSchedule}
 						selectedDayIndex={selectedDayIndex}
 						selectedWeekId={selectedWeekId}
-						isFav={isFav}
 						isLoading={isLoading}
 						isRefreshing={isRefreshing}
 						isOffline={isOffline}
@@ -379,7 +453,6 @@ export default function App() {
 						}
 						onOpenWeeks={() => setIsWeeksOpen(true)}
 						onOpenCalls={() => setIsCallsOpen(true)}
-						onToggleFav={handleToggleFavorite}
 						onRefresh={() =>
 							loadSchedule(
 								entity,
@@ -426,7 +499,6 @@ export default function App() {
 				{/* Модальные окна */}
 				<SearchModal
 					visible={isSearchOpen}
-					favorites={favorites}
 					theme={theme}
 					onSelectEntity={handleSelectEntity}
 					onClose={() => setIsSearchOpen(false)}
@@ -476,7 +548,11 @@ export default function App() {
 					onInjectTestSchedule={
 						handleInjectTestSchedule
 					}
+					onInjectSubgroupsSchedule={
+						handleInjectSubgroupsSchedule
+					}
 					onResetSchedule={handleResetSchedule}
+					onUpdateSettings={handleUpdateSettings}
 					onRefreshLive={() =>
 						loadSchedule(
 							entity,

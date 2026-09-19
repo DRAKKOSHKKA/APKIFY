@@ -296,12 +296,8 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 								styles.metaBadge,
 								styles.subgroupBadge,
 								{
-									backgroundColor: theme.isDark
-										? "rgba(10, 132, 255, 0.18)"
-										: "rgba(0, 122, 255, 0.12)",
-									borderColor: theme.isDark
-										? "rgba(10, 132, 255, 0.35)"
-										: "rgba(0, 122, 255, 0.25)",
+									backgroundColor: theme.accentSubtle,
+									borderColor: theme.accent + "40",
 								},
 							]}
 						>

@@ -227,7 +227,10 @@ export function parseScheduleHtml(
 	// 2. Список недель
 	const now = new Date();
 	const realCurrentWeekId = getRealCurrentWeekId(now);
-	const weeks = getSemesterWeeks(activeWeekId, realCurrentWeekId);
+	const weeks = getSemesterWeeks(
+		activeWeekId,
+		realCurrentWeekId
+	);
 
 	const activeWeekItem = weeks.find(
 		(w) => w.weekId === activeWeekId
