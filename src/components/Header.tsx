@@ -76,7 +76,8 @@ export const Header: React.FC<HeaderProps> = ({
 						onPress={() => {
 							try {
 								Haptics.impactAsync(
-									Haptics.ImpactFeedbackStyle.Light
+									Haptics.ImpactFeedbackStyle
+										.Light
 								);
 							} catch {}
 							onOpenCalls();

@@ -46,9 +46,10 @@ export default function App() {
 	const [settings, setSettings] =
 		useState<AppSettings>(DEFAULT_SETTINGS);
 
-	// Вычисляем активную тему (с учетом настройки пользователя: авто, светлая или темная)
+	// Вычисляем активную тему (с учетом режима, акцентного цвета и системной темы)
 	const theme = getActiveTheme(
 		settings.themeMode,
+		settings.accentColor || "blue",
 		systemColorScheme
 	);
 
@@ -434,10 +435,13 @@ export default function App() {
 				<WeekModal
 					visible={isWeeksOpen}
 					weeks={activeSchedule?.weeks || []}
-					currentWeekId={
+					selectedWeekId={
 						activeSchedule?.weekId ||
 						selectedWeekId ||
 						""
+					}
+					realCurrentWeekId={
+						activeSchedule?.realCurrentWeekId
 					}
 					theme={theme}
 					onSelectWeek={handleSelectWeek}

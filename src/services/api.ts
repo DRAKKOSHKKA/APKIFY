@@ -18,14 +18,39 @@ export const DEFAULT_OWNER_ID = 37; // Альметьевский професс
 export const DEFAULT_WEEK_ID = "14810"; // 3-я неделя (14.09.2026 - 20.09.2026)
 
 /**
+ * Расчёт ID реальной текущей недели семестра по календарю
+ * 1-я неделя: 31.08.2026 — 06.09.2026 (ID: 14808)
+ */
+export function getRealCurrentWeekId(
+	refDate: Date = new Date()
+): string {
+	const baseWeekId = 14808;
+	const baseStart = new Date(2026, 7, 31); // 31 августа 2026
+
+	// Разница от начала семестра (понедельник 00:00:00)
+	const diffMs = refDate.getTime() - baseStart.getTime();
+	const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+	const weekNum = Math.max(
+		1,
+		Math.min(17, Math.floor(diffDays / 7) + 1)
+	);
+	return String(baseWeekId + (weekNum - 1));
+}
+
+/**
  * Генератор списка недель семестра 2026-2027 с точными датами
+ * @param selectedWeekId - выбранная пользователем неделя
+ * @param realCurrentWeekId - реальная текущая неделя (для бейджа "СЕЙЧАС")
  */
 export function getSemesterWeeks(
-	activeWeekId: string
+	selectedWeekId: string,
+	realCurrentWeekId?: string
 ): WeekItem[] {
 	const weeks: WeekItem[] = [];
 	const baseWeekId = 14808; // 1 неделя
 	const baseStart = new Date(2026, 7, 31); // 31 августа 2026
+	const actualWeekId =
+		realCurrentWeekId || getRealCurrentWeekId();
 
 	for (let num = 1; num <= 17; num++) {
 		const weekId = String(baseWeekId + (num - 1));
@@ -45,7 +70,7 @@ export function getSemesterWeeks(
 			weekNum: String(num),
 			weekId,
 			dateRange,
-			isCurrent: weekId === activeWeekId,
+			isCurrent: weekId === actualWeekId,
 		});
 	}
 	return weeks;
@@ -200,7 +225,9 @@ export function parseScheduleHtml(
 	}
 
 	// 2. Список недель
-	const weeks = getSemesterWeeks(activeWeekId);
+	const now = new Date();
+	const realCurrentWeekId = getRealCurrentWeekId(now);
+	const weeks = getSemesterWeeks(activeWeekId, realCurrentWeekId);
 
 	const activeWeekItem = weeks.find(
 		(w) => w.weekId === activeWeekId
@@ -213,7 +240,6 @@ export function parseScheduleHtml(
 		: "14.09 — 20.09";
 
 	// 3. Формируем сегодняшнюю дату
-	const now = new Date();
 	const todayStr = `${String(now.getDate()).padStart(2, "0")}.${String(now.getMonth() + 1).padStart(2, "0")}.${now.getFullYear()}`;
 
 	const weekIndex = parseInt(currentWeekNum, 10) - 1;
@@ -273,7 +299,8 @@ export function parseScheduleHtml(
 					) || SATURDAY_CALLS_SCHEDULE[colIndex];
 				time = satCall
 					? `${satCall.start} - ${satCall.end}`
-					: timeSlots[colIndex] || `Пара ${colIndex + 1}`;
+					: timeSlots[colIndex] ||
+						`Пара ${colIndex + 1}`;
 			} else {
 				time =
 					timeSlots[colIndex] ||
@@ -340,6 +367,7 @@ export function parseScheduleHtml(
 		weekId: activeWeekId,
 		currentWeekNum,
 		currentWeekDates,
+		realCurrentWeekId,
 		weeks,
 		days,
 		lastUpdated: Date.now(),

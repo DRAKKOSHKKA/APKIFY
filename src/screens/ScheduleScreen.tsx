@@ -10,6 +10,7 @@ import {
 	LayoutAnimation,
 	Platform,
 	UIManager,
+	Share,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -19,7 +20,10 @@ import {
 	SearchResultItem,
 } from "../types/schedule";
 import { ThemeColors } from "../theme/colors";
-import { formatFullDate, getCurrentDayLiveStatus } from "../utils/timeUtils";
+import {
+	formatFullDate,
+	getCurrentDayLiveStatus,
+} from "../utils/timeUtils";
 import * as Haptics from "expo-haptics";
 
 import { Header } from "../components/Header";
@@ -88,23 +92,24 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 	const todayIndex = schedule?.days
 		? schedule.days.findIndex((d, idx) =>
 				mockDate
-					? (mockDate.getDay() === 0 ? 0 : mockDate.getDay() - 1) ===
-					  idx
+					? (mockDate.getDay() === 0
+							? 0
+							: mockDate.getDay() - 1) === idx
 					: d.isToday
-		  )
+			)
 		: -1;
 
-	const isDayCurrentlyToday =
-		mockDate
-			? (mockDate.getDay() === 0 ? 0 : mockDate.getDay() - 1) ===
-			  selectedDayIndex
-			: selectedDay
+	const isDayCurrentlyToday = mockDate
+		? (mockDate.getDay() === 0
+				? 0
+				: mockDate.getDay() - 1) === selectedDayIndex
+		: selectedDay
 			? selectedDay.isToday
 			: false;
 
 	const isSaturday = selectedDay
 		? selectedDay.dayName.toLowerCase().includes("суббот") ||
-		  selectedDayIndex === 5
+			selectedDayIndex === 5
 		: false;
 
 	// Анимация при переключении дня
@@ -156,6 +161,63 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 	const firstStartTime = firstLesson
 		? firstLesson.time.split(/[-—]/)[0].trim()
 		: "";
+
+	// Единая функция для отправки всего расписания на выбранный день
+	const handleShareDaySchedule = async () => {
+		if (!selectedDay) return;
+		try {
+			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+			const fullDate = formatFullDate(
+				selectedDay.dayDate,
+				selectedDay.dayName
+			);
+			const weekText = schedule?.currentWeekNum
+				? `${schedule.currentWeekNum}-я неделя`
+				: "";
+			const subgroupText =
+				settings.subgroup !== "all"
+					? ` (${settings.subgroup}-я подгруппа)`
+					: "";
+
+			const lines = [
+				`🏛 Альметьевский профессиональный колледж`,
+				`📅 ${fullDate}${weekText ? ` • ${weekText}` : ""}`,
+				`👤 ${entity.SearchContent}${subgroupText}`,
+				`━━━━━━━━━━━━━━━━━━━━`,
+			];
+
+			if (displayedLessons.length === 0) {
+				lines.push(`🎉 В этот день занятий нет!`);
+			} else {
+				displayedLessons.forEach((l) => {
+					lines.push(
+						`🔔 ${l.pairIndex} пара (${l.time})\n📚 ${l.subject}`
+					);
+					const meta: string[] = [];
+					if (l.room) {
+						meta.push(
+							l.room.toLowerCase().startsWith("каб")
+								? l.room
+								: `каб. ${l.room}`
+						);
+					}
+					if (l.teacher) {
+						meta.push(l.teacher);
+					}
+					if (meta.length > 0) {
+						lines.push(`📍 ${meta.join(" • ")}`);
+					}
+					lines.push("");
+				});
+			}
+
+			await Share.share({
+				message: lines.join("\n").trim(),
+			});
+		} catch (err) {
+			console.warn("Ошибка отправки расписания:", err);
+		}
+	};
 
 	return (
 		<View
@@ -394,50 +456,84 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 									</Text>
 								)}
 							</View>
-							{selectedDayIndex !== todayIndex &&
-								todayIndex !== -1 && (
-									<TouchableOpacity
-										style={[
-											styles.todayJumpBtn,
-											{
-												backgroundColor:
-													theme.accentSubtle,
-											},
-										]}
-										activeOpacity={0.7}
-										onPress={() => {
-											try {
-												Haptics.impactAsync(
-													Haptics
-														.ImpactFeedbackStyle
-														.Light
-												);
-											} catch {}
-											handleSelectDay(
-												todayIndex
-											);
-										}}
-									>
-										<Ionicons
-											name="arrow-undo"
-											size={12}
-											color={theme.accent}
-											style={{
-												marginRight: 4,
-											}}
-										/>
-										<Text
+
+							<View style={styles.dayHeaderActions}>
+								{selectedDayIndex !== todayIndex &&
+									todayIndex !== -1 && (
+										<TouchableOpacity
 											style={[
-												styles.todayJumpText,
+												styles.todayJumpBtn,
 												{
-													color: theme.accent,
+													backgroundColor:
+														theme.accentSubtle,
 												},
 											]}
+											activeOpacity={0.7}
+											onPress={() => {
+												try {
+													Haptics.impactAsync(
+														Haptics
+															.ImpactFeedbackStyle
+															.Light
+													);
+												} catch {}
+												handleSelectDay(
+													todayIndex
+												);
+											}}
 										>
-											Сегодня
-										</Text>
-									</TouchableOpacity>
-								)}
+											<Ionicons
+												name="arrow-undo"
+												size={12}
+												color={theme.accent}
+												style={{
+													marginRight: 4,
+												}}
+											/>
+											<Text
+												style={[
+													styles.todayJumpText,
+													{
+														color: theme.accent,
+													},
+												]}
+											>
+												Сегодня
+											</Text>
+										</TouchableOpacity>
+									)}
+
+								{/* Единая кнопка Поделиться расписанием дня */}
+								<TouchableOpacity
+									style={[
+										styles.shareDayBtn,
+										{
+											backgroundColor:
+												theme.chipBackground,
+										},
+									]}
+									activeOpacity={0.7}
+									onPress={handleShareDaySchedule}
+									accessibilityLabel="Поделиться расписанием на день"
+								>
+									<Ionicons
+										name="share-outline"
+										size={14}
+										color={theme.accent}
+										style={{ marginRight: 5 }}
+									/>
+									<Text
+										style={[
+											styles.shareDayBtnText,
+											{
+												color: theme.text,
+											},
+										]}
+									>
+										Поделиться
+									</Text>
+								</TouchableOpacity>
+							</View>
 						</View>
 
 						{/* Специальный субботний баннер */}
@@ -446,17 +542,20 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 								style={[
 									styles.saturdayBanner,
 									{
-										backgroundColor: theme.isDark
-											? "rgba(10, 132, 255, 0.12)"
-											: "rgba(0, 122, 255, 0.08)",
-										borderColor: theme.accent,
+										backgroundColor:
+											theme.isDark
+												? "rgba(10, 132, 255, 0.12)"
+												: "rgba(0, 122, 255, 0.08)",
+										borderColor:
+											theme.accent,
 									},
 								]}
 								activeOpacity={0.75}
 								onPress={() => {
 									try {
 										Haptics.impactAsync(
-											Haptics.ImpactFeedbackStyle
+											Haptics
+												.ImpactFeedbackStyle
 												.Light
 										);
 									} catch {}
@@ -472,7 +571,9 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 										name="time-outline"
 										size={20}
 										color={theme.accent}
-										style={{ marginRight: 8 }}
+										style={{
+											marginRight: 8,
+										}}
 									/>
 									<View style={{ flex: 1 }}>
 										<Text
@@ -494,8 +595,8 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 												},
 											]}
 										>
-											08:00 — 14:35 (перемены
-											5-15 мин)
+											08:00 — 14:35
+											(перемены 5-15 мин)
 										</Text>
 									</View>
 								</View>
@@ -608,8 +709,7 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 											numberOfLines={1}
 										>
 											{
-												liveStatus
-													.lesson
+												liveStatus.lesson
 													.subject
 											}
 										</Text>
@@ -687,8 +787,7 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 									</View>
 								)}
 
-								{liveStatus.type ===
-									"break" && (
+								{liveStatus.type === "break" && (
 									<View
 										style={[
 											styles.liveCard,
@@ -876,8 +975,7 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 											}
 										</Text>
 
-										{liveStatus
-											.firstLesson
+										{liveStatus.firstLesson
 											.room ? (
 											<Text
 												style={[
@@ -920,9 +1018,7 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 										<Ionicons
 											name="checkmark-circle"
 											size={16}
-											color={
-												theme.success
-											}
+											color={theme.success}
 											style={{
 												marginRight: 8,
 											}}
@@ -936,8 +1032,8 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 											]}
 										>
 											Все пары на сегодня
-											закончились!
-											Хорошего отдыха 🎉
+											закончились! Хорошего
+											отдыха 🎉
 										</Text>
 									</View>
 								)}
@@ -1059,6 +1155,22 @@ const styles = StyleSheet.create({
 	todayJumpText: {
 		fontSize: 12,
 		fontWeight: "700",
+	},
+	dayHeaderActions: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 6,
+	},
+	shareDayBtn: {
+		flexDirection: "row",
+		alignItems: "center",
+		paddingHorizontal: 10,
+		paddingVertical: 5,
+		borderRadius: 12,
+	},
+	shareDayBtnText: {
+		fontSize: 12,
+		fontWeight: "600",
 	},
 	dayTitle: {
 		fontSize: 18,

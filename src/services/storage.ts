@@ -24,6 +24,7 @@ export const DEFAULT_ENTITY: SearchResultItem = {
 
 export const DEFAULT_SETTINGS: AppSettings = {
 	themeMode: "system",
+	accentColor: "blue",
 	subgroup: "all",
 	compactView: false,
 	glassEffect: true,

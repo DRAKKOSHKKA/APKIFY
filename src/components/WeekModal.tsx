@@ -12,11 +12,14 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { WeekItem } from "../types/schedule";
 import { ThemeColors } from "../theme/colors";
+import { RADIUS } from "../theme/tokens";
 
 interface WeekModalProps {
 	visible: boolean;
 	weeks: WeekItem[];
-	currentWeekId: string;
+	selectedWeekId?: string;
+	currentWeekId?: string; // обратная совместимость
+	realCurrentWeekId?: string;
 	theme: ThemeColors;
 	onSelectWeek: (weekId: string) => void;
 	onClose: () => void;
@@ -25,11 +28,16 @@ interface WeekModalProps {
 export const WeekModal: React.FC<WeekModalProps> = ({
 	visible,
 	weeks,
+	selectedWeekId,
 	currentWeekId,
+	realCurrentWeekId,
 	theme,
 	onSelectWeek,
 	onClose,
 }) => {
+	const activeSelectedWeekId =
+		selectedWeekId || currentWeekId || "";
+
 	return (
 		<Modal
 			visible={visible}
@@ -56,7 +64,7 @@ export const WeekModal: React.FC<WeekModalProps> = ({
 					<View style={styles.titleRow}>
 						<Ionicons
 							name="calendar"
-							size={20}
+							size={22}
 							color={theme.accent}
 							style={{ marginRight: 8 }}
 						/>
@@ -89,6 +97,7 @@ export const WeekModal: React.FC<WeekModalProps> = ({
 
 				<ScrollView
 					contentContainerStyle={styles.content}
+					showsVerticalScrollIndicator={false}
 				>
 					<Text
 						style={[
@@ -103,7 +112,22 @@ export const WeekModal: React.FC<WeekModalProps> = ({
 					<View style={styles.list}>
 						{weeks.map((week) => {
 							const isSelected =
-								week.weekId === currentWeekId;
+								week.weekId === activeSelectedWeekId;
+							const isRealCurrent =
+								week.isCurrent ||
+								(realCurrentWeekId
+									? week.weekId === realCurrentWeekId
+									: false);
+
+							const rowBg = isSelected
+								? theme.isDark
+									? "rgba(10, 132, 255, 0.14)"
+									: "rgba(0, 122, 255, 0.08)"
+								: theme.card;
+
+							const rowBorder = isSelected
+								? theme.accent
+								: theme.border;
 
 							return (
 								<TouchableOpacity
@@ -111,14 +135,11 @@ export const WeekModal: React.FC<WeekModalProps> = ({
 									style={[
 										styles.weekRow,
 										{
-											backgroundColor:
-												isSelected
-													? theme.accent
-													: theme.card,
-											borderColor:
-												isSelected
-													? theme.accent
-													: theme.border,
+											backgroundColor: rowBg,
+											borderColor: rowBorder,
+											borderWidth: isSelected
+												? 1.5
+												: StyleSheet.hairlineWidth,
 										},
 									]}
 									activeOpacity={0.7}
@@ -145,8 +166,8 @@ export const WeekModal: React.FC<WeekModalProps> = ({
 												{
 													backgroundColor:
 														isSelected
-															? "rgba(255, 255, 255, 0.25)"
-															: theme.accentSubtle,
+															? theme.accent
+															: theme.chipBackground,
 												},
 											]}
 										>
@@ -156,7 +177,7 @@ export const WeekModal: React.FC<WeekModalProps> = ({
 													{
 														color: isSelected
 															? "#FFFFFF"
-															: theme.accent,
+															: theme.text,
 													},
 												]}
 											>
@@ -174,8 +195,12 @@ export const WeekModal: React.FC<WeekModalProps> = ({
 													styles.weekTitle,
 													{
 														color: isSelected
-															? "#FFFFFF"
+															? theme.accent
 															: theme.text,
+														fontWeight:
+															isSelected
+																? "800"
+																: "700",
 													},
 												]}
 											>
@@ -187,9 +212,7 @@ export const WeekModal: React.FC<WeekModalProps> = ({
 													style={[
 														styles.weekDates,
 														{
-															color: isSelected
-																? "rgba(255, 255, 255, 0.8)"
-																: theme.textSecondary,
+															color: theme.textSecondary,
 														},
 													]}
 												>
@@ -204,25 +227,32 @@ export const WeekModal: React.FC<WeekModalProps> = ({
 									<View
 										style={styles.rightBadge}
 									>
-										{week.isCurrent && (
+										{isRealCurrent && (
 											<View
 												style={[
 													styles.currentBadge,
 													{
 														backgroundColor:
-															isSelected
-																? "#FFFFFF"
-																: theme.success,
+															theme.successSubtle,
+														borderColor:
+															theme.success,
 													},
 												]}
 											>
+												<View
+													style={[
+														styles.liveDot,
+														{
+															backgroundColor:
+																theme.success,
+														},
+													]}
+												/>
 												<Text
 													style={[
 														styles.currentBadgeText,
 														{
-															color: isSelected
-																? theme.accent
-																: "#FFFFFF",
+															color: theme.success,
 														},
 													]}
 												>
@@ -230,22 +260,30 @@ export const WeekModal: React.FC<WeekModalProps> = ({
 												</Text>
 											</View>
 										)}
-										<Ionicons
-											name={
-												isSelected
-													? "checkmark-circle"
-													: "chevron-forward"
+
+										<View
+											style={
+												styles.checkIconWrap
 											}
-											size={20}
-											color={
-												isSelected
-													? "#FFFFFF"
-													: theme.textSecondary
-											}
-											style={{
-												marginLeft: 8,
-											}}
-										/>
+										>
+											{isSelected ? (
+												<Ionicons
+													name="checkmark-circle"
+													size={22}
+													color={
+														theme.accent
+													}
+												/>
+											) : (
+												<Ionicons
+													name="chevron-forward"
+													size={18}
+													color={
+														theme.separator
+													}
+												/>
+											)}
+										</View>
 									</View>
 								</TouchableOpacity>
 							);
@@ -275,7 +313,8 @@ const styles = StyleSheet.create({
 	},
 	title: {
 		fontSize: 20,
-		fontWeight: "700",
+		fontWeight: "800",
+		letterSpacing: -0.4,
 	},
 	closeButton: {
 		padding: 2,
@@ -296,9 +335,9 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
-		padding: 14,
-		borderRadius: 16,
-		borderWidth: StyleSheet.hairlineWidth,
+		paddingVertical: 13,
+		paddingHorizontal: 16,
+		borderRadius: RADIUS.card,
 		shadowColor: "#000",
 		shadowOffset: { width: 0, height: 1 },
 		shadowOpacity: 0.04,
@@ -308,6 +347,7 @@ const styles = StyleSheet.create({
 	weekInfo: {
 		flexDirection: "row",
 		alignItems: "center",
+		flex: 1,
 	},
 	numCircle: {
 		width: 36,
@@ -318,7 +358,7 @@ const styles = StyleSheet.create({
 		marginRight: 12,
 	},
 	numText: {
-		fontSize: 16,
+		fontSize: 15,
 		fontWeight: "800",
 	},
 	weekDetails: {
@@ -326,24 +366,41 @@ const styles = StyleSheet.create({
 	},
 	weekTitle: {
 		fontSize: 16,
-		fontWeight: "700",
+		letterSpacing: -0.2,
 	},
 	weekDates: {
-		fontSize: 13,
+		fontSize: 12,
+		fontWeight: "500",
 		marginTop: 2,
 	},
 	rightBadge: {
 		flexDirection: "row",
 		alignItems: "center",
+		gap: 6,
 	},
 	currentBadge: {
-		paddingHorizontal: 7,
+		flexDirection: "row",
+		alignItems: "center",
+		paddingHorizontal: 8,
 		paddingVertical: 3,
-		borderRadius: 8,
+		borderRadius: 10,
+		borderWidth: 1,
+	},
+	liveDot: {
+		width: 5,
+		height: 5,
+		borderRadius: 2.5,
+		marginRight: 4,
 	},
 	currentBadgeText: {
 		fontSize: 10,
 		fontWeight: "800",
 		letterSpacing: 0.5,
+	},
+	checkIconWrap: {
+		width: 24,
+		alignItems: "center",
+		justifyContent: "center",
+		marginLeft: 4,
 	},
 });

@@ -47,6 +47,7 @@ export interface ScheduleData {
 	weekId: string;
 	currentWeekNum: string;
 	currentWeekDates: string;
+	realCurrentWeekId?: string;
 	weeks: WeekItem[];
 	days: DaySchedule[];
 	lastUpdated: number;
@@ -57,11 +58,19 @@ export interface FavoriteItem extends SearchResultItem {
 	addedAt: number;
 }
 
-export type ThemeMode = "system" | "light" | "dark";
+export type ThemeMode = "system" | "light" | "gray" | "oled" | "dark";
+export type AccentColor =
+	| "blue"
+	| "purple"
+	| "green"
+	| "orange"
+	| "pink"
+	| "teal";
 export type SubgroupFilter = "all" | "1" | "2";
 
 export interface AppSettings {
 	themeMode: ThemeMode;
+	accentColor?: AccentColor;
 	subgroup: SubgroupFilter;
 	compactView: boolean;
 	glassEffect: boolean;

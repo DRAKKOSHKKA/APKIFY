@@ -15,9 +15,10 @@ import {
 	AppSettings,
 	SubgroupFilter,
 	ThemeMode,
+	AccentColor,
 } from "../types/schedule";
 import { clearScheduleCache } from "../services/storage";
-import { ThemeColors } from "../theme/colors";
+import { ThemeColors, ACCENT_PALETTES } from "../theme/colors";
 import { RADIUS } from "../theme/tokens";
 import { APP_CONFIG } from "../constants/appInfo";
 
@@ -347,18 +348,29 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 						>
 							{(
 								[
-									"system",
-									"light",
-									"dark",
-								] as ThemeMode[]
-							).map((mode) => {
+									{
+										mode: "system" as ThemeMode,
+										title: "Авто",
+									},
+									{
+										mode: "light" as ThemeMode,
+										title: "Светлая",
+									},
+									{
+										mode: "gray" as ThemeMode,
+										title: "Серая",
+									},
+									{
+										mode: "oled" as ThemeMode,
+										title: "OLED",
+									},
+								]
+							).map(({ mode, title }) => {
 								const isSelected =
-									settings.themeMode === mode;
-								let title = "Авто";
-								if (mode === "light")
-									title = "Светлая";
-								if (mode === "dark")
-									title = "Тёмная";
+									settings.themeMode === mode ||
+									(mode === "gray" &&
+										settings.themeMode ===
+											"dark");
 
 								return (
 									<TouchableOpacity
@@ -399,6 +411,119 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 										>
 											{title}
 										</Text>
+									</TouchableOpacity>
+								);
+							})}
+						</View>
+					</View>
+
+					<View
+						style={[
+							styles.divider,
+							{ backgroundColor: theme.separator },
+						]}
+					/>
+
+					{/* Выбор акцентного цвета */}
+					<View style={styles.columnRow}>
+						<View style={styles.labelRow}>
+							<View
+								style={[
+									styles.iconSquare,
+									{
+										backgroundColor:
+											theme.accent,
+									},
+								]}
+							>
+								<Ionicons
+									name="color-palette"
+									size={17}
+									color="#FFFFFF"
+								/>
+							</View>
+							<View style={{ flex: 1 }}>
+								<Text
+									style={[
+										styles.rowLabel,
+										{ color: theme.text },
+									]}
+								>
+									Акцентный цвет
+								</Text>
+								<Text
+									style={[
+										styles.colorSelectedLabel,
+										{
+											color: theme.textSecondary,
+										},
+									]}
+								>
+									{
+										ACCENT_PALETTES[
+											settings.accentColor ||
+												"blue"
+										]?.name
+									}
+								</Text>
+							</View>
+						</View>
+
+						<View style={styles.colorPaletteRow}>
+							{(
+								[
+									"blue",
+									"purple",
+									"green",
+									"orange",
+									"pink",
+									"teal",
+								] as AccentColor[]
+							).map((cKey) => {
+								const pal =
+									ACCENT_PALETTES[cKey];
+								const isSelected =
+									(settings.accentColor ||
+										"blue") === cKey;
+
+								return (
+									<TouchableOpacity
+										key={cKey}
+										style={[
+											styles.colorCircle,
+											{
+												backgroundColor:
+													pal.color,
+											},
+											isSelected && [
+												styles.colorCircleSelected,
+												{
+													borderColor:
+														theme.text,
+												},
+											],
+										]}
+										activeOpacity={0.75}
+										onPress={() => {
+											try {
+												Haptics.selectionAsync();
+											} catch {}
+											onUpdateSettings({
+												accentColor:
+													cKey,
+											});
+										}}
+										accessibilityLabel={
+											pal.name
+										}
+									>
+										{isSelected && (
+											<Ionicons
+												name="checkmark"
+												size={16}
+												color="#FFFFFF"
+											/>
+										)}
 									</TouchableOpacity>
 								);
 							})}
@@ -801,6 +926,34 @@ const styles = StyleSheet.create({
 	segmentBtnText: {
 		fontSize: 13,
 		letterSpacing: -0.2,
+	},
+	colorSelectedLabel: {
+		fontSize: 13,
+		fontWeight: "500",
+		marginTop: 2,
+	},
+	colorPaletteRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		paddingVertical: 8,
+		paddingHorizontal: 4,
+	},
+	colorCircle: {
+		width: 38,
+		height: 38,
+		borderRadius: 19,
+		alignItems: "center",
+		justifyContent: "center",
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.15,
+		shadowRadius: 3,
+		elevation: 2,
+	},
+	colorCircleSelected: {
+		borderWidth: 3,
+		transform: [{ scale: 1.12 }],
 	},
 	footer: {
 		alignItems: "center",

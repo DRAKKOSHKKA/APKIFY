@@ -1,5 +1,11 @@
 import React from "react";
-import { StyleSheet, Text, View, TouchableOpacity, Share } from "react-native";
+import {
+	StyleSheet,
+	Text,
+	View,
+	TouchableOpacity,
+	Share,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Lesson } from "../types/schedule";
@@ -100,7 +106,9 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 
 	const handleShareLesson = async () => {
 		try {
-			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+			Haptics.impactAsync(
+				Haptics.ImpactFeedbackStyle.Medium
+			);
 			const lines = [
 				`🏛 АПК • Расписание`,
 				`🔔 ${lesson.pairIndex} пара (${lesson.time})`,
@@ -180,56 +188,36 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 						{lesson.pairIndex} пара
 					</Text>
 
-					<View style={styles.headerRightRow}>
-						{isCurrent && (
+					{isCurrent && (
+						<View
+							style={[
+								styles.statusBadge,
+								{
+									backgroundColor: theme.isDark
+										? "#0F3819"
+										: "#D1F2D9",
+								},
+							]}
+						>
 							<View
 								style={[
-									styles.statusBadge,
+									styles.pulseDot,
 									{
-										backgroundColor: theme.isDark
-											? "#0F3819"
-											: "#D1F2D9",
+										backgroundColor:
+											theme.success,
 									},
 								]}
-							>
-								<View
-									style={[
-										styles.pulseDot,
-										{
-											backgroundColor:
-												theme.success,
-										},
-									]}
-								/>
-								<Text
-									style={[
-										styles.statusText,
-										{ color: theme.success },
-									]}
-								>
-									{badgeText || "Идёт"}
-								</Text>
-							</View>
-						)}
-
-						<TouchableOpacity
-							style={styles.shareBtn}
-							onPress={handleShareLesson}
-							hitSlop={{
-								top: 8,
-								bottom: 8,
-								left: 8,
-								right: 8,
-							}}
-							accessibilityLabel="Поделиться парой"
-						>
-							<Ionicons
-								name="share-outline"
-								size={14}
-								color={theme.textSecondary}
 							/>
-						</TouchableOpacity>
-					</View>
+							<Text
+								style={[
+									styles.statusText,
+									{ color: theme.success },
+								]}
+							>
+								{badgeText || "Идёт"}
+							</Text>
+						</View>
+					)}
 				</View>
 
 				{/* Название предмета (без обрезки, аккуратный перенос) */}
@@ -391,15 +379,6 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "space-between",
 		marginBottom: 4,
-	},
-	headerRightRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 8,
-	},
-	shareBtn: {
-		padding: 3,
-		opacity: 0.7,
 	},
 	pairIndex: {
 		fontSize: 11,

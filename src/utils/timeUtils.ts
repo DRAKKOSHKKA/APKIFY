@@ -264,7 +264,9 @@ export function getCurrentDayLiveStatus(
 			): item is { lesson: Lesson; range: TimeRange } =>
 				item.range !== null
 		)
-		.sort((a, b) => a.range.startMinutes - b.range.startMinutes);
+		.sort(
+			(a, b) => a.range.startMinutes - b.range.startMinutes
+		);
 
 	if (parsedLessons.length === 0) return null;
 
@@ -361,7 +363,8 @@ export function normalizeSaturdayTimes(
 			const satCall =
 				SATURDAY_CALLS_SCHEDULE.find(
 					(s) => s.pair === lesson.pairIndex
-				) || SATURDAY_CALLS_SCHEDULE[lesson.pairIndex - 1];
+				) ||
+				SATURDAY_CALLS_SCHEDULE[lesson.pairIndex - 1];
 			if (satCall) {
 				return {
 					...lesson,
@@ -382,4 +385,3 @@ export function normalizeSaturdayTimes(
 		days: updatedDays,
 	};
 }
-
