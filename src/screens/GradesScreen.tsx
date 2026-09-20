@@ -19,6 +19,7 @@ import {
 	calculateOverview,
 	calculateSubjectSummaries,
 	getEntryGradesList,
+	upsertGradeEntry,
 } from "../services/gradesStorage";
 
 interface GradesScreenProps {
@@ -154,6 +155,21 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 			...prev,
 			[subject]: !prev[subject],
 		}));
+	};
+
+	const handleToggleHomework = async (entry: GradeEntry) => {
+		try {
+			try {
+				Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+			} catch {}
+			await upsertGradeEntry({
+				...entry,
+				isHomeworkDone: !entry.isHomeworkDone,
+			});
+			await onRefreshGrades();
+		} catch (err) {
+			console.warn("Ошибка переключения статуса Д/З:", err);
+		}
 	};
 
 	const handleImportClipboardPrompt = () => {
@@ -827,7 +843,7 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 				)}
 
 				{/* Содержимое в зависимости от выбранного режима */}
-				{viewMode === "subjects" ? (
+				{viewMode === "subjects" && (
 					<View style={styles.listContainer}>
 						{filteredSummaries.length > 0 ? (
 							filteredSummaries.map((summary) => {
@@ -894,7 +910,10 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 														styles.gradesInlineRow
 													}
 												>
-													{summary.grades.length > 0 ? (
+													{summary
+														.grades
+														.length >
+													0 ? (
 														<>
 															{summary.grades
 																.slice(
@@ -932,7 +951,8 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 																		</View>
 																	)
 																)}
-															{summary.grades
+															{summary
+																.grades
 																.length >
 																10 && (
 																<View
@@ -1125,79 +1145,7 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 																			пара
 																		</Text>
 																	) : null}
-																	{entry.room ? (
-																		<Text
-																			style={[
-																				styles.entryRoom,
-																				{
-																					color: theme.textSecondary,
-																				},
-																			]}
-																		>
-																			каб.{" "}
-																			{
-																				entry.room
-																			}
-																		</Text>
-																	) : null}
 																</View>
-
-																{entry.homework ? (
-																	<View
-																		style={[
-																			styles.entryHomeworkPill,
-																			{
-																				backgroundColor:
-																					entry.isHomeworkDone
-																						? "rgba(52, 199, 89, 0.12)"
-																						: "rgba(255, 149, 0, 0.12)",
-																				borderColor:
-																					entry.isHomeworkDone
-																						? "#34C759"
-																						: "#FF9500",
-																			},
-																		]}
-																	>
-																		<Ionicons
-																			name={
-																				entry.isHomeworkDone
-																					? "checkmark-circle"
-																					: "time-outline"
-																			}
-																			size={
-																				11
-																			}
-																			color={
-																				entry.isHomeworkDone
-																					? "#34C759"
-																					: "#FF9500"
-																			}
-																			style={{
-																				marginRight: 4,
-																			}}
-																		/>
-																		<Text
-																			style={[
-																				styles.entryHomeworkPillText,
-																				{
-																					color: theme.text,
-																					textDecorationLine:
-																						entry.isHomeworkDone
-																							? "line-through"
-																							: "none",
-																				},
-																			]}
-																			numberOfLines={
-																				1
-																			}
-																		>
-																			Д/З:{" "}
-																			{
-																				entry.homework
-																			}
-																		</Text>
-																	</View>
-																) : null}
 
 																{entry.note ? (
 																	<Text
@@ -1336,8 +1284,10 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 							</View>
 						)}
 					</View>
-				) : (
-					/* Хронологическая лента «Все записи» */
+				)}
+
+				{/* Хронологическая лента «Все записи» */}
+				{viewMode === "history" && (
 					<View style={styles.listContainer}>
 						{sortedEntries.length > 0 ? (
 							sortedEntries.map((entry) => (
@@ -1389,9 +1339,6 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 												{entry.date}
 												{entry.pairIndex
 													? ` • ${entry.pairIndex} пара`
-													: ""}
-												{entry.room
-													? ` • каб. ${entry.room}`
 													: ""}
 											</Text>
 										</View>
@@ -1496,20 +1443,6 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 												</Text>
 												{entry.homework}
 											</Text>
-											<Text
-												style={[
-													styles.hwStatusMiniText,
-													{
-														color: entry.isHomeworkDone
-															? "#34C759"
-															: "#FF9500",
-													},
-												]}
-											>
-												{entry.isHomeworkDone
-													? "СДАНО"
-													: "СДЕЛАТЬ"}
-											</Text>
 										</View>
 									) : null}
 
@@ -1569,7 +1502,7 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 					</View>
 				)}
 
-				{/* Вкладка «Домашка» */}
+				{/* Вкладка «Домашка» в iOS-стиле (Apple Reminders) */}
 				{viewMode === "homework" && (
 					<View style={styles.listContainer}>
 						{homeworkList.length > 0 ? (
@@ -1582,10 +1515,7 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 											backgroundColor:
 												cardBg,
 											borderColor:
-												entry.isHomeworkDone
-													? cardBorder
-													: theme.warning +
-														"60",
+												cardBorder,
 										},
 									]}
 									activeOpacity={0.75}
@@ -1593,171 +1523,144 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 										onEditGrade(entry)
 									}
 								>
-									<View
-										style={
-											styles.homeworkCardHeader
-										}
-									>
+									<View style={styles.homeworkRow}>
+										{/* Круглый интерактивный чекбокс в стиле iOS */}
+										<TouchableOpacity
+											style={[
+												styles.circularCheckbox,
+												entry.isHomeworkDone
+													? styles.circularCheckboxDone
+													: [
+															styles.circularCheckboxPending,
+															{
+																borderColor:
+																	theme.isDark
+																		? "#636366"
+																		: "#C7C7CC",
+															},
+														],
+											]}
+											activeOpacity={0.7}
+											onPress={() =>
+												handleToggleHomework(
+													entry
+												)
+											}
+											hitSlop={{
+												top: 10,
+												bottom: 10,
+												left: 10,
+												right: 10,
+											}}
+											accessibilityLabel={
+												entry.isHomeworkDone
+													? "Отметить как несделанное"
+													: "Отметить как сделанное"
+											}
+										>
+											{entry.isHomeworkDone && (
+												<Ionicons
+													name="checkmark"
+													size={15}
+													color="#FFFFFF"
+												/>
+											)}
+										</TouchableOpacity>
+
+										{/* Тело задания: предмет, дата и полный текст без сокращений */}
 										<View
 											style={
-												styles.homeworkHeaderLeft
+												styles.homeworkBodyCol
 											}
 										>
+											<View
+												style={
+													styles.homeworkHeaderLine
+												}
+											>
+												<Text
+													style={[
+														styles.homeworkSubjectText,
+														{
+															color: theme.text,
+														},
+													]}
+													numberOfLines={1}
+												>
+													{entry.subject}
+												</Text>
+												<Text
+													style={[
+														styles.homeworkDateText,
+														{
+															color: theme.textSecondary,
+														},
+													]}
+												>
+													{entry.date}
+													{entry.pairIndex
+														? ` • ${entry.pairIndex} пара`
+														: ""}
+												</Text>
+											</View>
+
+											{/* Полный текст Д/З без троеточия */}
 											<Text
 												style={[
-													styles.homeworkSubject,
+													styles.homeworkFullText,
 													{
 														color: theme.text,
-													},
-												]}
-												numberOfLines={1}
-											>
-												{entry.subject}
-											</Text>
-											<Text
-												style={[
-													styles.homeworkMeta,
-													{
-														color: theme.textSecondary,
+														textDecorationLine:
+															entry.isHomeworkDone
+																? "line-through"
+																: "none",
+														opacity:
+															entry.isHomeworkDone
+																? 0.5
+																: 1,
 													},
 												]}
 											>
-												{entry.date}
-												{entry.pairIndex
-													? ` • ${entry.pairIndex} пара`
-													: ""}
-												{entry.room
-													? ` • каб. ${entry.room}`
-													: ""}
+												{entry.homework}
 											</Text>
-										</View>
 
-										<View
-											style={[
-												styles.hwStatusPill,
-												{
-													backgroundColor:
-														entry.isHomeworkDone
-															? "rgba(52, 199, 89, 0.15)"
-															: "rgba(255, 149, 0, 0.15)",
-													borderColor:
-														entry.isHomeworkDone
-															? "#34C759"
-															: "#FF9500",
-												},
-											]}
-										>
-											<Ionicons
-												name={
-													entry.isHomeworkDone
-														? "checkmark-circle"
-														: "time-outline"
-												}
-												size={13}
-												color={
-													entry.isHomeworkDone
-														? "#34C759"
-														: "#FF9500"
-												}
-												style={{
-													marginRight: 4,
-												}}
-											/>
-											<Text
-												style={[
-													styles.hwStatusPillText,
-													{
-														color: entry.isHomeworkDone
-															? "#34C759"
-															: "#FF9500",
-													},
-												]}
-											>
-												{entry.isHomeworkDone
-													? "Сдано"
-													: "Сделать"}
-											</Text>
+											{entry.note ? (
+												<View
+													style={[
+														styles.homeworkNoteBox,
+														{
+															backgroundColor:
+																theme.chipBackground,
+															borderColor:
+																theme.border,
+														},
+													]}
+												>
+													<Ionicons
+														name="document-text-outline"
+														size={12}
+														color={
+															theme.accent
+														}
+														style={{
+															marginRight: 5,
+															marginTop: 1,
+														}}
+													/>
+													<Text
+														style={[
+															styles.homeworkNoteText,
+															{
+																color: theme.textSecondary,
+															},
+														]}
+													>
+														{entry.note}
+													</Text>
+												</View>
+											) : null}
 										</View>
 									</View>
-
-									<View
-										style={[
-											styles.homeworkContentBox,
-											{
-												backgroundColor:
-													theme.chipBackground,
-												borderColor:
-													theme.border,
-											},
-										]}
-									>
-										<Ionicons
-											name="book-outline"
-											size={15}
-											color={
-												entry.isHomeworkDone
-													? "#34C759"
-													: theme.accent
-											}
-											style={{
-												marginRight: 8,
-												marginTop: 1,
-											}}
-										/>
-										<Text
-											style={[
-												styles.homeworkContentText,
-												{
-													color: theme.text,
-													textDecorationLine:
-														entry.isHomeworkDone
-															? "line-through"
-															: "none",
-													opacity:
-														entry.isHomeworkDone
-															? 0.75
-															: 1,
-												},
-											]}
-										>
-											{entry.homework}
-										</Text>
-									</View>
-
-									{entry.note ? (
-										<View
-											style={[
-												styles.historyNoteBox,
-												{
-													backgroundColor:
-														theme.chipBackground,
-													borderColor:
-														theme.border,
-												},
-											]}
-										>
-											<Ionicons
-												name="document-text"
-												size={12}
-												color={
-													theme.accent
-												}
-												style={{
-													marginRight: 6,
-												}}
-											/>
-											<Text
-												style={[
-													styles.historyNoteText,
-													{
-														color: theme.textSecondary,
-													},
-												]}
-											>
-												{entry.note}
-											</Text>
-										</View>
-									) : null}
 								</TouchableOpacity>
 							))
 						) : (
@@ -1965,27 +1868,28 @@ const styles = StyleSheet.create({
 	},
 	segmentedRow: {
 		flexDirection: "row",
-		backgroundColor: "rgba(142, 142, 147, 0.12)",
-		borderRadius: RADIUS.button,
+		backgroundColor: "rgba(120, 120, 128, 0.16)",
+		borderRadius: 12,
 		padding: 3,
 		marginBottom: 14,
 	},
 	segmentBtn: {
 		flex: 1,
-		paddingVertical: 8,
-		borderRadius: RADIUS.button - 3,
+		paddingVertical: 7,
+		borderRadius: 9,
 		alignItems: "center",
 		justifyContent: "center",
 	},
 	segmentBtnActive: {
 		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 1 },
-		shadowOpacity: 0.1,
-		shadowRadius: 2,
-		elevation: 1,
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.12,
+		shadowRadius: 3,
+		elevation: 2,
 	},
 	segmentBtnText: {
 		fontSize: 13,
+		letterSpacing: -0.1,
 	},
 	searchBox: {
 		flexDirection: "row",
@@ -2248,59 +2152,68 @@ const styles = StyleSheet.create({
 		flex: 1,
 		marginRight: 6,
 	},
-	hwStatusMiniText: {
-		fontSize: 10,
-		fontWeight: "800",
-		letterSpacing: 0.5,
-	},
 	homeworkCard: {
-		borderRadius: RADIUS.card,
+		borderRadius: 16,
 		borderWidth: 1,
 		padding: 14,
 		marginBottom: 10,
 	},
-	homeworkCardHeader: {
+	homeworkRow: {
 		flexDirection: "row",
 		alignItems: "flex-start",
-		justifyContent: "space-between",
-		marginBottom: 8,
 	},
-	homeworkHeaderLeft: {
+	circularCheckbox: {
+		width: 24,
+		height: 24,
+		borderRadius: 12,
+		alignItems: "center",
+		justifyContent: "center",
+		marginRight: 12,
+		marginTop: 2,
+	},
+	circularCheckboxPending: {
+		borderWidth: 2,
+	},
+	circularCheckboxDone: {
+		backgroundColor: "#34C759",
+	},
+	homeworkBodyCol: {
 		flex: 1,
-		paddingRight: 8,
 	},
-	homeworkSubject: {
-		fontSize: 15,
+	homeworkHeaderLine: {
+		flexDirection: "row",
+		alignItems: "baseline",
+		justifyContent: "space-between",
+		marginBottom: 4,
+		gap: 8,
+	},
+	homeworkSubjectText: {
+		fontSize: 16,
 		fontWeight: "700",
-		lineHeight: 20,
-		marginBottom: 2,
+		letterSpacing: -0.2,
+		flex: 1,
 	},
-	homeworkMeta: {
+	homeworkDateText: {
 		fontSize: 12,
 		fontWeight: "500",
 	},
-	hwStatusPill: {
-		flexDirection: "row",
-		alignItems: "center",
-		paddingHorizontal: 8,
-		paddingVertical: 4,
-		borderRadius: RADIUS.badge,
-		borderWidth: StyleSheet.hairlineWidth,
+	homeworkFullText: {
+		fontSize: 14,
+		lineHeight: 20,
+		marginTop: 2,
 	},
-	hwStatusPillText: {
-		fontSize: 11,
-		fontWeight: "700",
-	},
-	homeworkContentBox: {
+	homeworkNoteBox: {
 		flexDirection: "row",
 		alignItems: "flex-start",
-		padding: 10,
-		borderRadius: RADIUS.badge,
+		marginTop: 8,
+		paddingHorizontal: 10,
+		paddingVertical: 6,
+		borderRadius: 8,
 		borderWidth: StyleSheet.hairlineWidth,
 	},
-	homeworkContentText: {
-		fontSize: 13,
-		lineHeight: 18,
+	homeworkNoteText: {
+		fontSize: 12,
+		lineHeight: 16,
 		flex: 1,
 	},
 });

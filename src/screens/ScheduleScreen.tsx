@@ -76,7 +76,10 @@ interface ScheduleScreenProps {
 	onOpenGradeModal?: (lesson: Lesson, date: string) => void;
 	onSetDayCallMode?: (date: string, mode: DayCallMode) => void;
 	customEvents?: CustomEvent[];
-	onOpenEventModal?: (event?: CustomEvent, date?: string) => void;
+	onOpenEventModal?: (
+		event?: CustomEvent,
+		date?: string
+	) => void;
 }
 
 export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
@@ -111,7 +114,10 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 	// Кастомные события для выбранного дня
 	const dayEvents = useMemo(() => {
 		if (!selectedDay) return [];
-		return getEventsForDate(customEvents, selectedDay.dayDate);
+		return getEventsForDate(
+			customEvents,
+			selectedDay.dayDate
+		);
 	}, [customEvents, selectedDay?.dayDate]);
 
 	// Индекс сегодняшнего дня
@@ -665,62 +671,6 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 							<View
 								style={styles.dayHeaderActions}
 							>
-								{selectedDayIndex !==
-									todayIndex &&
-									todayIndex !== -1 && (
-										<TouchableOpacity
-											style={[
-												styles.todayJumpBtn,
-												{
-													backgroundColor:
-														theme.accentSubtle,
-													borderColor:
-														theme.accent +
-														"40",
-												},
-											]}
-											activeOpacity={0.7}
-											onPress={() => {
-												try {
-													Haptics.impactAsync(
-														Haptics
-															.ImpactFeedbackStyle
-															.Light
-													);
-												} catch {}
-												handleSelectDay(
-													todayIndex
-												);
-											}}
-										>
-											<Ionicons
-												name="arrow-undo"
-												size={12}
-												color={
-													theme.accent
-												}
-												style={{
-													marginRight: 4,
-												}}
-											/>
-											<Text
-												style={[
-													styles.todayJumpText,
-													{
-														color: theme.accent,
-													},
-												]}
-												numberOfLines={1}
-												adjustsFontSizeToFit
-												minimumFontScale={
-													0.8
-												}
-											>
-												Сегодня
-											</Text>
-										</TouchableOpacity>
-									)}
-
 								{/* Кнопка добавления кастомного события на этот день */}
 								{onOpenEventModal && (
 									<TouchableOpacity
@@ -1383,37 +1333,54 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 
 						{/* Кастомные события (кружки, секции, факультативы) */}
 						{dayEvents.length > 0 && (
-							<View style={styles.customEventsSection}>
-								<View style={styles.customEventsSectionHeader}>
+							<View
+								style={
+									styles.customEventsSection
+								}
+							>
+								<View
+									style={
+										styles.customEventsSectionHeader
+									}
+								>
 									<Ionicons
 										name="calendar-outline"
 										size={15}
 										color={theme.accent}
-										style={{ marginRight: 6 }}
+										style={{
+											marginRight: 6,
+										}}
 									/>
 									<Text
 										style={[
 											styles.customEventsSectionTitle,
-											{ color: theme.textSecondary },
+											{
+												color: theme.textSecondary,
+											},
 										]}
 									>
-										События и кружки ({dayEvents.length})
+										События и кружки (
+										{dayEvents.length})
 									</Text>
 								</View>
-								{dayEvents.map((event: CustomEvent) => (
-									<CustomEventCard
-										key={event.id}
-										event={event}
-										theme={theme}
-										glassEffect={settings.glassEffect}
-										onPress={() =>
-											onOpenEventModal?.(
-												event,
-												selectedDay.dayDate
-											)
-										}
-									/>
-								))}
+								{dayEvents.map(
+									(event: CustomEvent) => (
+										<CustomEventCard
+											key={event.id}
+											event={event}
+											theme={theme}
+											glassEffect={
+												settings.glassEffect
+											}
+											onPress={() =>
+												onOpenEventModal?.(
+													event,
+													selectedDay.dayDate
+												)
+											}
+										/>
+									)
+								)}
 							</View>
 						)}
 
@@ -1423,10 +1390,12 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 								style={[
 									styles.addEventBottomBtn,
 									{
-										borderColor: theme.border,
-										backgroundColor: theme.isDark
-											? "rgba(255, 255, 255, 0.04)"
-											: "rgba(0, 0, 0, 0.02)",
+										borderColor:
+											theme.border,
+										backgroundColor:
+											theme.isDark
+												? "rgba(255, 255, 255, 0.04)"
+												: "rgba(0, 0, 0, 0.02)",
 									},
 								]}
 								activeOpacity={0.7}
@@ -1533,17 +1502,6 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "baseline",
 		gap: 8,
-	},
-	todayJumpBtn: {
-		flexDirection: "row",
-		alignItems: "center",
-		paddingHorizontal: 9,
-		paddingVertical: 4,
-		borderRadius: 12,
-	},
-	todayJumpText: {
-		fontSize: 12,
-		fontWeight: "700",
 	},
 	dayHeaderActions: {
 		flexDirection: "row",

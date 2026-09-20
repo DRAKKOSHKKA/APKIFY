@@ -11,12 +11,13 @@ import {
 	ScrollView,
 	TouchableWithoutFeedback,
 	Keyboard,
+	Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { ThemeColors } from "../theme/colors";
 import { RADIUS, SPACING } from "../theme/tokens";
-import { CustomEvent, EventCategory } from "../types/events";
+import { CustomEvent } from "../types/events";
 
 interface CustomEventModalProps {
 	visible: boolean;
@@ -24,7 +25,10 @@ interface CustomEventModalProps {
 	initialDate?: string;
 	theme: ThemeColors;
 	onSave: (
-		eventData: Omit<CustomEvent, "id" | "createdAt" | "updatedAt"> & {
+		eventData: Omit<
+			CustomEvent,
+			"id" | "createdAt" | "updatedAt"
+		> & {
 			id?: string;
 		}
 	) => Promise<void>;
@@ -32,58 +36,14 @@ interface CustomEventModalProps {
 	onClose: () => void;
 }
 
-const CATEGORY_PRESETS: {
-	label: string;
-	category: EventCategory;
-	icon: keyof typeof Ionicons.glyphMap;
-	color: string;
-}[] = [
-	{
-		label: "Кружок",
-		category: "club",
-		icon: "code-working",
-		color: "#AF52DE",
-	},
-	{
-		label: "Секция",
-		category: "section",
-		icon: "basketball-outline",
-		color: "#FF9500",
-	},
-	{
-		label: "Консультация",
-		category: "consultation",
-		icon: "help-buoy-outline",
-		color: "#007AFF",
-	},
-	{
-		label: "Факультатив",
-		category: "elective",
-		icon: "book-outline",
-		color: "#34C759",
-	},
-	{
-		label: "Событие",
-		category: "event",
-		icon: "star-outline",
-		color: "#FF2D55",
-	},
-];
-
-const TIME_PRESETS = [
-	{ label: "14:40 — 16:00", start: "14:40", end: "16:00" },
-	{ label: "15:00 — 16:30", start: "15:00", end: "16:30" },
-	{ label: "16:00 — 17:30", start: "16:00", end: "17:30" },
-	{ label: "17:00 — 18:30", start: "17:00", end: "18:30" },
-];
-
 const COLOR_OPTIONS = [
-	"#AF52DE", // Фиолетовый
-	"#007AFF", // Синий
-	"#34C759", // Зеленый
-	"#FF9500", // Оранжевый
-	"#FF2D55", // Розовый
-	"#5856D6", // Индиго
+	"#007AFF", // Apple Синий
+	"#5856D6", // Apple Индиго
+	"#AF52DE", // Apple Фиолетовый
+	"#FF2D55", // Apple Розовый
+	"#FF9500", // Apple Оранжевый
+	"#34C759", // Apple Зеленый
+	"#00C7BE", // Apple Бирюзовый
 ];
 
 export const CustomEventModal: React.FC<CustomEventModalProps> = ({
@@ -102,8 +62,7 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 	const [room, setRoom] = useState("");
 	const [teacher, setTeacher] = useState("");
 	const [note, setNote] = useState("");
-	const [color, setColor] = useState("#AF52DE");
-	const [category, setCategory] = useState<EventCategory>("club");
+	const [color, setColor] = useState("#007AFF");
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	useEffect(() => {
@@ -116,8 +75,7 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 				setRoom(eventToEdit.room || "");
 				setTeacher(eventToEdit.teacher || "");
 				setNote(eventToEdit.note || "");
-				setColor(eventToEdit.color || "#AF52DE");
-				setCategory(eventToEdit.category || "club");
+				setColor(eventToEdit.color || "#007AFF");
 			} else {
 				setTitle("");
 				setDate(initialDate || getTodayFormatted());
@@ -126,8 +84,7 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 				setRoom("");
 				setTeacher("");
 				setNote("");
-				setColor("#AF52DE");
-				setCategory("club");
+				setColor("#007AFF");
 			}
 		}
 	}, [visible, eventToEdit, initialDate]);
@@ -140,27 +97,9 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 		return `${d}.${m}.${y}`;
 	};
 
-	const handleSelectCategory = (preset: (typeof CATEGORY_PRESETS)[0]) => {
-		try {
-			Haptics.selectionAsync();
-		} catch {}
-		setCategory(preset.category);
-		setColor(preset.color);
-		if (!title.trim()) {
-			setTitle(`${preset.label}`);
-		}
-	};
-
-	const handleSelectTimePreset = (preset: (typeof TIME_PRESETS)[0]) => {
-		try {
-			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-		} catch {}
-		setStartTime(preset.start);
-		setEndTime(preset.end);
-	};
-
 	const handleSave = async () => {
 		if (!title.trim() || !date.trim()) {
+			Alert.alert("Ошибка", "Пожалуйста, введите название события и дату.");
 			return;
 		}
 
@@ -173,20 +112,15 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 			} catch {}
 
 			await onSave({
-				id: eventToEdit?.id,
+				...(eventToEdit?.id ? { id: eventToEdit.id } : {}),
 				title: title.trim(),
 				date: date.trim(),
 				startTime: startTime.trim(),
-				endTime: endTime.trim() ? endTime.trim() : undefined,
-				time:
-					startTime.trim() && endTime.trim()
-						? `${startTime.trim()} - ${endTime.trim()}`
-						: startTime.trim(),
-				room: room.trim() ? room.trim() : undefined,
-				teacher: teacher.trim() ? teacher.trim() : undefined,
-				note: note.trim() ? note.trim() : undefined,
+				endTime: endTime.trim(),
+				room: room.trim(),
+				teacher: teacher.trim(),
+				note: note.trim(),
 				color,
-				category,
 			});
 			onClose();
 		} catch (err) {
@@ -196,8 +130,26 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 		}
 	};
 
+	const handleDeletePrompt = () => {
+		if (!eventToEdit || !onDelete) return;
+
+		Alert.alert(
+			"Удалить событие?",
+			`Вы действительно хотите удалить «${eventToEdit.title}»?`,
+			[
+				{ text: "Отмена", style: "cancel" },
+				{
+					text: "Удалить",
+					style: "destructive",
+					onPress: handleDelete,
+				},
+			]
+		);
+	};
+
 	const handleDelete = async () => {
-		if (!eventToEdit?.id || !onDelete) return;
+		if (!eventToEdit || !onDelete) return;
+
 		try {
 			try {
 				Haptics.notificationAsync(
@@ -226,9 +178,7 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 			<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
 				<View style={styles.overlay}>
 					<KeyboardAvoidingView
-						behavior={
-							Platform.OS === "ios" ? "padding" : undefined
-						}
+						behavior={Platform.OS === "ios" ? "padding" : undefined}
 						style={styles.keyboardContainer}
 					>
 						<View
@@ -240,53 +190,55 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 								},
 							]}
 						>
-							{/* Шапка модального окна */}
+							{/* iOS-стиль шапки модального окна */}
 							<View
 								style={[
 									styles.header,
-									{ borderBottomColor: theme.separator },
+									{
+										borderBottomColor: theme.separator,
+									},
 								]}
 							>
-								<View style={styles.headerTitleWrap}>
+								<TouchableOpacity
+									style={styles.headerBtn}
+									activeOpacity={0.7}
+									onPress={onClose}
+									disabled={isSubmitting}
+								>
 									<Text
 										style={[
-											styles.modalTitle,
-											{ color: theme.text },
-										]}
-										numberOfLines={1}
-									>
-										{isEditing
-											? "Редактировать событие"
-											: "Новое событие или кружок"}
-									</Text>
-									<Text
-										style={[
-											styles.modalSubtitle,
+											styles.headerBtnCancel,
 											{ color: theme.textSecondary },
 										]}
 									>
-										{date}
-										{startTime
-											? ` • ${startTime}${endTime ? ` — ${endTime}` : ""}`
-											: ""}
+										Отмена
 									</Text>
-								</View>
-								<TouchableOpacity
+								</TouchableOpacity>
+
+								<Text
 									style={[
-										styles.closeButton,
-										{
-											backgroundColor:
-												theme.chipBackground,
-										},
+										styles.modalTitle,
+										{ color: theme.text },
 									]}
-									activeOpacity={0.7}
-									onPress={onClose}
+									numberOfLines={1}
 								>
-									<Ionicons
-										name="close"
-										size={18}
-										color={theme.textSecondary}
-									/>
+									{isEditing ? "Редактирование" : "Новое событие"}
+								</Text>
+
+								<TouchableOpacity
+									style={styles.headerBtn}
+									activeOpacity={0.7}
+									onPress={handleSave}
+									disabled={isSubmitting}
+								>
+									<Text
+										style={[
+											styles.headerBtnSave,
+											{ color: theme.accent },
+										]}
+									>
+										Готово
+									</Text>
 								</TouchableOpacity>
 							</View>
 
@@ -296,393 +248,254 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 								showsVerticalScrollIndicator={false}
 								keyboardShouldPersistTaps="handled"
 							>
-								{/* Категории событий */}
-								<View style={styles.fieldGroup}>
+								{/* Секция: Название */}
+								<View style={styles.section}>
 									<Text
 										style={[
-											styles.fieldLabel,
+											styles.sectionHeader,
 											{ color: theme.textSecondary },
 										]}
 									>
-										ТИП СОБЫТИЯ
+										НАЗВАНИЕ
 									</Text>
-									<ScrollView
-										horizontal
-										showsHorizontalScrollIndicator={false}
-										contentContainerStyle={
-											styles.categoryChipsRow
-										}
-									>
-										{CATEGORY_PRESETS.map((item) => {
-											const isSelected =
-												category === item.category;
-											return (
-												<TouchableOpacity
-													key={item.category}
-													style={[
-														styles.categoryChip,
-														{
-															backgroundColor:
-																isSelected
-																	? item.color +
-																		"20"
-																	: theme.chipBackground,
-															borderColor:
-																isSelected
-																	? item.color
-																	: theme.border,
-														},
-													]}
-													activeOpacity={0.75}
-													onPress={() =>
-														handleSelectCategory(
-															item
-														)
-													}
-												>
-													<Ionicons
-														name={item.icon}
-														size={14}
-														color={
-															isSelected
-																? item.color
-																: theme.textSecondary
-														}
-														style={{
-															marginRight: 5,
-														}}
-													/>
-													<Text
-														style={[
-															styles.categoryChipText,
-															{
-																color: isSelected
-																	? item.color
-																	: theme.text,
-																fontWeight:
-																	isSelected
-																		? "700"
-																		: "500",
-															},
-														]}
-													>
-														{item.label}
-													</Text>
-												</TouchableOpacity>
-											);
-										})}
-									</ScrollView>
-								</View>
-
-								{/* Название события */}
-								<View style={styles.fieldGroup}>
-									<Text
+									<View
 										style={[
-											styles.fieldLabel,
-											{ color: theme.textSecondary },
-										]}
-									>
-										НАЗВАНИЕ *
-									</Text>
-									<TextInput
-										style={[
-											styles.textInput,
+											styles.groupedBox,
 											{
-												backgroundColor:
-													theme.chipBackground,
+												backgroundColor: theme.chipBackground,
 												borderColor: theme.border,
-												color: theme.text,
 											},
 										]}
-										placeholder="Например: Кружок программирования, Волейбол..."
-										placeholderTextColor={
-											theme.textSecondary
-										}
-										value={title}
-										onChangeText={setTitle}
-									/>
+									>
+										<TextInput
+											style={[
+												styles.textInput,
+												{ color: theme.text },
+											]}
+											placeholder="Например: Робототехника, Спорт, Консультация..."
+											placeholderTextColor={theme.textSecondary}
+											value={title}
+											onChangeText={setTitle}
+											autoFocus={!isEditing}
+										/>
+									</View>
 								</View>
 
-								{/* Дата и время */}
-								<View style={styles.fieldGroup}>
+								{/* Секция: Время и дата */}
+								<View style={styles.section}>
 									<Text
 										style={[
-											styles.fieldLabel,
+											styles.sectionHeader,
 											{ color: theme.textSecondary },
 										]}
 									>
 										ВРЕМЯ И ДАТА
 									</Text>
-									<View style={styles.dateTimeRow}>
-										<View style={styles.timeInputCol}>
+									<View
+										style={[
+											styles.groupedBox,
+											{
+												backgroundColor: theme.chipBackground,
+												borderColor: theme.border,
+											},
+										]}
+									>
+										<View style={styles.inputRow}>
 											<Text
 												style={[
-													styles.subLabel,
-													{
-														color: theme.textSecondary,
-													},
+													styles.inputRowLabel,
+													{ color: theme.textSecondary },
 												]}
 											>
-												Начало:
+												Начало
 											</Text>
 											<TextInput
 												style={[
-													styles.textInput,
-													styles.timeInput,
-													{
-														backgroundColor:
-															theme.chipBackground,
-														borderColor:
-															theme.border,
-														color: theme.text,
-													},
+													styles.inlineTextInput,
+													{ color: theme.text },
 												]}
 												placeholder="15:00"
-												placeholderTextColor={
-													theme.textSecondary
-												}
+												placeholderTextColor={theme.textSecondary}
 												value={startTime}
 												onChangeText={setStartTime}
 											/>
 										</View>
 
-										<View style={styles.timeInputCol}>
+										<View
+											style={[
+												styles.rowDivider,
+												{ backgroundColor: theme.separator },
+											]}
+										/>
+
+										<View style={styles.inputRow}>
 											<Text
 												style={[
-													styles.subLabel,
-													{
-														color: theme.textSecondary,
-													},
+													styles.inputRowLabel,
+													{ color: theme.textSecondary },
 												]}
 											>
-												Окончание:
+												Конец
 											</Text>
 											<TextInput
 												style={[
-													styles.textInput,
-													styles.timeInput,
-													{
-														backgroundColor:
-															theme.chipBackground,
-														borderColor:
-															theme.border,
-														color: theme.text,
-													},
+													styles.inlineTextInput,
+													{ color: theme.text },
 												]}
 												placeholder="16:30"
-												placeholderTextColor={
-													theme.textSecondary
-												}
+												placeholderTextColor={theme.textSecondary}
 												value={endTime}
 												onChangeText={setEndTime}
 											/>
 										</View>
 
-										<View style={styles.dateInputCol}>
+										<View
+											style={[
+												styles.rowDivider,
+												{ backgroundColor: theme.separator },
+											]}
+										/>
+
+										<View style={styles.inputRow}>
 											<Text
 												style={[
-													styles.subLabel,
-													{
-														color: theme.textSecondary,
-													},
+													styles.inputRowLabel,
+													{ color: theme.textSecondary },
 												]}
 											>
-												Дата:
+												Дата
 											</Text>
 											<TextInput
 												style={[
-													styles.textInput,
-													styles.dateInput,
-													{
-														backgroundColor:
-															theme.chipBackground,
-														borderColor:
-															theme.border,
-														color: theme.text,
-													},
+													styles.inlineTextInput,
+													{ color: theme.text },
 												]}
 												placeholder="ДД.ММ.ГГГГ"
-												placeholderTextColor={
-													theme.textSecondary
-												}
+												placeholderTextColor={theme.textSecondary}
 												value={date}
 												onChangeText={setDate}
 											/>
 										</View>
 									</View>
-
-									{/* Быстрые пресеты времени после пар */}
-									<ScrollView
-										horizontal
-										showsHorizontalScrollIndicator={false}
-										contentContainerStyle={
-											styles.timePresetsRow
-										}
-									>
-										{TIME_PRESETS.map((preset) => {
-											const isSelected =
-												startTime === preset.start &&
-												endTime === preset.end;
-											return (
-												<TouchableOpacity
-													key={preset.label}
-													style={[
-														styles.timePresetChip,
-														{
-															backgroundColor:
-																isSelected
-																	? color +
-																		"20"
-																	: theme.chipBackground,
-															borderColor:
-																isSelected
-																	? color
-																	: theme.border,
-														},
-													]}
-													activeOpacity={0.7}
-													onPress={() =>
-														handleSelectTimePreset(
-															preset
-														)
-													}
-												>
-													<Text
-														style={[
-															styles.timePresetText,
-															{
-																color: isSelected
-																	? color
-																	: theme.textSecondary,
-																fontWeight:
-																	isSelected
-																		? "700"
-																		: "500",
-															},
-														]}
-													>
-														{preset.label}
-													</Text>
-												</TouchableOpacity>
-											);
-										})}
-									</ScrollView>
 								</View>
 
-								{/* Кабинет и преподаватель */}
-								<View style={styles.twoColsRow}>
-									<View
-										style={[
-											styles.fieldGroup,
-											{ flex: 1 },
-										]}
-									>
-										<Text
-											style={[
-												styles.fieldLabel,
-												{ color: theme.textSecondary },
-											]}
-										>
-											КАБИНЕТ / ЗАЛ
-										</Text>
-										<TextInput
-											style={[
-												styles.textInput,
-												{
-													backgroundColor:
-														theme.chipBackground,
-													borderColor:
-														theme.border,
-													color: theme.text,
-												},
-											]}
-											placeholder="каб. 312а"
-											placeholderTextColor={
-												theme.textSecondary
-											}
-											value={room}
-											onChangeText={setRoom}
-										/>
-									</View>
-
-									<View
-										style={[
-											styles.fieldGroup,
-											{ flex: 1.2 },
-										]}
-									>
-										<Text
-											style={[
-												styles.fieldLabel,
-												{ color: theme.textSecondary },
-											]}
-										>
-											ПРЕПОДАВАТЕЛЬ / ТРЕНЕР
-										</Text>
-										<TextInput
-											style={[
-												styles.textInput,
-												{
-													backgroundColor:
-														theme.chipBackground,
-													borderColor:
-														theme.border,
-													color: theme.text,
-												},
-											]}
-											placeholder="Иванов И.И."
-											placeholderTextColor={
-												theme.textSecondary
-											}
-											value={teacher}
-											onChangeText={setTeacher}
-										/>
-									</View>
-								</View>
-
-								{/* Заметки / памятка */}
-								<View style={styles.fieldGroup}>
+								{/* Секция: Место и преподаватель */}
+								<View style={styles.section}>
 									<Text
 										style={[
-											styles.fieldLabel,
+											styles.sectionHeader,
 											{ color: theme.textSecondary },
 										]}
 									>
-										ЗАМЕТКА / ЧТО ВЗЯТЬ С СОБОЙ
+										МЕСТО И ПРЕПОДАВАТЕЛЬ
 									</Text>
-									<TextInput
+									<View
 										style={[
-											styles.noteInput,
+											styles.groupedBox,
 											{
-												backgroundColor:
-													theme.chipBackground,
+												backgroundColor: theme.chipBackground,
 												borderColor: theme.border,
-												color: theme.text,
 											},
 										]}
-										placeholder="Например: Взять спортивную форму, ноутбук с зарядкой..."
-										placeholderTextColor={
-											theme.textSecondary
-										}
-										multiline
-										numberOfLines={3}
-										textAlignVertical="top"
-										value={note}
-										onChangeText={setNote}
-									/>
+									>
+										<View style={styles.inputRow}>
+											<Text
+												style={[
+													styles.inputRowLabel,
+													{ color: theme.textSecondary },
+												]}
+											>
+												Кабинет
+											</Text>
+											<TextInput
+												style={[
+													styles.inlineTextInput,
+													{ color: theme.text },
+												]}
+												placeholder="Каб. 214 или спортзал..."
+												placeholderTextColor={theme.textSecondary}
+												value={room}
+												onChangeText={setRoom}
+											/>
+										</View>
+
+										<View
+											style={[
+												styles.rowDivider,
+												{ backgroundColor: theme.separator },
+											]}
+										/>
+
+										<View style={styles.inputRow}>
+											<Text
+												style={[
+													styles.inputRowLabel,
+													{ color: theme.textSecondary },
+												]}
+											>
+												Ведущий
+											</Text>
+											<TextInput
+												style={[
+													styles.inlineTextInput,
+													{ color: theme.text },
+												]}
+												placeholder="Преподаватель или тренер..."
+												placeholderTextColor={theme.textSecondary}
+												value={teacher}
+												onChangeText={setTeacher}
+											/>
+										</View>
+									</View>
 								</View>
 
-								{/* Выбор цвета плашки */}
-								<View style={styles.fieldGroup}>
+								{/* Секция: Заметка */}
+								<View style={styles.section}>
 									<Text
 										style={[
-											styles.fieldLabel,
+											styles.sectionHeader,
 											{ color: theme.textSecondary },
 										]}
 									>
-										ЦВЕТ ПЛАШКИ
+										ЗАМЕТКА
 									</Text>
-									<View style={styles.colorsRow}>
+									<View
+										style={[
+											styles.groupedBox,
+											{
+												backgroundColor: theme.chipBackground,
+												borderColor: theme.border,
+											},
+										]}
+									>
+										<TextInput
+											style={[
+												styles.textInput,
+												styles.textArea,
+												{ color: theme.text },
+											]}
+											placeholder="Дополнительные детали, что взять с собой..."
+											placeholderTextColor={theme.textSecondary}
+											value={note}
+											onChangeText={setNote}
+											multiline
+											numberOfLines={3}
+											textAlignVertical="top"
+										/>
+									</View>
+								</View>
+
+								{/* Секция: Цвет метки */}
+								<View style={styles.section}>
+									<Text
+										style={[
+											styles.sectionHeader,
+											{ color: theme.textSecondary },
+										]}
+									>
+										ЦВЕТОВАЯ МЕТКА
+									</Text>
+									<View style={styles.colorsPaletteRow}>
 										{COLOR_OPTIONS.map((c) => {
 											const isSelected = color === c;
 											return (
@@ -691,8 +504,7 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 													style={[
 														styles.colorCircle,
 														{ backgroundColor: c },
-														isSelected &&
-															styles.colorCircleSelected,
+														isSelected && styles.colorCircleActive,
 													]}
 													activeOpacity={0.8}
 													onPress={() => {
@@ -705,7 +517,7 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 													{isSelected && (
 														<Ionicons
 															name="checkmark"
-															size={16}
+															size={18}
 															color="#FFFFFF"
 														/>
 													)}
@@ -714,84 +526,35 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 										})}
 									</View>
 								</View>
-							</ScrollView>
 
-							{/* Нижняя панель действий */}
-							<View
-								style={[
-									styles.actionsRow,
-									{ borderTopColor: theme.separator },
-								]}
-							>
+								{/* Кнопка удаления для режима редактирования */}
 								{isEditing && onDelete && (
 									<TouchableOpacity
 										style={[
-											styles.deleteBtn,
+											styles.deleteButton,
 											{
-												borderColor:
-													theme.danger ||
-													"#FF3B30",
+												backgroundColor: theme.isDark
+													? "rgba(255, 59, 48, 0.12)"
+													: "#FFF1F0",
+												borderColor: "#FF3B30" + "40",
 											},
 										]}
 										activeOpacity={0.7}
-										onPress={handleDelete}
+										onPress={handleDeletePrompt}
 										disabled={isSubmitting}
 									>
 										<Ionicons
 											name="trash-outline"
-											size={18}
-											color={
-												theme.danger || "#FF3B30"
-											}
+											size={16}
+											color="#FF3B30"
+											style={{ marginRight: 6 }}
 										/>
+										<Text style={styles.deleteButtonText}>
+											Удалить событие
+										</Text>
 									</TouchableOpacity>
 								)}
-
-								<TouchableOpacity
-									style={[
-										styles.cancelBtn,
-										{
-											backgroundColor:
-												theme.chipBackground,
-										},
-									]}
-									activeOpacity={0.7}
-									onPress={onClose}
-									disabled={isSubmitting}
-								>
-									<Text
-										style={[
-											styles.cancelBtnText,
-											{ color: theme.text },
-										]}
-									>
-										Отмена
-									</Text>
-								</TouchableOpacity>
-
-								<TouchableOpacity
-									style={[
-										styles.saveBtn,
-										{
-											backgroundColor: color,
-											opacity:
-												!title.trim() ||
-												isSubmitting
-													? 0.5
-													: 1,
-										},
-									]}
-									activeOpacity={0.75}
-									onPress={handleSave}
-									disabled={
-										!title.trim() || isSubmitting
-									}
-								>
-									<Text style={styles.saveBtnText}>
-										Сохранить
-									</Text>
-								</TouchableOpacity>
-							</View>
+							</ScrollView>
 						</View>
 					</KeyboardAvoidingView>
 				</View>
@@ -803,205 +566,146 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 const styles = StyleSheet.create({
 	overlay: {
 		flex: 1,
-		backgroundColor: "rgba(0, 0, 0, 0.5)",
+		backgroundColor: "rgba(0, 0, 0, 0.55)",
 		justifyContent: "center",
 		alignItems: "center",
-		padding: 20,
+		padding: 16,
 	},
 	keyboardContainer: {
 		width: "100%",
-		maxWidth: 480,
+		maxWidth: 520,
+		maxHeight: "90%",
 	},
 	modalContent: {
-		borderRadius: RADIUS.modal,
-		borderWidth: StyleSheet.hairlineWidth,
+		borderRadius: 22,
+		borderWidth: 1,
 		overflow: "hidden",
-		maxHeight: "88%",
 		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 10 },
-		shadowOpacity: 0.25,
-		shadowRadius: 20,
+		shadowOffset: { width: 0, height: 12 },
+		shadowOpacity: 0.28,
+		shadowRadius: 24,
 		elevation: 12,
+		maxHeight: "100%",
 	},
 	header: {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
-		paddingHorizontal: SPACING.cardPadding,
-		paddingTop: 16,
-		paddingBottom: 12,
+		paddingHorizontal: 16,
+		paddingVertical: 14,
 		borderBottomWidth: StyleSheet.hairlineWidth,
 	},
-	headerTitleWrap: {
-		flex: 1,
-		marginRight: 10,
+	headerBtn: {
+		minWidth: 64,
+	},
+	headerBtnCancel: {
+		fontSize: 16,
+		fontWeight: "400",
+	},
+	headerBtnSave: {
+		fontSize: 16,
+		fontWeight: "700",
+		textAlign: "right",
 	},
 	modalTitle: {
-		fontSize: 18,
+		fontSize: 17,
 		fontWeight: "700",
-		letterSpacing: -0.3,
-	},
-	modalSubtitle: {
-		fontSize: 12,
-		fontWeight: "500",
-		marginTop: 2,
-	},
-	closeButton: {
-		width: 32,
-		height: 32,
-		borderRadius: 16,
-		alignItems: "center",
-		justifyContent: "center",
+		textAlign: "center",
+		flex: 1,
+		letterSpacing: -0.2,
 	},
 	scrollArea: {
-		maxHeight: 460,
+		maxHeight: 520,
 	},
 	scrollContent: {
-		paddingHorizontal: SPACING.cardPadding,
-		paddingTop: 12,
-		paddingBottom: 16,
-		gap: 14,
+		paddingHorizontal: 16,
+		paddingTop: 14,
+		paddingBottom: 24,
 	},
-	fieldGroup: {
-		gap: 6,
+	section: {
+		marginBottom: 16,
 	},
-	fieldLabel: {
-		fontSize: 11,
-		fontWeight: "700",
-		letterSpacing: 0.5,
-	},
-	subLabel: {
-		fontSize: 11,
+	sectionHeader: {
+		fontSize: 12,
 		fontWeight: "600",
-		marginBottom: 3,
+		textTransform: "uppercase",
+		letterSpacing: 0.5,
+		marginBottom: 6,
+		marginLeft: 4,
+	},
+	groupedBox: {
+		borderRadius: 14,
+		borderWidth: StyleSheet.hairlineWidth,
+		overflow: "hidden",
 	},
 	textInput: {
 		fontSize: 15,
-		fontWeight: "500",
 		paddingHorizontal: 14,
-		paddingVertical: 10,
-		borderRadius: RADIUS.input,
-		borderWidth: StyleSheet.hairlineWidth,
+		paddingVertical: 11,
 	},
-	dateTimeRow: {
-		flexDirection: "row",
-		gap: 8,
+	textArea: {
+		minHeight: 68,
+		paddingTop: 10,
 	},
-	timeInputCol: {
-		flex: 1,
-	},
-	dateInputCol: {
-		flex: 1.4,
-	},
-	timeInput: {
-		textAlign: "center",
-		fontWeight: "700",
-	},
-	dateInput: {
-		textAlign: "center",
-		fontWeight: "600",
-	},
-	twoColsRow: {
-		flexDirection: "row",
-		gap: 10,
-	},
-	categoryChipsRow: {
-		flexDirection: "row",
-		gap: 8,
-		paddingVertical: 2,
-	},
-	categoryChip: {
+	inputRow: {
 		flexDirection: "row",
 		alignItems: "center",
-		paddingHorizontal: 10,
-		paddingVertical: 7,
-		borderRadius: RADIUS.capsule,
-		borderWidth: 1,
+		justifyContent: "space-between",
+		paddingHorizontal: 14,
+		paddingVertical: 11,
 	},
-	categoryChipText: {
-		fontSize: 12,
+	inputRowLabel: {
+		fontSize: 15,
+		fontWeight: "500",
+		minWidth: 80,
 	},
-	timePresetsRow: {
+	inlineTextInput: {
+		flex: 1,
+		fontSize: 15,
+		textAlign: "right",
+		fontWeight: "500",
+		paddingVertical: 0,
+	},
+	rowDivider: {
+		height: StyleSheet.hairlineWidth,
+		marginLeft: 14,
+	},
+	colorsPaletteRow: {
 		flexDirection: "row",
-		gap: 6,
-		marginTop: 4,
-	},
-	timePresetChip: {
-		paddingHorizontal: 10,
-		paddingVertical: 5,
-		borderRadius: RADIUS.capsule,
-		borderWidth: 1,
-	},
-	timePresetText: {
-		fontSize: 11,
-	},
-	noteInput: {
-		minHeight: 64,
-		borderRadius: RADIUS.input,
-		borderWidth: StyleSheet.hairlineWidth,
-		padding: 12,
-		fontSize: 14,
-		lineHeight: 19,
-	},
-	colorsRow: {
-		flexDirection: "row",
-		gap: 12,
+		alignItems: "center",
+		justifyContent: "space-between",
 		paddingVertical: 4,
+		paddingHorizontal: 4,
 	},
 	colorCircle: {
-		width: 32,
-		height: 32,
-		borderRadius: 16,
+		width: 38,
+		height: 38,
+		borderRadius: 19,
 		alignItems: "center",
 		justifyContent: "center",
 	},
-	colorCircleSelected: {
-		transform: [{ scale: 1.15 }],
+	colorCircleActive: {
+		transform: [{ scale: 1.12 }],
 		borderWidth: 2.5,
 		borderColor: "#FFFFFF",
 		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.3,
-		shadowRadius: 4,
+		shadowOffset: { width: 0, height: 3 },
+		shadowOpacity: 0.25,
+		shadowRadius: 5,
 		elevation: 4,
 	},
-	actionsRow: {
+	deleteButton: {
 		flexDirection: "row",
 		alignItems: "center",
-		paddingHorizontal: SPACING.cardPadding,
-		paddingVertical: 14,
-		borderTopWidth: StyleSheet.hairlineWidth,
-		gap: 10,
-	},
-	deleteBtn: {
-		width: 44,
-		height: 44,
-		borderRadius: RADIUS.button,
-		borderWidth: 1.5,
-		alignItems: "center",
 		justifyContent: "center",
-	},
-	cancelBtn: {
-		flex: 1,
 		paddingVertical: 12,
-		borderRadius: RADIUS.button,
-		alignItems: "center",
-		justifyContent: "center",
+		borderRadius: 14,
+		borderWidth: 1,
+		marginTop: 8,
 	},
-	cancelBtnText: {
-		fontSize: 14,
+	deleteButtonText: {
+		fontSize: 15,
 		fontWeight: "600",
-	},
-	saveBtn: {
-		flex: 1.4,
-		paddingVertical: 12,
-		borderRadius: RADIUS.button,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	saveBtnText: {
-		color: "#FFFFFF",
-		fontSize: 14,
-		fontWeight: "700",
+		color: "#FF3B30",
 	},
 });

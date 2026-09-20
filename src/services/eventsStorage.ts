@@ -37,14 +37,20 @@ async function ensureDirectoryExists(): Promise<string> {
 /**
  * Запись в файл на диске
  */
-async function writeToFile(data: CustomEventsStore): Promise<void> {
+async function writeToFile(
+	data: CustomEventsStore
+): Promise<void> {
 	try {
 		await ensureDirectoryExists();
 		const filePath = getEventsFilePath();
 		const jsonString = JSON.stringify(data, null, 2);
-		await FileSystem.writeAsStringAsync(filePath, jsonString, {
-			encoding: FileSystem.EncodingType.UTF8,
-		});
+		await FileSystem.writeAsStringAsync(
+			filePath,
+			jsonString,
+			{
+				encoding: FileSystem.EncodingType.UTF8,
+			}
+		);
 	} catch (err) {
 		console.warn("Ошибка записи файла событий:", err);
 	}
@@ -58,9 +64,12 @@ async function readFromFile(): Promise<CustomEventsStore | null> {
 		const filePath = getEventsFilePath();
 		const info = await FileSystem.getInfoAsync(filePath);
 		if (info.exists) {
-			const content = await FileSystem.readAsStringAsync(filePath, {
-				encoding: FileSystem.EncodingType.UTF8,
-			});
+			const content = await FileSystem.readAsStringAsync(
+				filePath,
+				{
+					encoding: FileSystem.EncodingType.UTF8,
+				}
+			);
 			if (content && content.trim().length > 0) {
 				const parsed = JSON.parse(content);
 				if (Array.isArray(parsed.events)) {
@@ -88,7 +97,8 @@ export async function getEventsStore(): Promise<CustomEventsStore> {
 	let memoryData: CustomEventsStore | null = null;
 
 	try {
-		const cachedJson = await AsyncStorage.getItem(STORAGE_KEY);
+		const cachedJson =
+			await AsyncStorage.getItem(STORAGE_KEY);
 		if (cachedJson) {
 			memoryData = JSON.parse(cachedJson);
 		}
@@ -160,7 +170,10 @@ export async function saveEventsStore(
 			JSON.stringify(updatedStore)
 		);
 	} catch (err) {
-		console.warn("Ошибка сохранения событий в AsyncStorage:", err);
+		console.warn(
+			"Ошибка сохранения событий в AsyncStorage:",
+			err
+		);
 	}
 
 	await writeToFile(updatedStore);
@@ -178,7 +191,10 @@ export async function getCustomEvents(): Promise<CustomEvent[]> {
  * Добавить или обновить кастомное событие
  */
 export async function upsertCustomEvent(
-	eventData: Omit<CustomEvent, "id" | "createdAt" | "updatedAt"> & {
+	eventData: Omit<
+		CustomEvent,
+		"id" | "createdAt" | "updatedAt"
+	> & {
 		id?: string;
 	}
 ): Promise<CustomEvent> {
@@ -194,7 +210,9 @@ export async function upsertCustomEvent(
 	let resultEvent: CustomEvent;
 
 	if (eventData.id) {
-		const index = store.events.findIndex((e) => e.id === eventData.id);
+		const index = store.events.findIndex(
+			(e) => e.id === eventData.id
+		);
 		if (index !== -1) {
 			resultEvent = {
 				...store.events[index],
@@ -233,7 +251,9 @@ export async function upsertCustomEvent(
 /**
  * Удалить событие по id
  */
-export async function deleteCustomEvent(id: string): Promise<void> {
+export async function deleteCustomEvent(
+	id: string
+): Promise<void> {
 	const store = await getEventsStore();
 	store.events = store.events.filter((e) => e.id !== id);
 	await saveEventsStore(store);

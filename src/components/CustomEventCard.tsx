@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { CustomEvent, EventCategory } from "../types/events";
+import { CustomEvent } from "../types/events";
 import { ThemeColors } from "../theme/colors";
 import { RADIUS } from "../theme/tokens";
 
@@ -20,43 +20,20 @@ interface CustomEventCardProps {
 	onDelete?: () => void;
 }
 
-const CATEGORY_ICONS: Record<
-	EventCategory,
-	keyof typeof Ionicons.glyphMap
-> = {
-	club: "code-working",
-	section: "basketball-outline",
-	consultation: "help-buoy-outline",
-	elective: "book-outline",
-	event: "star-outline",
-	other: "calendar-outline",
-};
-
-const CATEGORY_NAMES: Record<EventCategory, string> = {
-	club: "Кружок",
-	section: "Секция",
-	consultation: "Консультация",
-	elective: "Факультатив",
-	event: "Мероприятие",
-	other: "Событие",
-};
-
 export const CustomEventCard: React.FC<CustomEventCardProps> = ({
 	event,
 	theme,
 	glassEffect = true,
 	onPress,
-	onDelete,
 }) => {
-	const eventColor = event.color || "#AF52DE";
-	const category = event.category || "club";
-	const iconName = CATEGORY_ICONS[category] || "calendar-outline";
-	const categoryLabel = CATEGORY_NAMES[category] || "Событие";
+	const eventColor = event.color || "#007AFF";
 
 	const startTime =
-		event.startTime || (event.time ? event.time.split(/[-—]/)[0]?.trim() : "");
+		event.startTime ||
+		(event.time ? event.time.split(/[-—]/)[0]?.trim() : "");
 	const endTime =
-		event.endTime || (event.time ? event.time.split(/[-—]/)[1]?.trim() : "");
+		event.endTime ||
+		(event.time ? event.time.split(/[-—]/)[1]?.trim() : "");
 
 	const formattedRoom = event.room
 		? event.room.toLowerCase().startsWith("каб")
@@ -65,16 +42,20 @@ export const CustomEventCard: React.FC<CustomEventCardProps> = ({
 		: "";
 
 	const cardBg = glassEffect ? theme.glassCard : theme.card;
-	const cardBorder = glassEffect ? theme.glassBorder : theme.border;
+	const cardBorder = glassEffect
+		? theme.glassBorder
+		: theme.border;
 
 	const handleShareEvent = async () => {
 		try {
-			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+			Haptics.impactAsync(
+				Haptics.ImpactFeedbackStyle.Medium
+			);
 			const lines = [
 				`🏛 АПК • Событие`,
 				`📅 ${event.date}`,
-				`⏰ ${event.time || startTime}`,
-				`🏷️ ${categoryLabel}: ${event.title}`,
+				`⏰ ${event.time || (startTime ? `${startTime}${endTime ? ` — ${endTime}` : ""}` : "")}`,
+				`📌 ${event.title}`,
 				formattedRoom ? `📍 ${formattedRoom}` : null,
 				event.teacher ? `👤 ${event.teacher}` : null,
 				event.note ? `📝 ${event.note}` : null,
@@ -130,46 +111,33 @@ export const CustomEventCard: React.FC<CustomEventCardProps> = ({
 			>
 				{/* Шапка события */}
 				<View style={styles.cardHeader}>
-					<View
-						style={[
-							styles.categoryBadge,
-							{
-								backgroundColor: eventColor + "18",
-								borderColor: eventColor + "40",
-							},
-						]}
-					>
-						<Ionicons
-							name={iconName}
-							size={12}
-							color={eventColor}
-							style={{ marginRight: 4 }}
+					<View style={styles.headerLeftTag}>
+						<View
+							style={[
+								styles.colorDot,
+								{ backgroundColor: eventColor },
+							]}
 						/>
 						<Text
 							style={[
-								styles.categoryBadgeText,
+								styles.headerTagText,
 								{ color: eventColor },
 							]}
 						>
-							{categoryLabel}
+							СОБЫТИЕ
 						</Text>
 					</View>
 
-					<View style={styles.headerRightRow}>
-						<Ionicons
-							name="create-outline"
-							size={15}
-							color={theme.textSecondary}
-						/>
-					</View>
+					<Ionicons
+						name="create-outline"
+						size={15}
+						color={theme.textSecondary}
+					/>
 				</View>
 
 				{/* Название */}
 				<Text
-					style={[
-						styles.title,
-						{ color: theme.text },
-					]}
+					style={[styles.title, { color: theme.text }]}
 					numberOfLines={2}
 				>
 					{event.title}
@@ -189,7 +157,9 @@ export const CustomEventCard: React.FC<CustomEventCardProps> = ({
 								<Text
 									style={[
 										styles.metaText,
-										{ color: theme.textSecondary },
+										{
+											color: theme.textSecondary,
+										},
 									]}
 									numberOfLines={1}
 								>
@@ -209,7 +179,9 @@ export const CustomEventCard: React.FC<CustomEventCardProps> = ({
 								<Text
 									style={[
 										styles.metaText,
-										{ color: theme.textSecondary },
+										{
+											color: theme.textSecondary,
+										},
 									]}
 									numberOfLines={1}
 								>
@@ -226,7 +198,8 @@ export const CustomEventCard: React.FC<CustomEventCardProps> = ({
 						style={[
 							styles.noteBox,
 							{
-								backgroundColor: theme.chipBackground,
+								backgroundColor:
+									theme.chipBackground,
 								borderColor: theme.border,
 							},
 						]}
@@ -235,7 +208,10 @@ export const CustomEventCard: React.FC<CustomEventCardProps> = ({
 							name="document-text-outline"
 							size={12}
 							color={eventColor}
-							style={{ marginRight: 6, marginTop: 1 }}
+							style={{
+								marginRight: 6,
+								marginTop: 1,
+							}}
 						/>
 						<Text
 							style={[
@@ -256,14 +232,15 @@ export const CustomEventCard: React.FC<CustomEventCardProps> = ({
 const styles = StyleSheet.create({
 	container: {
 		flexDirection: "row",
-		marginHorizontal: 16,
+		alignItems: "flex-start",
+		paddingHorizontal: 16,
 		marginBottom: 10,
 	},
 	timeColumn: {
-		width: 58,
+		width: 52,
 		alignItems: "flex-end",
-		paddingTop: 14,
-		paddingRight: 12,
+		paddingRight: 10,
+		paddingTop: 12,
 	},
 	startTime: {
 		fontSize: 14,
@@ -271,7 +248,7 @@ const styles = StyleSheet.create({
 		letterSpacing: -0.2,
 	},
 	endTime: {
-		fontSize: 12,
+		fontSize: 11,
 		fontWeight: "500",
 		marginTop: 2,
 	},
@@ -282,7 +259,7 @@ const styles = StyleSheet.create({
 		padding: 14,
 		shadowColor: "#000",
 		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.04,
+		shadowOpacity: 0.06,
 		shadowRadius: 6,
 		elevation: 2,
 	},
@@ -292,33 +269,33 @@ const styles = StyleSheet.create({
 		justifyContent: "space-between",
 		marginBottom: 6,
 	},
-	categoryBadge: {
+	headerLeftTag: {
 		flexDirection: "row",
 		alignItems: "center",
-		paddingHorizontal: 8,
-		paddingVertical: 3,
-		borderRadius: RADIUS.capsule,
-		borderWidth: 1,
 	},
-	categoryBadgeText: {
+	colorDot: {
+		width: 7,
+		height: 7,
+		borderRadius: 3.5,
+		marginRight: 6,
+	},
+	headerTagText: {
 		fontSize: 11,
 		fontWeight: "700",
-		letterSpacing: 0.1,
-	},
-	headerRightRow: {
-		flexDirection: "row",
-		alignItems: "center",
+		letterSpacing: 0.5,
+		textTransform: "uppercase",
 	},
 	title: {
-		fontSize: 15,
+		fontSize: 16,
 		fontWeight: "700",
-		lineHeight: 20,
+		letterSpacing: -0.2,
 		marginBottom: 6,
+		lineHeight: 20,
 	},
 	metaRow: {
 		flexDirection: "row",
-		flexWrap: "wrap",
 		alignItems: "center",
+		flexWrap: "wrap",
 		gap: 12,
 		marginTop: 2,
 	},
@@ -327,20 +304,21 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 	},
 	metaText: {
-		fontSize: 12,
+		fontSize: 13,
 		fontWeight: "500",
 	},
 	noteBox: {
 		flexDirection: "row",
 		alignItems: "flex-start",
-		marginTop: 8,
-		padding: 8,
-		borderRadius: RADIUS.badge,
+		marginTop: 10,
+		paddingHorizontal: 10,
+		paddingVertical: 8,
+		borderRadius: 10,
 		borderWidth: StyleSheet.hairlineWidth,
 	},
 	noteText: {
+		flex: 1,
 		fontSize: 12,
 		lineHeight: 16,
-		flex: 1,
 	},
 });

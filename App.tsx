@@ -136,7 +136,9 @@ export default function App() {
 	} | null>(null);
 
 	// Кастомные события (кружки, факультативы, консультации)
-	const [customEvents, setCustomEvents] = useState<CustomEvent[]>([]);
+	const [customEvents, setCustomEvents] = useState<
+		CustomEvent[]
+	>([]);
 	const [isEventModalOpen, setIsEventModalOpen] =
 		useState<boolean>(false);
 	const [selectedEventToEdit, setSelectedEventToEdit] =
@@ -797,7 +799,9 @@ export default function App() {
 						}
 						onSetDayCallMode={handleSetDayCallMode}
 						customEvents={customEvents}
-						onOpenEventModal={handleOpenCustomEventModal}
+						onOpenEventModal={
+							handleOpenCustomEventModal
+						}
 						onSelectDayIndex={setSelectedDayIndex}
 						onOpenSearch={() =>
 							setIsSearchOpen(true)
