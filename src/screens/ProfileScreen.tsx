@@ -509,14 +509,15 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 											},
 										]}
 									>
-										Виджет текущей пары в стиле Dynamic Island
+										Виджет текущей пары в
+										стиле Dynamic Island
 									</Text>
 								</View>
 							</View>
 							<Switch
 								value={
-									settings.liveActivity?.enabled ??
-									true
+									settings.liveActivity
+										?.enabled ?? true
 								}
 								onValueChange={(val) => {
 									try {
@@ -547,7 +548,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 							/>
 						</View>
 
-						{(settings.liveActivity?.enabled ?? true) && (
+						{(settings.liveActivity?.enabled ??
+							true) && (
 							<>
 								<View
 									style={[
@@ -561,7 +563,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
 								{/* Стиль отображения */}
 								<View style={styles.columnRow}>
-									<View style={styles.labelRow}>
+									<View
+										style={styles.labelRow}
+									>
 										<View
 											style={[
 												styles.iconSquare,
@@ -577,7 +581,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 												color="#FFFFFF"
 											/>
 										</View>
-										<View style={{ flex: 1 }}>
+										<View
+											style={{ flex: 1 }}
+										>
 											<Text
 												style={[
 													styles.rowLabel,
@@ -596,11 +602,18 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 													},
 												]}
 											>
-												{(settings.liveActivity?.style || "dynamic_island") === "dynamic_island"
+												{(settings
+													.liveActivity
+													?.style ||
+													"dynamic_island") ===
+												"dynamic_island"
 													? "Динамический остров"
-													: (settings.liveActivity?.style === "lock_screen"
-															? "Экран блокировки"
-															: "Компактный")}
+													: settings
+																.liveActivity
+																?.style ===
+														  "lock_screen"
+														? "Экран блокировки"
+														: "Компактный"}
 											</Text>
 										</View>
 									</View>
@@ -608,19 +621,37 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 									<View
 										style={[
 											styles.segmented,
-											{ backgroundColor: theme.chipBackground },
+											{
+												backgroundColor:
+													theme.chipBackground,
+											},
 										]}
 									>
 										{[
-											{ key: "dynamic_island", label: "Остров" },
-											{ key: "lock_screen", label: "Плитка" },
-											{ key: "minimal", label: "Мини" },
+											{
+												key: "dynamic_island",
+												label: "Остров",
+											},
+											{
+												key: "lock_screen",
+												label: "Плитка",
+											},
+											{
+												key: "minimal",
+												label: "Мини",
+											},
 										].map((item) => {
 											const active =
-												(settings.liveActivity?.style || "dynamic_island") === item.key;
+												(settings
+													.liveActivity
+													?.style ||
+													"dynamic_island") ===
+												item.key;
 											return (
 												<TouchableOpacity
-													key={item.key}
+													key={
+														item.key
+													}
 													style={[
 														styles.segmentBtn,
 														active && [
@@ -635,19 +666,22 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 														try {
 															Haptics.selectionAsync();
 														} catch {}
-														onUpdateSettings({
-															liveActivity: {
-																...(settings.liveActivity || {
-																	enabled: true,
-																	showSeconds: true,
-																	showProgress: true,
-																	showNextLesson: true,
-																	pinToTop: false,
-																	hapticFeedback: true,
-																}),
-																style: item.key as any,
-															},
-														});
+														onUpdateSettings(
+															{
+																liveActivity:
+																	{
+																		...(settings.liveActivity || {
+																			enabled: true,
+																			showSeconds: true,
+																			showProgress: true,
+																			showNextLesson: true,
+																			pinToTop: false,
+																			hapticFeedback: true,
+																		}),
+																		style: item.key as any,
+																	},
+															}
+														);
 													}}
 												>
 													<Text
@@ -657,13 +691,16 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 																color: active
 																	? theme.text
 																	: theme.textSecondary,
-																fontWeight: active
-																	? "700"
-																	: "500",
+																fontWeight:
+																	active
+																		? "700"
+																		: "500",
 															},
 														]}
 													>
-														{item.label}
+														{
+															item.label
+														}
 													</Text>
 												</TouchableOpacity>
 											);
@@ -683,7 +720,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
 								{/* Секунды в таймере */}
 								<View style={styles.switchRow}>
-									<View style={styles.labelRowCompact}>
+									<View
+										style={
+											styles.labelRowCompact
+										}
+									>
 										<View
 											style={[
 												styles.iconSquare,
@@ -699,7 +740,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 												color="#FFFFFF"
 											/>
 										</View>
-										<View style={styles.textColumn}>
+										<View
+											style={
+												styles.textColumn
+											}
+										>
 											<Text
 												style={[
 													styles.rowLabel,
@@ -718,13 +763,16 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 													},
 												]}
 											>
-												Живой отсчёт секунд до конца пары
+												Живой отсчёт
+												секунд до конца
+												пары
 											</Text>
 										</View>
 									</View>
 									<Switch
 										value={
-											settings.liveActivity?.showSeconds ??
+											settings.liveActivity
+												?.showSeconds ??
 											true
 										}
 										onValueChange={(val) => {
@@ -741,7 +789,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 														pinToTop: false,
 														hapticFeedback: true,
 													}),
-													showSeconds: val,
+													showSeconds:
+														val,
 												},
 											});
 										}}
@@ -768,7 +817,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
 								{/* Шкала прогресса */}
 								<View style={styles.switchRow}>
-									<View style={styles.labelRowCompact}>
+									<View
+										style={
+											styles.labelRowCompact
+										}
+									>
 										<View
 											style={[
 												styles.iconSquare,
@@ -784,7 +837,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 												color="#FFFFFF"
 											/>
 										</View>
-										<View style={styles.textColumn}>
+										<View
+											style={
+												styles.textColumn
+											}
+										>
 											<Text
 												style={[
 													styles.rowLabel,
@@ -803,13 +860,16 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 													},
 												]}
 											>
-												Плавное заполнение полосы времени
+												Плавное
+												заполнение полосы
+												времени
 											</Text>
 										</View>
 									</View>
 									<Switch
 										value={
-											settings.liveActivity?.showProgress ??
+											settings.liveActivity
+												?.showProgress ??
 											true
 										}
 										onValueChange={(val) => {
@@ -826,7 +886,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 														pinToTop: false,
 														hapticFeedback: true,
 													}),
-													showProgress: val,
+													showProgress:
+														val,
 												},
 											});
 										}}
@@ -853,7 +914,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
 								{/* Превью следующей пары */}
 								<View style={styles.switchRow}>
-									<View style={styles.labelRowCompact}>
+									<View
+										style={
+											styles.labelRowCompact
+										}
+									>
 										<View
 											style={[
 												styles.iconSquare,
@@ -869,7 +934,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 												color="#FFFFFF"
 											/>
 										</View>
-										<View style={styles.textColumn}>
+										<View
+											style={
+												styles.textColumn
+											}
+										>
 											<Text
 												style={[
 													styles.rowLabel,
@@ -878,7 +947,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 													},
 												]}
 											>
-												Превью следующей пары
+												Превью следующей
+												пары
 											</Text>
 											<Text
 												style={[
@@ -888,13 +958,15 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 													},
 												]}
 											>
-												Показывать, какая пара будет далее
+												Показывать, какая
+												пара будет далее
 											</Text>
 										</View>
 									</View>
 									<Switch
 										value={
-											settings.liveActivity?.showNextLesson ??
+											settings.liveActivity
+												?.showNextLesson ??
 											true
 										}
 										onValueChange={(val) => {
@@ -911,7 +983,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 														pinToTop: false,
 														hapticFeedback: true,
 													}),
-													showNextLesson: val,
+													showNextLesson:
+														val,
 												},
 											});
 										}}

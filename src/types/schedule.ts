@@ -78,7 +78,10 @@ export type DayCallMode =
 	| "saturday"
 	| "shortened_45";
 
-export type LiveActivityStyle = "dynamic_island" | "lock_screen" | "minimal";
+export type LiveActivityStyle =
+	| "dynamic_island"
+	| "lock_screen"
+	| "minimal";
 
 export interface LiveActivitySettings {
 	enabled: boolean;

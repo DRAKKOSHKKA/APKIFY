@@ -1,4 +1,9 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, {
+	useState,
+	useEffect,
+	useRef,
+	useMemo,
+} from "react";
 import {
 	StyleSheet,
 	Text,
@@ -36,7 +41,9 @@ interface LiveActivityBannerProps {
 	onOpenSettings?: () => void;
 }
 
-export const LiveActivityBanner: React.FC<LiveActivityBannerProps> = ({
+export const LiveActivityBanner: React.FC<
+	LiveActivityBannerProps
+> = ({
 	lessons,
 	isToday,
 	mockDate,
@@ -102,14 +109,19 @@ export const LiveActivityBanner: React.FC<LiveActivityBannerProps> = ({
 	// Текущий статус дня (пара / перемена / до начала / окончены)
 	const liveStatus: DayLiveStatus | null = useMemo(() => {
 		if (!isToday && !mockDate) return null;
-		return getCurrentDayLiveStatus(lessons, isToday, mockDate);
+		return getCurrentDayLiveStatus(
+			lessons,
+			isToday,
+			mockDate
+		);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [lessons, isToday, mockDate, Math.floor(nowTick / 1000)]);
 
 	// Точный расчет секунд до окончания текущего события
 	const timeDetails = useMemo(() => {
 		const refDate = mockDate || new Date();
-		const currentMinutes = refDate.getHours() * 60 + refDate.getMinutes();
+		const currentMinutes =
+			refDate.getHours() * 60 + refDate.getMinutes();
 		const currentSecs = refDate.getSeconds();
 
 		if (!liveStatus) return null;
@@ -118,14 +130,19 @@ export const LiveActivityBanner: React.FC<LiveActivityBannerProps> = ({
 			const range = parseTimeRange(liveStatus.lesson.time);
 			if (!range) return null;
 
-			const totalSecs = (range.endMinutes - range.startMinutes) * 60;
+			const totalSecs =
+				(range.endMinutes - range.startMinutes) * 60;
 			const passedSecs =
-				(currentMinutes - range.startMinutes) * 60 + currentSecs;
+				(currentMinutes - range.startMinutes) * 60 +
+				currentSecs;
 			const leftSecs = Math.max(0, totalSecs - passedSecs);
 
 			const m = Math.floor(leftSecs / 60);
 			const s = leftSecs % 60;
-			const progress = Math.min(1, Math.max(0, passedSecs / totalSecs));
+			const progress = Math.min(
+				1,
+				Math.max(0, passedSecs / totalSecs)
+			);
 
 			return {
 				phase: "in_lesson" as const,
@@ -134,26 +151,38 @@ export const LiveActivityBanner: React.FC<LiveActivityBannerProps> = ({
 					? `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
 					: `${m} мин`,
 				progress,
-				startStr: liveStatus.lesson.time.split(/[-—]/)[0]?.trim() || "",
-				endStr: liveStatus.lesson.time.split(/[-—]/)[1]?.trim() || "",
+				startStr:
+					liveStatus.lesson.time
+						.split(/[-—]/)[0]
+						?.trim() || "",
+				endStr:
+					liveStatus.lesson.time
+						.split(/[-—]/)[1]
+						?.trim() || "",
 				color: "#34C759", // Apple Green
 			};
 		}
 
 		if (liveStatus.type === "break") {
-			const nextRange = parseTimeRange(liveStatus.nextLesson.time);
+			const nextRange = parseTimeRange(
+				liveStatus.nextLesson.time
+			);
 			if (!nextRange) return null;
 
 			const totalSecs = liveStatus.breakTotalMinutes * 60;
 			const leftSecs = Math.max(
 				0,
-				(nextRange.startMinutes - currentMinutes) * 60 - currentSecs
+				(nextRange.startMinutes - currentMinutes) * 60 -
+					currentSecs
 			);
 			const passedSecs = Math.max(0, totalSecs - leftSecs);
 
 			const m = Math.floor(leftSecs / 60);
 			const s = leftSecs % 60;
-			const progress = Math.min(1, Math.max(0, passedSecs / totalSecs));
+			const progress = Math.min(
+				1,
+				Math.max(0, passedSecs / totalSecs)
+			);
 
 			return {
 				phase: "break" as const,
@@ -171,12 +200,15 @@ export const LiveActivityBanner: React.FC<LiveActivityBannerProps> = ({
 		}
 
 		if (liveStatus.type === "before_start") {
-			const firstRange = parseTimeRange(liveStatus.firstLesson.time);
+			const firstRange = parseTimeRange(
+				liveStatus.firstLesson.time
+			);
 			if (!firstRange) return null;
 
 			const leftSecs = Math.max(
 				0,
-				(firstRange.startMinutes - currentMinutes) * 60 - currentSecs
+				(firstRange.startMinutes - currentMinutes) * 60 -
+					currentSecs
 			);
 			const m = Math.floor(leftSecs / 60);
 			const s = leftSecs % 60;
@@ -189,7 +221,10 @@ export const LiveActivityBanner: React.FC<LiveActivityBannerProps> = ({
 					: `${m} мин`,
 				progress: 0,
 				startStr: "",
-				endStr: liveStatus.firstLesson.time.split(/[-—]/)[0]?.trim() || "",
+				endStr:
+					liveStatus.firstLesson.time
+						.split(/[-—]/)[0]
+						?.trim() || "",
 				color: "#007AFF", // Apple Blue
 			};
 		}
@@ -215,9 +250,13 @@ export const LiveActivityBanner: React.FC<LiveActivityBannerProps> = ({
 
 	const handleToggleExpand = () => {
 		try {
-			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+			Haptics.impactAsync(
+				Haptics.ImpactFeedbackStyle.Light
+			);
 		} catch {}
-		LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+		LayoutAnimation.configureNext(
+			LayoutAnimation.Presets.easeInEaseOut
+		);
 		setIsExpanded(!isExpanded);
 	};
 
@@ -228,7 +267,9 @@ export const LiveActivityBanner: React.FC<LiveActivityBannerProps> = ({
 			return liveStatus.nextLesson;
 		}
 		if (liveStatus.type === "in_lesson") {
-			const currIdx = lessons.findIndex((l) => l.id === liveStatus.lesson.id);
+			const currIdx = lessons.findIndex(
+				(l) => l.id === liveStatus.lesson.id
+			);
 			if (currIdx !== -1 && currIdx + 1 < lessons.length) {
 				return lessons[currIdx + 1];
 			}
@@ -241,8 +282,10 @@ export const LiveActivityBanner: React.FC<LiveActivityBannerProps> = ({
 			<TouchableOpacity
 				style={[
 					styles.islandCard,
-					styleMode === "lock_screen" && styles.lockScreenCard,
-					styleMode === "minimal" && styles.minimalCard,
+					styleMode === "lock_screen" &&
+						styles.lockScreenCard,
+					styleMode === "minimal" &&
+						styles.minimalCard,
 					{
 						borderColor: "rgba(255, 255, 255, 0.12)",
 						backgroundColor: "#000000",
@@ -260,8 +303,11 @@ export const LiveActivityBanner: React.FC<LiveActivityBannerProps> = ({
 								style={[
 									styles.pulseDotBackground,
 									{
-										backgroundColor: timeDetails.color,
-										transform: [{ scale: pulseAnim }],
+										backgroundColor:
+											timeDetails.color,
+										transform: [
+											{ scale: pulseAnim },
+										],
 										opacity: pulseOpacity,
 									},
 								]}
@@ -269,7 +315,10 @@ export const LiveActivityBanner: React.FC<LiveActivityBannerProps> = ({
 							<View
 								style={[
 									styles.pulseDotCore,
-									{ backgroundColor: timeDetails.color },
+									{
+										backgroundColor:
+											timeDetails.color,
+									},
 								]}
 							/>
 						</View>
@@ -285,7 +334,8 @@ export const LiveActivityBanner: React.FC<LiveActivityBannerProps> = ({
 
 						{liveStatus.type === "in_lesson" && (
 							<Text style={styles.pairNumberText}>
-								• {liveStatus.lesson.pairIndex} пара
+								• {liveStatus.lesson.pairIndex}{" "}
+								пара
 							</Text>
 						)}
 					</View>
@@ -301,7 +351,11 @@ export const LiveActivityBanner: React.FC<LiveActivityBannerProps> = ({
 							{timeDetails.timeLeftStr}
 						</Text>
 						<Ionicons
-							name={isExpanded ? "chevron-up" : "chevron-down"}
+							name={
+								isExpanded
+									? "chevron-up"
+									: "chevron-down"
+							}
 							size={14}
 							color="#8E8E93"
 							style={{ marginLeft: 4 }}
@@ -320,12 +374,14 @@ export const LiveActivityBanner: React.FC<LiveActivityBannerProps> = ({
 								? liveStatus.lesson.subject
 								: liveStatus.type === "break"
 									? `До «${liveStatus.nextLesson.subject}»`
-									: liveStatus.type === "before_start"
+									: liveStatus.type ===
+										  "before_start"
 										? `Первая пара: ${liveStatus.firstLesson.subject}`
 										: "Все пары на сегодня завершены"}
 						</Text>
 
-						{liveStatus.type === "in_lesson" && liveStatus.lesson.room ? (
+						{liveStatus.type === "in_lesson" &&
+						liveStatus.lesson.room ? (
 							<Text style={styles.compactRoomText}>
 								каб. {liveStatus.lesson.room}
 							</Text>
@@ -334,19 +390,22 @@ export const LiveActivityBanner: React.FC<LiveActivityBannerProps> = ({
 				)}
 
 				{/* Тонкий прогресс-бар в компактном режиме */}
-				{!isExpanded && showProgress && timeDetails.phase !== "day_ended" && (
-					<View style={styles.miniProgressTrack}>
-						<View
-							style={[
-								styles.miniProgressBar,
-								{
-									width: `${Math.round(timeDetails.progress * 100)}%`,
-									backgroundColor: timeDetails.color,
-								},
-							]}
-						/>
-					</View>
-				)}
+				{!isExpanded &&
+					showProgress &&
+					timeDetails.phase !== "day_ended" && (
+						<View style={styles.miniProgressTrack}>
+							<View
+								style={[
+									styles.miniProgressBar,
+									{
+										width: `${Math.round(timeDetails.progress * 100)}%`,
+										backgroundColor:
+											timeDetails.color,
+									},
+								]}
+							/>
+						</View>
+					)}
 
 				{/* РАЗВЁРНУТЫЙ ВИД DYNAMIC ISLAND ПО ТАПУ */}
 				{isExpanded && (
@@ -357,7 +416,8 @@ export const LiveActivityBanner: React.FC<LiveActivityBannerProps> = ({
 								? liveStatus.lesson.subject
 								: liveStatus.type === "break"
 									? `Перемена перед ${liveStatus.nextLesson.pairIndex} парой`
-									: liveStatus.type === "before_start"
+									: liveStatus.type ===
+										  "before_start"
 										? `Скоро начнётся ${liveStatus.firstLesson.subject}`
 										: "Все занятия завершены 🎉"}
 						</Text>
@@ -366,41 +426,79 @@ export const LiveActivityBanner: React.FC<LiveActivityBannerProps> = ({
 						{(liveStatus.type === "in_lesson" ||
 							liveStatus.type === "break") && (
 							<View style={styles.expandedMetaRow}>
-								{((liveStatus.type === "in_lesson" &&
+								{((liveStatus.type ===
+									"in_lesson" &&
 									liveStatus.lesson.room) ||
-									(liveStatus.type === "break" &&
-										liveStatus.nextLesson.room)) && (
-									<View style={styles.expandedMetaItem}>
+									(liveStatus.type ===
+										"break" &&
+										liveStatus.nextLesson
+											.room)) && (
+									<View
+										style={
+											styles.expandedMetaItem
+										}
+									>
 										<Ionicons
 											name="location-outline"
 											size={14}
-											color={timeDetails.color}
-											style={{ marginRight: 4 }}
+											color={
+												timeDetails.color
+											}
+											style={{
+												marginRight: 4,
+											}}
 										/>
-										<Text style={styles.expandedMetaText}>
+										<Text
+											style={
+												styles.expandedMetaText
+											}
+										>
 											каб.{" "}
-											{liveStatus.type === "in_lesson"
-												? liveStatus.lesson.room
-												: liveStatus.nextLesson.room}
+											{liveStatus.type ===
+											"in_lesson"
+												? liveStatus
+														.lesson
+														.room
+												: liveStatus
+														.nextLesson
+														.room}
 										</Text>
 									</View>
 								)}
 
-								{((liveStatus.type === "in_lesson" &&
+								{((liveStatus.type ===
+									"in_lesson" &&
 									liveStatus.lesson.teacher) ||
-									(liveStatus.type === "break" &&
-										liveStatus.nextLesson.teacher)) && (
-									<View style={styles.expandedMetaItem}>
+									(liveStatus.type ===
+										"break" &&
+										liveStatus.nextLesson
+											.teacher)) && (
+									<View
+										style={
+											styles.expandedMetaItem
+										}
+									>
 										<Ionicons
 											name="person-outline"
 											size={14}
 											color="#8E8E93"
-											style={{ marginRight: 4 }}
+											style={{
+												marginRight: 4,
+											}}
 										/>
-										<Text style={styles.expandedMetaText}>
-											{liveStatus.type === "in_lesson"
-												? liveStatus.lesson.teacher
-												: liveStatus.nextLesson.teacher}
+										<Text
+											style={
+												styles.expandedMetaText
+											}
+										>
+											{liveStatus.type ===
+											"in_lesson"
+												? liveStatus
+														.lesson
+														.teacher
+												: liveStatus
+														.nextLesson
+														.teacher}
 										</Text>
 									</View>
 								)}
@@ -408,49 +506,88 @@ export const LiveActivityBanner: React.FC<LiveActivityBannerProps> = ({
 						)}
 
 						{/* Полноценная шкала прогресса с временными метками */}
-						{showProgress && timeDetails.phase !== "day_ended" && (
-							<View style={styles.expandedProgressSection}>
-								<View style={styles.progressTrack}>
+						{showProgress &&
+							timeDetails.phase !==
+								"day_ended" && (
+								<View
+									style={
+										styles.expandedProgressSection
+									}
+								>
 									<View
-										style={[
-											styles.progressBar,
-											{
-												width: `${Math.round(timeDetails.progress * 100)}%`,
-												backgroundColor: timeDetails.color,
-											},
-										]}
-									/>
-								</View>
-								<View style={styles.progressTimeRow}>
-									<Text style={styles.progressTimeLabel}>
-										{timeDetails.startStr || "Начало"}
-									</Text>
-									<Text
-										style={[
-											styles.progressPercentLabel,
-											{ color: timeDetails.color },
-										]}
+										style={
+											styles.progressTrack
+										}
 									>
-										{Math.round(timeDetails.progress * 100)}%
-									</Text>
-									<Text style={styles.progressTimeLabel}>
-										{timeDetails.endStr || "Звонок"}
-									</Text>
+										<View
+											style={[
+												styles.progressBar,
+												{
+													width: `${Math.round(timeDetails.progress * 100)}%`,
+													backgroundColor:
+														timeDetails.color,
+												},
+											]}
+										/>
+									</View>
+									<View
+										style={
+											styles.progressTimeRow
+										}
+									>
+										<Text
+											style={
+												styles.progressTimeLabel
+											}
+										>
+											{timeDetails.startStr ||
+												"Начало"}
+										</Text>
+										<Text
+											style={[
+												styles.progressPercentLabel,
+												{
+													color: timeDetails.color,
+												},
+											]}
+										>
+											{Math.round(
+												timeDetails.progress *
+													100
+											)}
+											%
+										</Text>
+										<Text
+											style={
+												styles.progressTimeLabel
+											}
+										>
+											{timeDetails.endStr ||
+												"Звонок"}
+										</Text>
+									</View>
 								</View>
-							</View>
-						)}
+							)}
 
 						{/* Превью следующей пары (Next up) */}
 						{nextLessonPreview && (
 							<View style={styles.nextUpBox}>
-								<View style={styles.nextUpHeader}>
+								<View
+									style={styles.nextUpHeader}
+								>
 									<Ionicons
 										name="arrow-forward-circle-outline"
 										size={14}
 										color="#8E8E93"
-										style={{ marginRight: 4 }}
+										style={{
+											marginRight: 4,
+										}}
 									/>
-									<Text style={styles.nextUpLabel}>
+									<Text
+										style={
+											styles.nextUpLabel
+										}
+									>
 										ДАЛЕЕ В РАСПИСАНИИ
 									</Text>
 								</View>
@@ -458,12 +595,17 @@ export const LiveActivityBanner: React.FC<LiveActivityBannerProps> = ({
 									style={styles.nextUpTitle}
 									numberOfLines={1}
 								>
-									{nextLessonPreview.pairIndex} пара •{" "}
+									{nextLessonPreview.pairIndex}{" "}
+									пара •{" "}
 									{nextLessonPreview.subject}
 								</Text>
 								{nextLessonPreview.room ? (
-									<Text style={styles.nextUpSub}>
-										каб. {nextLessonPreview.room} •{" "}
+									<Text
+										style={styles.nextUpSub}
+									>
+										каб.{" "}
+										{nextLessonPreview.room}{" "}
+										•{" "}
 										{nextLessonPreview.time}
 									</Text>
 								) : null}
@@ -483,7 +625,11 @@ export const LiveActivityBanner: React.FC<LiveActivityBannerProps> = ({
 									color="#8E8E93"
 									style={{ marginRight: 5 }}
 								/>
-								<Text style={styles.settingsQuickBtnText}>
+								<Text
+									style={
+										styles.settingsQuickBtnText
+									}
+								>
 									Настроить Эфир Активности
 								</Text>
 							</TouchableOpacity>

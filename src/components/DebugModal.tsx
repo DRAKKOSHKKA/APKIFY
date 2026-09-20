@@ -198,15 +198,16 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 	const handleUpdateLiveActivity = (
 		patch: Partial<LiveActivitySettings>
 	) => {
-		const current: LiveActivitySettings = settings.liveActivity || {
-			enabled: true,
-			style: "dynamic_island",
-			showSeconds: true,
-			showProgress: true,
-			showNextLesson: true,
-			pinToTop: true,
-			hapticFeedback: true,
-		};
+		const current: LiveActivitySettings =
+			settings.liveActivity || {
+				enabled: true,
+				style: "dynamic_island",
+				showSeconds: true,
+				showProgress: true,
+				showNextLesson: true,
+				pinToTop: true,
+				hapticFeedback: true,
+			};
 		onUpdateSettings?.({
 			liveActivity: {
 				...current,
@@ -221,14 +222,13 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 				Haptics.NotificationFeedbackType.Success
 			);
 		} catch {}
-		const todayStr = (mockDate || new Date()).toLocaleDateString(
-			"ru-RU",
-			{
-				day: "2-digit",
-				month: "2-digit",
-				year: "numeric",
-			}
-		);
+		const todayStr = (
+			mockDate || new Date()
+		).toLocaleDateString("ru-RU", {
+			day: "2-digit",
+			month: "2-digit",
+			year: "numeric",
+		});
 
 		const sampleGrades = [
 			{
@@ -302,14 +302,13 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 				Haptics.NotificationFeedbackType.Success
 			);
 		} catch {}
-		const todayStr = (mockDate || new Date()).toLocaleDateString(
-			"ru-RU",
-			{
-				day: "2-digit",
-				month: "2-digit",
-				year: "numeric",
-			}
-		);
+		const todayStr = (
+			mockDate || new Date()
+		).toLocaleDateString("ru-RU", {
+			day: "2-digit",
+			month: "2-digit",
+			year: "numeric",
+		});
 
 		const sampleHomework = [
 			{
@@ -369,14 +368,13 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 				Haptics.NotificationFeedbackType.Success
 			);
 		} catch {}
-		const todayStr = (mockDate || new Date()).toLocaleDateString(
-			"ru-RU",
-			{
-				day: "2-digit",
-				month: "2-digit",
-				year: "numeric",
-			}
-		);
+		const todayStr = (
+			mockDate || new Date()
+		).toLocaleDateString("ru-RU", {
+			day: "2-digit",
+			month: "2-digit",
+			year: "numeric",
+		});
 
 		const sampleEvents = [
 			{
@@ -427,7 +425,8 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 					onPress: async () => {
 						try {
 							Haptics.notificationAsync(
-								Haptics.NotificationFeedbackType.Warning
+								Haptics.NotificationFeedbackType
+									.Warning
 							);
 						} catch {}
 						await saveGradesStore({
@@ -833,7 +832,8 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 								{ color: theme.textSecondary },
 							]}
 						>
-							ТЕСТИРОВАНИЕ ЭФИРА АКТИВНОСТИ (LIVE ACTIVITIES)
+							ТЕСТИРОВАНИЕ ЭФИРА АКТИВНОСТИ (LIVE
+							ACTIVITIES)
 						</Text>
 						<View
 							style={[
@@ -847,28 +847,45 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 						>
 							{/* Переключатель Эфира */}
 							<View style={styles.switchRow}>
-								<View style={{ flex: 1, paddingRight: 10 }}>
+								<View
+									style={{
+										flex: 1,
+										paddingRight: 10,
+									}}
+								>
 									<Text
 										style={[
 											styles.switchTitle,
-											{ color: theme.text },
+											{
+												color: theme.text,
+											},
 										]}
 									>
-										Эфир Активности (Live Activity)
+										Эфир Активности (Live
+										Activity)
 									</Text>
 									<Text
 										style={[
 											styles.switchSubtitle,
-											{ color: theme.textSecondary },
+											{
+												color: theme.textSecondary,
+											},
 										]}
 									>
-										Отображение баннера Dynamic Island над расписанием
+										Отображение баннера
+										Dynamic Island над
+										расписанием
 									</Text>
 								</View>
 								<Switch
-									value={settings.liveActivity?.enabled ?? true}
+									value={
+										settings.liveActivity
+											?.enabled ?? true
+									}
 									onValueChange={(val) =>
-										handleUpdateLiveActivity({ enabled: val })
+										handleUpdateLiveActivity(
+											{ enabled: val }
+										)
 									}
 									trackColor={{
 										false: theme.separator,
@@ -876,28 +893,44 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 									}}
 									thumbColor={
 										Platform.OS === "android"
-											? (settings.liveActivity?.enabled ?? true)
+											? (settings
+													.liveActivity
+													?.enabled ??
+												true)
 												? theme.accent
 												: "#f4f3f4"
 											: undefined
 									}
-									ios_backgroundColor={theme.separator}
+									ios_backgroundColor={
+										theme.separator
+									}
 								/>
 							</View>
 
 							<View
 								style={[
 									styles.divider,
-									{ backgroundColor: theme.separator },
+									{
+										backgroundColor:
+											theme.separator,
+									},
 								]}
 							/>
 
 							{/* Выбор стиля */}
-							<View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
+							<View
+								style={{
+									paddingHorizontal: 16,
+									paddingTop: 12,
+								}}
+							>
 								<Text
 									style={[
 										styles.propName,
-										{ color: theme.textSecondary, fontSize: 13 },
+										{
+											color: theme.textSecondary,
+											fontSize: 13,
+										},
 									]}
 								>
 									Стиль отображения баннера:
@@ -906,7 +939,10 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 							<View
 								style={[
 									styles.segmentedWrapper,
-									{ backgroundColor: theme.chipBackground },
+									{
+										backgroundColor:
+											theme.chipBackground,
+									},
 								]}
 							>
 								{[
@@ -924,7 +960,9 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 									},
 								].map((item) => {
 									const isSel =
-										(settings.liveActivity?.style || "dynamic_island") ===
+										(settings.liveActivity
+											?.style ||
+											"dynamic_island") ===
 										item.key;
 									return (
 										<TouchableOpacity
@@ -932,22 +970,33 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 											style={[
 												styles.segmentBtn,
 												isSel && {
-													backgroundColor: theme.card,
-													shadowColor: "#000",
+													backgroundColor:
+														theme.card,
+													shadowColor:
+														"#000",
 													shadowOpacity: 0.1,
 													shadowRadius: 3,
 												},
 											]}
 											onPress={() =>
-												handleUpdateLiveActivity({ style: item.key })
+												handleUpdateLiveActivity(
+													{
+														style: item.key,
+													}
+												)
 											}
 										>
 											<Text
 												style={[
 													styles.segmentBtnText,
 													{
-														color: isSel ? theme.text : theme.textSecondary,
-														fontWeight: isSel ? "700" : "500",
+														color: isSel
+															? theme.text
+															: theme.textSecondary,
+														fontWeight:
+															isSel
+																? "700"
+																: "500",
 													},
 												]}
 											>
@@ -961,17 +1010,28 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 							<View
 								style={[
 									styles.divider,
-									{ backgroundColor: theme.separator },
+									{
+										backgroundColor:
+											theme.separator,
+									},
 								]}
 							/>
 
 							{/* Точные настройки */}
 							<View style={styles.switchRow}>
-								<View style={{ flex: 1, paddingRight: 10 }}>
+								<View
+									style={{
+										flex: 1,
+										paddingRight: 10,
+									}}
+								>
 									<Text
 										style={[
 											styles.switchTitle,
-											{ color: theme.text, fontSize: 14 },
+											{
+												color: theme.text,
+												fontSize: 14,
+											},
 										]}
 									>
 										Секунды в таймере
@@ -979,16 +1039,24 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 									<Text
 										style={[
 											styles.switchSubtitle,
-											{ color: theme.textSecondary },
+											{
+												color: theme.textSecondary,
+											},
 										]}
 									>
-										Формат 00:24:18 вместо 24 мин
+										Формат 00:24:18 вместо 24
+										мин
 									</Text>
 								</View>
 								<Switch
-									value={settings.liveActivity?.showSeconds ?? true}
+									value={
+										settings.liveActivity
+											?.showSeconds ?? true
+									}
 									onValueChange={(val) =>
-										handleUpdateLiveActivity({ showSeconds: val })
+										handleUpdateLiveActivity(
+											{ showSeconds: val }
+										)
 									}
 									trackColor={{
 										false: theme.separator,
@@ -996,28 +1064,44 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 									}}
 									thumbColor={
 										Platform.OS === "android"
-											? (settings.liveActivity?.showSeconds ?? true)
+											? (settings
+													.liveActivity
+													?.showSeconds ??
+												true)
 												? theme.accent
 												: "#f4f3f4"
 											: undefined
 									}
-									ios_backgroundColor={theme.separator}
+									ios_backgroundColor={
+										theme.separator
+									}
 								/>
 							</View>
 
 							<View
 								style={[
 									styles.divider,
-									{ backgroundColor: theme.separator },
+									{
+										backgroundColor:
+											theme.separator,
+									},
 								]}
 							/>
 
 							<View style={styles.switchRow}>
-								<View style={{ flex: 1, paddingRight: 10 }}>
+								<View
+									style={{
+										flex: 1,
+										paddingRight: 10,
+									}}
+								>
 									<Text
 										style={[
 											styles.switchTitle,
-											{ color: theme.text, fontSize: 14 },
+											{
+												color: theme.text,
+												fontSize: 14,
+											},
 										]}
 									>
 										Индикатор прогресса
@@ -1025,16 +1109,25 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 									<Text
 										style={[
 											styles.switchSubtitle,
-											{ color: theme.textSecondary },
+											{
+												color: theme.textSecondary,
+											},
 										]}
 									>
-										Плавная полоса заполнения пары или перемены
+										Плавная полоса заполнения
+										пары или перемены
 									</Text>
 								</View>
 								<Switch
-									value={settings.liveActivity?.showProgress ?? true}
+									value={
+										settings.liveActivity
+											?.showProgress ??
+										true
+									}
 									onValueChange={(val) =>
-										handleUpdateLiveActivity({ showProgress: val })
+										handleUpdateLiveActivity(
+											{ showProgress: val }
+										)
 									}
 									trackColor={{
 										false: theme.separator,
@@ -1042,28 +1135,44 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 									}}
 									thumbColor={
 										Platform.OS === "android"
-											? (settings.liveActivity?.showProgress ?? true)
+											? (settings
+													.liveActivity
+													?.showProgress ??
+												true)
 												? theme.accent
 												: "#f4f3f4"
 											: undefined
 									}
-									ios_backgroundColor={theme.separator}
+									ios_backgroundColor={
+										theme.separator
+									}
 								/>
 							</View>
 
 							<View
 								style={[
 									styles.divider,
-									{ backgroundColor: theme.separator },
+									{
+										backgroundColor:
+											theme.separator,
+									},
 								]}
 							/>
 
 							<View style={styles.switchRow}>
-								<View style={{ flex: 1, paddingRight: 10 }}>
+								<View
+									style={{
+										flex: 1,
+										paddingRight: 10,
+									}}
+								>
 									<Text
 										style={[
 											styles.switchTitle,
-											{ color: theme.text, fontSize: 14 },
+											{
+												color: theme.text,
+												fontSize: 14,
+											},
 										]}
 									>
 										Превью следующей пары
@@ -1071,16 +1180,29 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 									<Text
 										style={[
 											styles.switchSubtitle,
-											{ color: theme.textSecondary },
+											{
+												color: theme.textSecondary,
+											},
 										]}
 									>
-										Показывать предмет и аудиторию следующего занятия
+										Показывать предмет и
+										аудиторию следующего
+										занятия
 									</Text>
 								</View>
 								<Switch
-									value={settings.liveActivity?.showNextLesson ?? true}
+									value={
+										settings.liveActivity
+											?.showNextLesson ??
+										true
+									}
 									onValueChange={(val) =>
-										handleUpdateLiveActivity({ showNextLesson: val })
+										handleUpdateLiveActivity(
+											{
+												showNextLesson:
+													val,
+											}
+										)
 									}
 									trackColor={{
 										false: theme.separator,
@@ -1088,19 +1210,27 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 									}}
 									thumbColor={
 										Platform.OS === "android"
-											? (settings.liveActivity?.showNextLesson ?? true)
+											? (settings
+													.liveActivity
+													?.showNextLesson ??
+												true)
 												? theme.accent
 												: "#f4f3f4"
 											: undefined
 									}
-									ios_backgroundColor={theme.separator}
+									ios_backgroundColor={
+										theme.separator
+									}
 								/>
 							</View>
 
 							<View
 								style={[
 									styles.divider,
-									{ backgroundColor: theme.separator },
+									{
+										backgroundColor:
+											theme.separator,
+									},
 								]}
 							/>
 
@@ -1109,16 +1239,22 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 								<Text
 									style={[
 										styles.presetTitle,
-										{ color: theme.textSecondary },
+										{
+											color: theme.textSecondary,
+										},
 									]}
 								>
-									Симуляция всех фаз Эфира (переключение на лету):
+									Симуляция всех фаз Эфира
+									(переключение на лету):
 								</Text>
 								<View style={styles.chipGrid}>
 									<TouchableOpacity
 										style={[
 											styles.timeChip,
-											{ backgroundColor: theme.chipBackground },
+											{
+												backgroundColor:
+													theme.chipBackground,
+											},
 										]}
 										onPress={() =>
 											handleApplyPreset(
@@ -1132,17 +1268,23 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 										<Text
 											style={[
 												styles.timeChipText,
-												{ color: theme.text },
+												{
+													color: theme.text,
+												},
 											]}
 										>
-											⏰ 07:45 (До 1-й пары)
+											⏰ 07:45 (До 1-й
+											пары)
 										</Text>
 									</TouchableOpacity>
 
 									<TouchableOpacity
 										style={[
 											styles.timeChip,
-											{ backgroundColor: theme.chipBackground },
+											{
+												backgroundColor:
+													theme.chipBackground,
+											},
 										]}
 										onPress={() =>
 											handleApplyPreset(
@@ -1156,17 +1298,23 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 										<Text
 											style={[
 												styles.timeChipText,
-												{ color: theme.text },
+												{
+													color: theme.text,
+												},
 											]}
 										>
-											🟢 08:35 (Идёт 1 пара)
+											🟢 08:35 (Идёт 1
+											пара)
 										</Text>
 									</TouchableOpacity>
 
 									<TouchableOpacity
 										style={[
 											styles.timeChip,
-											{ backgroundColor: theme.chipBackground },
+											{
+												backgroundColor:
+													theme.chipBackground,
+											},
 										]}
 										onPress={() =>
 											handleApplyPreset(
@@ -1180,17 +1328,23 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 										<Text
 											style={[
 												styles.timeChipText,
-												{ color: theme.text },
+												{
+													color: theme.text,
+												},
 											]}
 										>
-											☕ 09:25 (Перемена 10м)
+											☕ 09:25 (Перемена
+											10м)
 										</Text>
 									</TouchableOpacity>
 
 									<TouchableOpacity
 										style={[
 											styles.timeChip,
-											{ backgroundColor: theme.chipBackground },
+											{
+												backgroundColor:
+													theme.chipBackground,
+											},
 										]}
 										onPress={() =>
 											handleApplyPreset(
@@ -1204,17 +1358,23 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 										<Text
 											style={[
 												styles.timeChipText,
-												{ color: theme.text },
+												{
+													color: theme.text,
+												},
 											]}
 										>
-											🟢 09:50 (Идёт 2 пара)
+											🟢 09:50 (Идёт 2
+											пара)
 										</Text>
 									</TouchableOpacity>
 
 									<TouchableOpacity
 										style={[
 											styles.timeChip,
-											{ backgroundColor: theme.chipBackground },
+											{
+												backgroundColor:
+													theme.chipBackground,
+											},
 										]}
 										onPress={() =>
 											handleApplyPreset(
@@ -1228,17 +1388,23 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 										<Text
 											style={[
 												styles.timeChipText,
-												{ color: theme.text },
+												{
+													color: theme.text,
+												},
 											]}
 										>
-											🥪 10:55 (Большая перемена)
+											🥪 10:55 (Большая
+											перемена)
 										</Text>
 									</TouchableOpacity>
 
 									<TouchableOpacity
 										style={[
 											styles.timeChip,
-											{ backgroundColor: theme.chipBackground },
+											{
+												backgroundColor:
+													theme.chipBackground,
+											},
 										]}
 										onPress={() =>
 											handleApplyPreset(
@@ -1252,17 +1418,23 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 										<Text
 											style={[
 												styles.timeChipText,
-												{ color: theme.text },
+												{
+													color: theme.text,
+												},
 											]}
 										>
-											🟢 11:40 (Идёт 3 пара)
+											🟢 11:40 (Идёт 3
+											пара)
 										</Text>
 									</TouchableOpacity>
 
 									<TouchableOpacity
 										style={[
 											styles.timeChip,
-											{ backgroundColor: theme.chipBackground },
+											{
+												backgroundColor:
+													theme.chipBackground,
+											},
 										]}
 										onPress={() =>
 											handleApplyPreset(
@@ -1276,17 +1448,23 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 										<Text
 											style={[
 												styles.timeChipText,
-												{ color: theme.text },
+												{
+													color: theme.text,
+												},
 											]}
 										>
-											⚡ Сб 08:30 (Суббота 60м)
+											⚡ Сб 08:30 (Суббота
+											60м)
 										</Text>
 									</TouchableOpacity>
 
 									<TouchableOpacity
 										style={[
 											styles.timeChip,
-											{ backgroundColor: theme.chipBackground },
+											{
+												backgroundColor:
+													theme.chipBackground,
+											},
 										]}
 										onPress={() =>
 											handleApplyPreset(
@@ -1300,10 +1478,13 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 										<Text
 											style={[
 												styles.timeChipText,
-												{ color: theme.text },
+												{
+													color: theme.text,
+												},
 											]}
 										>
-											🎉 16:30 (Пары окончены)
+											🎉 16:30 (Пары
+											окончены)
 										</Text>
 									</TouchableOpacity>
 								</View>
@@ -1319,7 +1500,8 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 								{ color: theme.textSecondary },
 							]}
 						>
-							ГЕНЕРАТОР ТЕСТОВЫХ ДАННЫХ ДЛЯ ПРОВЕРКИ UI
+							ГЕНЕРАТОР ТЕСТОВЫХ ДАННЫХ ДЛЯ
+							ПРОВЕРКИ UI
 						</Text>
 						<View
 							style={[
@@ -1331,68 +1513,51 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 								},
 							]}
 						>
-							<View style={styles.customActionBlock}>
+							<View
+								style={styles.customActionBlock}
+							>
 								<Text
 									style={[
 										styles.customActionDesc,
-										{ color: theme.textSecondary },
+										{
+											color: theme.textSecondary,
+										},
 									]}
 								>
-									Быстрое наполнение приложения данными для тестирования оценок,
-									подсчёта среднего балла, круглых чекбоксов Д/З и кружков:
+									Быстрое наполнение приложения
+									данными для тестирования
+									оценок, подсчёта среднего
+									балла, круглых чекбоксов Д/З
+									и кружков:
 								</Text>
 
 								<TouchableOpacity
 									style={[
 										styles.generatorBtn,
-										{ backgroundColor: theme.accent },
+										{
+											backgroundColor:
+												theme.accent,
+										},
 									]}
-									onPress={handleGenerateTestGrades}
+									onPress={
+										handleGenerateTestGrades
+									}
 								>
 									<Ionicons
 										name="school"
 										size={16}
 										color="#FFFFFF"
-										style={{ marginRight: 8 }}
+										style={{
+											marginRight: 8,
+										}}
 									/>
-									<Text style={styles.generatorBtnText}>
-										Сгенерировать оценки (5 предметов)
-									</Text>
-								</TouchableOpacity>
-
-								<TouchableOpacity
-									style={[
-										styles.generatorBtn,
-										{ backgroundColor: "#FF9500" },
-									]}
-									onPress={handleGenerateTestHomework}
-								>
-									<Ionicons
-										name="checkbox"
-										size={16}
-										color="#FFFFFF"
-										style={{ marginRight: 8 }}
-									/>
-									<Text style={styles.generatorBtnText}>
-										Сгенерировать Д/З (3 задачи с чекбоксами)
-									</Text>
-								</TouchableOpacity>
-
-								<TouchableOpacity
-									style={[
-										styles.generatorBtn,
-										{ backgroundColor: "#5856D6" },
-									]}
-									onPress={handleGenerateTestEvents}
-								>
-									<Ionicons
-										name="calendar"
-										size={16}
-										color="#FFFFFF"
-										style={{ marginRight: 8 }}
-									/>
-									<Text style={styles.generatorBtnText}>
-										Сгенерировать события (2 кружка)
+									<Text
+										style={
+											styles.generatorBtnText
+										}
+									>
+										Сгенерировать оценки (5
+										предметов)
 									</Text>
 								</TouchableOpacity>
 
@@ -1400,11 +1565,74 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 									style={[
 										styles.generatorBtn,
 										{
-											backgroundColor: theme.isDark
-												? "rgba(255, 69, 58, 0.15)"
-												: "rgba(255, 59, 48, 0.1)",
-											borderColor: theme.danger,
-											borderWidth: StyleSheet.hairlineWidth,
+											backgroundColor:
+												"#FF9500",
+										},
+									]}
+									onPress={
+										handleGenerateTestHomework
+									}
+								>
+									<Ionicons
+										name="checkbox"
+										size={16}
+										color="#FFFFFF"
+										style={{
+											marginRight: 8,
+										}}
+									/>
+									<Text
+										style={
+											styles.generatorBtnText
+										}
+									>
+										Сгенерировать Д/З (3
+										задачи с чекбоксами)
+									</Text>
+								</TouchableOpacity>
+
+								<TouchableOpacity
+									style={[
+										styles.generatorBtn,
+										{
+											backgroundColor:
+												"#5856D6",
+										},
+									]}
+									onPress={
+										handleGenerateTestEvents
+									}
+								>
+									<Ionicons
+										name="calendar"
+										size={16}
+										color="#FFFFFF"
+										style={{
+											marginRight: 8,
+										}}
+									/>
+									<Text
+										style={
+											styles.generatorBtnText
+										}
+									>
+										Сгенерировать события (2
+										кружка)
+									</Text>
+								</TouchableOpacity>
+
+								<TouchableOpacity
+									style={[
+										styles.generatorBtn,
+										{
+											backgroundColor:
+												theme.isDark
+													? "rgba(255, 69, 58, 0.15)"
+													: "rgba(255, 59, 48, 0.1)",
+											borderColor:
+												theme.danger,
+											borderWidth:
+												StyleSheet.hairlineWidth,
 											marginTop: 4,
 											marginBottom: 0,
 										},
@@ -1415,15 +1643,20 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 										name="trash-outline"
 										size={16}
 										color={theme.danger}
-										style={{ marginRight: 8 }}
+										style={{
+											marginRight: 8,
+										}}
 									/>
 									<Text
 										style={[
 											styles.generatorBtnText,
-											{ color: theme.danger },
+											{
+												color: theme.danger,
+											},
 										]}
 									>
-										Очистить тестовые оценки и события
+										Очистить тестовые оценки
+										и события
 									</Text>
 								</TouchableOpacity>
 							</View>

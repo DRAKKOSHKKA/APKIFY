@@ -5,8 +5,8 @@
  */
 export const APP_CONFIG = {
 	name: "Apkify",
-	version: "1.B5",
-	buildNumber: "5",
+	version: "1.6B",
+	buildNumber: "6",
 	collegeName: "Альметьевский профессиональный колледж",
 	ownerId: 37,
 	websiteUrl: "https://it-institut.ru/SearchString/Index/37",
