@@ -25,6 +25,16 @@ export const DEFAULT_ENTITY: SearchResultItem = {
 	OwnerId: 37,
 };
 
+export const DEFAULT_LIVE_ACTIVITY_SETTINGS = {
+	enabled: true,
+	style: "dynamic_island" as const,
+	showSeconds: true,
+	showProgress: true,
+	showNextLesson: true,
+	pinToTop: false,
+	hapticFeedback: true,
+};
+
 export const DEFAULT_SETTINGS: AppSettings = {
 	themeMode: "system",
 	accentColor: "blue",
@@ -34,6 +44,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	notificationsEnabled: true,
 	defaultEntity: DEFAULT_ENTITY,
 	dayCallModes: {},
+	liveActivity: DEFAULT_LIVE_ACTIVITY_SETTINGS,
 };
 
 /**

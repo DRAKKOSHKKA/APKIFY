@@ -11,6 +11,7 @@ import {
 	Platform,
 	Alert,
 	ActivityIndicator,
+	Switch,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -19,12 +20,24 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
 	AccentColor,
 	AppSettings,
+	LiveActivitySettings,
+	LiveActivityStyle,
 	ScheduleData,
 	ThemeMode,
 } from "../types/schedule";
 import { ACCENT_PALETTES, ThemeColors } from "../theme/colors";
 import { RADIUS } from "../theme/tokens";
 import { APP_CONFIG } from "../constants/appInfo";
+import {
+	upsertGradeEntry,
+	getGradesStore,
+	saveGradesStore,
+} from "../services/gradesStorage";
+import {
+	upsertCustomEvent,
+	getEventsStore,
+	saveEventsStore,
+} from "../services/eventsStorage";
 
 interface DebugModalProps {
 	visible: boolean;
@@ -39,6 +52,8 @@ interface DebugModalProps {
 	onUpdateSettings?: (patch: Partial<AppSettings>) => void;
 	onRefreshLive: () => void;
 	onClose: () => void;
+	onRefreshGrades?: () => Promise<void>;
+	onRefreshEvents?: () => Promise<void>;
 }
 
 interface TestResult {
@@ -60,6 +75,8 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 	onUpdateSettings,
 	onRefreshLive,
 	onClose,
+	onRefreshGrades,
+	onRefreshEvents,
 }) => {
 	const insets = useSafeAreaInsets();
 	const screen = Dimensions.get("window");
@@ -178,6 +195,263 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 		);
 	};
 
+	const handleUpdateLiveActivity = (
+		patch: Partial<LiveActivitySettings>
+	) => {
+		const current: LiveActivitySettings = settings.liveActivity || {
+			enabled: true,
+			style: "dynamic_island",
+			showSeconds: true,
+			showProgress: true,
+			showNextLesson: true,
+			pinToTop: true,
+			hapticFeedback: true,
+		};
+		onUpdateSettings?.({
+			liveActivity: {
+				...current,
+				...patch,
+			},
+		});
+	};
+
+	const handleGenerateTestGrades = async () => {
+		try {
+			Haptics.notificationAsync(
+				Haptics.NotificationFeedbackType.Success
+			);
+		} catch {}
+		const todayStr = (mockDate || new Date()).toLocaleDateString(
+			"ru-RU",
+			{
+				day: "2-digit",
+				month: "2-digit",
+				year: "numeric",
+			}
+		);
+
+		const sampleGrades = [
+			{
+				subject:
+					"МДК 02.01 Разработка программных модулей",
+				date: todayStr,
+				pairIndex: 1,
+				time: "08:00 - 09:20",
+				room: "312а",
+				teacher: "Хайруллин Р.М.",
+				grade: "5",
+				grades: ["5", "5", "4", "5"],
+				note: "Лабораторные работы 1-3 сданы на отлично",
+			},
+			{
+				subject: "Архитектура аппаратных средств",
+				date: todayStr,
+				pairIndex: 2,
+				time: "09:30 - 10:50",
+				room: "204",
+				teacher: "Смирнова Е.А.",
+				grade: "4",
+				grades: ["4", "3", "4"],
+				note: "Тест по шинам данных и процессорам",
+			},
+			{
+				subject: "Основы проектирования баз данных",
+				date: todayStr,
+				pairIndex: 3,
+				time: "11:20 - 12:40",
+				room: "108 ауд.",
+				teacher: "Закиров И.Р.",
+				grade: "5",
+				grades: ["5", "5", "5"],
+				note: "Нормализация до 3НФ и оптимизация SQL",
+			},
+			{
+				subject:
+					"Иностранный язык в профессиональной деятельности",
+				date: todayStr,
+				pairIndex: 4,
+				time: "12:50 - 14:10",
+				room: "204",
+				teacher: "Смирнова Е.А.",
+				grade: "4",
+				grades: ["4", "5", "4", "4"],
+				note: "Технический перевод документации по API",
+			},
+			{
+				subject: "Физическая культура",
+				date: todayStr,
+				grade: "зачет",
+				grades: ["зачет"],
+				note: "Нормативы по бегу и подтягиваниям сданы",
+			},
+		];
+
+		for (const item of sampleGrades) {
+			await upsertGradeEntry(item);
+		}
+		await onRefreshGrades?.();
+		Alert.alert(
+			"Тестовые оценки созданы",
+			"Добавлено 5 предметов с оценками и заметками. Откройте вкладку «Оценки», чтобы проверить средние баллы, бейджи и подсчет штук."
+		);
+	};
+
+	const handleGenerateTestHomework = async () => {
+		try {
+			Haptics.notificationAsync(
+				Haptics.NotificationFeedbackType.Success
+			);
+		} catch {}
+		const todayStr = (mockDate || new Date()).toLocaleDateString(
+			"ru-RU",
+			{
+				day: "2-digit",
+				month: "2-digit",
+				year: "numeric",
+			}
+		);
+
+		const sampleHomework = [
+			{
+				subject:
+					"МДК 02.01 Разработка программных модулей",
+				date: todayStr,
+				pairIndex: 1,
+				time: "08:00 - 09:20",
+				room: "312а",
+				teacher: "Хайруллин Р.М.",
+				homework:
+					"Подготовить отчет по лабораторной работе №4: разработка клиентской части на React Native, настройка Dynamic Island и анимаций переходов",
+				isHomeworkDone: false,
+				homeworkDeadline: "Завтра, 09:00",
+				note: "Сдать код на GitHub репозиторий",
+			},
+			{
+				subject: "Основы проектирования баз данных",
+				date: todayStr,
+				pairIndex: 3,
+				time: "11:20 - 12:40",
+				room: "108 ауд.",
+				teacher: "Закиров И.Р.",
+				homework:
+					"Решить практические задания 12.1 - 12.6, составить диаграмму связей таблиц ERD и написать скрипт создания внешних ключей",
+				isHomeworkDone: true,
+				homeworkDeadline: "Четверг",
+				note: "Проверено преподавателем",
+			},
+			{
+				subject: "Архитектура аппаратных средств",
+				date: todayStr,
+				pairIndex: 2,
+				time: "09:30 - 10:50",
+				room: "204",
+				teacher: "Смирнова Е.А.",
+				homework:
+					"Изучить конспект лекций по конвейеризации команд процессора и подготовиться к контрольному опросу",
+				isHomeworkDone: false,
+				homeworkDeadline: "Пятница",
+			},
+		];
+
+		for (const item of sampleHomework) {
+			await upsertGradeEntry(item);
+		}
+		await onRefreshGrades?.();
+		Alert.alert(
+			"Тестовые Д/З созданы",
+			"Добавлено 3 домашних задания (2 активных, 1 выполненное). Откройте вкладку «Оценки» -> «Домашние задания», чтобы проверить круглые чекбоксы и полный текст."
+		);
+	};
+
+	const handleGenerateTestEvents = async () => {
+		try {
+			Haptics.notificationAsync(
+				Haptics.NotificationFeedbackType.Success
+			);
+		} catch {}
+		const todayStr = (mockDate || new Date()).toLocaleDateString(
+			"ru-RU",
+			{
+				day: "2-digit",
+				month: "2-digit",
+				year: "numeric",
+			}
+		);
+
+		const sampleEvents = [
+			{
+				title: "Кружок робототехники и ИИ",
+				date: todayStr,
+				startTime: "14:30",
+				endTime: "16:00",
+				time: "14:30 - 16:00",
+				room: "каб. 312а",
+				teacher: "Хайруллин Р.М.",
+				category: "club" as const,
+				color: "#34C759",
+				note: "Программирование микроконтроллеров STM32 и машинное зрение",
+			},
+			{
+				title: "Волейбольная секция",
+				date: todayStr,
+				startTime: "16:30",
+				endTime: "18:00",
+				time: "16:30 - 18:00",
+				room: "Спортивный зал",
+				teacher: "Соколов Д.В.",
+				category: "section" as const,
+				color: "#FF9500",
+				note: "Товарищеский матч между курсами, иметь спортивную форму",
+			},
+		];
+
+		for (const ev of sampleEvents) {
+			await upsertCustomEvent(ev);
+		}
+		await onRefreshEvents?.();
+		Alert.alert(
+			"Тестовые события созданы",
+			"Добавлены 2 кастомных события (кружок и секция). Они отображаются внизу списка занятий выбранного дня."
+		);
+	};
+
+	const handleClearTestData = () => {
+		Alert.alert(
+			"Очистить тестовые данные?",
+			"Все сохранённые оценки, домашние задания и кастомные события будут удалены.",
+			[
+				{ text: "Отмена", style: "cancel" },
+				{
+					text: "Очистить всё",
+					style: "destructive",
+					onPress: async () => {
+						try {
+							Haptics.notificationAsync(
+								Haptics.NotificationFeedbackType.Warning
+							);
+						} catch {}
+						await saveGradesStore({
+							version: 1,
+							lastUpdated: Date.now(),
+							entries: [],
+						});
+						await saveEventsStore({
+							version: 1,
+							lastUpdated: Date.now(),
+							events: [],
+						});
+						await onRefreshGrades?.();
+						await onRefreshEvents?.();
+						Alert.alert(
+							"Очищено",
+							"Тестовые данные успешно удалены."
+						);
+					},
+				},
+			]
+		);
+	};
+
 	// Запуск диагностического тестирования системы
 	const runSystemDiagnostic = async () => {
 		setTestingRunning(true);
@@ -235,6 +509,10 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 		// Тест 5: Адаптивность и Glass
 		const glassSuccess = true;
 
+		// Чтение баз данных оценок и событий для статистики
+		const gradesStore = await getGradesStore();
+		const eventsStore = await getEventsStore();
+
 		setTestResults([
 			{
 				name: "Доступ к серверу it-institut.ru",
@@ -254,6 +532,21 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 				details: parserSuccess
 					? `Распознано дней: ${schedule?.days.length}, пар: ${totalLessons}`
 					: "Данные еще не загружены",
+			},
+			{
+				name: "Эфир Активности (Live Activity)",
+				status: "success",
+				details: `${settings.liveActivity?.enabled !== false ? "Включен" : "Выключен"} • стиль: ${settings.liveActivity?.style || "dynamic_island"}`,
+			},
+			{
+				name: "База данных оценок и Д/З",
+				status: "success",
+				details: `Записей в хранилище: ${gradesStore.entries.length}`,
+			},
+			{
+				name: "Кастомные события (кружки)",
+				status: "success",
+				details: `Событий в хранилище: ${eventsStore.events.length}`,
 			},
 			{
 				name: "Отображение подгрупп (1 и 2 п/г)",
@@ -532,7 +825,612 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 						</View>
 					</View>
 
-					{/* 2. СЕКЦИЯ: ТЕСТИРОВАНИЕ ВРЕМЕНИ (TIME TRAVEL) */}
+					{/* 2. СЕКЦИЯ: ТЕСТИРОВАНИЕ ЭФИРА АКТИВНОСТИ (LIVE ACTIVITIES) */}
+					<View style={styles.section}>
+						<Text
+							style={[
+								styles.sectionTitle,
+								{ color: theme.textSecondary },
+							]}
+						>
+							ТЕСТИРОВАНИЕ ЭФИРА АКТИВНОСТИ (LIVE ACTIVITIES)
+						</Text>
+						<View
+							style={[
+								styles.card,
+								{
+									backgroundColor:
+										theme.groupedCell,
+									borderColor: theme.border,
+								},
+							]}
+						>
+							{/* Переключатель Эфира */}
+							<View style={styles.switchRow}>
+								<View style={{ flex: 1, paddingRight: 10 }}>
+									<Text
+										style={[
+											styles.switchTitle,
+											{ color: theme.text },
+										]}
+									>
+										Эфир Активности (Live Activity)
+									</Text>
+									<Text
+										style={[
+											styles.switchSubtitle,
+											{ color: theme.textSecondary },
+										]}
+									>
+										Отображение баннера Dynamic Island над расписанием
+									</Text>
+								</View>
+								<Switch
+									value={settings.liveActivity?.enabled ?? true}
+									onValueChange={(val) =>
+										handleUpdateLiveActivity({ enabled: val })
+									}
+									trackColor={{
+										false: theme.separator,
+										true: theme.accent,
+									}}
+									thumbColor={
+										Platform.OS === "android"
+											? (settings.liveActivity?.enabled ?? true)
+												? theme.accent
+												: "#f4f3f4"
+											: undefined
+									}
+									ios_backgroundColor={theme.separator}
+								/>
+							</View>
+
+							<View
+								style={[
+									styles.divider,
+									{ backgroundColor: theme.separator },
+								]}
+							/>
+
+							{/* Выбор стиля */}
+							<View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
+								<Text
+									style={[
+										styles.propName,
+										{ color: theme.textSecondary, fontSize: 13 },
+									]}
+								>
+									Стиль отображения баннера:
+								</Text>
+							</View>
+							<View
+								style={[
+									styles.segmentedWrapper,
+									{ backgroundColor: theme.chipBackground },
+								]}
+							>
+								{[
+									{
+										key: "dynamic_island" as LiveActivityStyle,
+										label: "🏝 Остров",
+									},
+									{
+										key: "lock_screen" as LiveActivityStyle,
+										label: "📱 Плитка",
+									},
+									{
+										key: "minimal" as LiveActivityStyle,
+										label: "⚡ Мини",
+									},
+								].map((item) => {
+									const isSel =
+										(settings.liveActivity?.style || "dynamic_island") ===
+										item.key;
+									return (
+										<TouchableOpacity
+											key={item.key}
+											style={[
+												styles.segmentBtn,
+												isSel && {
+													backgroundColor: theme.card,
+													shadowColor: "#000",
+													shadowOpacity: 0.1,
+													shadowRadius: 3,
+												},
+											]}
+											onPress={() =>
+												handleUpdateLiveActivity({ style: item.key })
+											}
+										>
+											<Text
+												style={[
+													styles.segmentBtnText,
+													{
+														color: isSel ? theme.text : theme.textSecondary,
+														fontWeight: isSel ? "700" : "500",
+													},
+												]}
+											>
+												{item.label}
+											</Text>
+										</TouchableOpacity>
+									);
+								})}
+							</View>
+
+							<View
+								style={[
+									styles.divider,
+									{ backgroundColor: theme.separator },
+								]}
+							/>
+
+							{/* Точные настройки */}
+							<View style={styles.switchRow}>
+								<View style={{ flex: 1, paddingRight: 10 }}>
+									<Text
+										style={[
+											styles.switchTitle,
+											{ color: theme.text, fontSize: 14 },
+										]}
+									>
+										Секунды в таймере
+									</Text>
+									<Text
+										style={[
+											styles.switchSubtitle,
+											{ color: theme.textSecondary },
+										]}
+									>
+										Формат 00:24:18 вместо 24 мин
+									</Text>
+								</View>
+								<Switch
+									value={settings.liveActivity?.showSeconds ?? true}
+									onValueChange={(val) =>
+										handleUpdateLiveActivity({ showSeconds: val })
+									}
+									trackColor={{
+										false: theme.separator,
+										true: theme.accent,
+									}}
+									thumbColor={
+										Platform.OS === "android"
+											? (settings.liveActivity?.showSeconds ?? true)
+												? theme.accent
+												: "#f4f3f4"
+											: undefined
+									}
+									ios_backgroundColor={theme.separator}
+								/>
+							</View>
+
+							<View
+								style={[
+									styles.divider,
+									{ backgroundColor: theme.separator },
+								]}
+							/>
+
+							<View style={styles.switchRow}>
+								<View style={{ flex: 1, paddingRight: 10 }}>
+									<Text
+										style={[
+											styles.switchTitle,
+											{ color: theme.text, fontSize: 14 },
+										]}
+									>
+										Индикатор прогресса
+									</Text>
+									<Text
+										style={[
+											styles.switchSubtitle,
+											{ color: theme.textSecondary },
+										]}
+									>
+										Плавная полоса заполнения пары или перемены
+									</Text>
+								</View>
+								<Switch
+									value={settings.liveActivity?.showProgress ?? true}
+									onValueChange={(val) =>
+										handleUpdateLiveActivity({ showProgress: val })
+									}
+									trackColor={{
+										false: theme.separator,
+										true: theme.accent,
+									}}
+									thumbColor={
+										Platform.OS === "android"
+											? (settings.liveActivity?.showProgress ?? true)
+												? theme.accent
+												: "#f4f3f4"
+											: undefined
+									}
+									ios_backgroundColor={theme.separator}
+								/>
+							</View>
+
+							<View
+								style={[
+									styles.divider,
+									{ backgroundColor: theme.separator },
+								]}
+							/>
+
+							<View style={styles.switchRow}>
+								<View style={{ flex: 1, paddingRight: 10 }}>
+									<Text
+										style={[
+											styles.switchTitle,
+											{ color: theme.text, fontSize: 14 },
+										]}
+									>
+										Превью следующей пары
+									</Text>
+									<Text
+										style={[
+											styles.switchSubtitle,
+											{ color: theme.textSecondary },
+										]}
+									>
+										Показывать предмет и аудиторию следующего занятия
+									</Text>
+								</View>
+								<Switch
+									value={settings.liveActivity?.showNextLesson ?? true}
+									onValueChange={(val) =>
+										handleUpdateLiveActivity({ showNextLesson: val })
+									}
+									trackColor={{
+										false: theme.separator,
+										true: theme.accent,
+									}}
+									thumbColor={
+										Platform.OS === "android"
+											? (settings.liveActivity?.showNextLesson ?? true)
+												? theme.accent
+												: "#f4f3f4"
+											: undefined
+									}
+									ios_backgroundColor={theme.separator}
+								/>
+							</View>
+
+							<View
+								style={[
+									styles.divider,
+									{ backgroundColor: theme.separator },
+								]}
+							/>
+
+							{/* Пресеты фаз Live Activity */}
+							<View style={styles.presetSection}>
+								<Text
+									style={[
+										styles.presetTitle,
+										{ color: theme.textSecondary },
+									]}
+								>
+									Симуляция всех фаз Эфира (переключение на лету):
+								</Text>
+								<View style={styles.chipGrid}>
+									<TouchableOpacity
+										style={[
+											styles.timeChip,
+											{ backgroundColor: theme.chipBackground },
+										]}
+										onPress={() =>
+											handleApplyPreset(
+												1,
+												7,
+												45,
+												"Понедельник, 07:45 (Фаза: До начала пар)"
+											)
+										}
+									>
+										<Text
+											style={[
+												styles.timeChipText,
+												{ color: theme.text },
+											]}
+										>
+											⏰ 07:45 (До 1-й пары)
+										</Text>
+									</TouchableOpacity>
+
+									<TouchableOpacity
+										style={[
+											styles.timeChip,
+											{ backgroundColor: theme.chipBackground },
+										]}
+										onPress={() =>
+											handleApplyPreset(
+												1,
+												8,
+												35,
+												"Понедельник, 08:35 (Фаза: 1 пара идёт)"
+											)
+										}
+									>
+										<Text
+											style={[
+												styles.timeChipText,
+												{ color: theme.text },
+											]}
+										>
+											🟢 08:35 (Идёт 1 пара)
+										</Text>
+									</TouchableOpacity>
+
+									<TouchableOpacity
+										style={[
+											styles.timeChip,
+											{ backgroundColor: theme.chipBackground },
+										]}
+										onPress={() =>
+											handleApplyPreset(
+												1,
+												9,
+												25,
+												"Понедельник, 09:25 (Фаза: Перемена 10 мин)"
+											)
+										}
+									>
+										<Text
+											style={[
+												styles.timeChipText,
+												{ color: theme.text },
+											]}
+										>
+											☕ 09:25 (Перемена 10м)
+										</Text>
+									</TouchableOpacity>
+
+									<TouchableOpacity
+										style={[
+											styles.timeChip,
+											{ backgroundColor: theme.chipBackground },
+										]}
+										onPress={() =>
+											handleApplyPreset(
+												1,
+												9,
+												50,
+												"Понедельник, 09:50 (Фаза: 2 пара идёт)"
+											)
+										}
+									>
+										<Text
+											style={[
+												styles.timeChipText,
+												{ color: theme.text },
+											]}
+										>
+											🟢 09:50 (Идёт 2 пара)
+										</Text>
+									</TouchableOpacity>
+
+									<TouchableOpacity
+										style={[
+											styles.timeChip,
+											{ backgroundColor: theme.chipBackground },
+										]}
+										onPress={() =>
+											handleApplyPreset(
+												1,
+												10,
+												55,
+												"Понедельник, 10:55 (Фаза: Большая перемена)"
+											)
+										}
+									>
+										<Text
+											style={[
+												styles.timeChipText,
+												{ color: theme.text },
+											]}
+										>
+											🥪 10:55 (Большая перемена)
+										</Text>
+									</TouchableOpacity>
+
+									<TouchableOpacity
+										style={[
+											styles.timeChip,
+											{ backgroundColor: theme.chipBackground },
+										]}
+										onPress={() =>
+											handleApplyPreset(
+												1,
+												11,
+												40,
+												"Понедельник, 11:40 (Фаза: 3 пара идёт)"
+											)
+										}
+									>
+										<Text
+											style={[
+												styles.timeChipText,
+												{ color: theme.text },
+											]}
+										>
+											🟢 11:40 (Идёт 3 пара)
+										</Text>
+									</TouchableOpacity>
+
+									<TouchableOpacity
+										style={[
+											styles.timeChip,
+											{ backgroundColor: theme.chipBackground },
+										]}
+										onPress={() =>
+											handleApplyPreset(
+												6,
+												8,
+												30,
+												"Суббота, 08:30 (Особое субботнее расписание)"
+											)
+										}
+									>
+										<Text
+											style={[
+												styles.timeChipText,
+												{ color: theme.text },
+											]}
+										>
+											⚡ Сб 08:30 (Суббота 60м)
+										</Text>
+									</TouchableOpacity>
+
+									<TouchableOpacity
+										style={[
+											styles.timeChip,
+											{ backgroundColor: theme.chipBackground },
+										]}
+										onPress={() =>
+											handleApplyPreset(
+												1,
+												16,
+												30,
+												"Понедельник, 16:30 (Фаза: Все пары завершены)"
+											)
+										}
+									>
+										<Text
+											style={[
+												styles.timeChipText,
+												{ color: theme.text },
+											]}
+										>
+											🎉 16:30 (Пары окончены)
+										</Text>
+									</TouchableOpacity>
+								</View>
+							</View>
+						</View>
+					</View>
+
+					{/* 3. СЕКЦИЯ: ГЕНЕРАТОР ТЕСТОВЫХ ДАННЫХ ДЛЯ ПРОВЕРКИ UI */}
+					<View style={styles.section}>
+						<Text
+							style={[
+								styles.sectionTitle,
+								{ color: theme.textSecondary },
+							]}
+						>
+							ГЕНЕРАТОР ТЕСТОВЫХ ДАННЫХ ДЛЯ ПРОВЕРКИ UI
+						</Text>
+						<View
+							style={[
+								styles.card,
+								{
+									backgroundColor:
+										theme.groupedCell,
+									borderColor: theme.border,
+								},
+							]}
+						>
+							<View style={styles.customActionBlock}>
+								<Text
+									style={[
+										styles.customActionDesc,
+										{ color: theme.textSecondary },
+									]}
+								>
+									Быстрое наполнение приложения данными для тестирования оценок,
+									подсчёта среднего балла, круглых чекбоксов Д/З и кружков:
+								</Text>
+
+								<TouchableOpacity
+									style={[
+										styles.generatorBtn,
+										{ backgroundColor: theme.accent },
+									]}
+									onPress={handleGenerateTestGrades}
+								>
+									<Ionicons
+										name="school"
+										size={16}
+										color="#FFFFFF"
+										style={{ marginRight: 8 }}
+									/>
+									<Text style={styles.generatorBtnText}>
+										Сгенерировать оценки (5 предметов)
+									</Text>
+								</TouchableOpacity>
+
+								<TouchableOpacity
+									style={[
+										styles.generatorBtn,
+										{ backgroundColor: "#FF9500" },
+									]}
+									onPress={handleGenerateTestHomework}
+								>
+									<Ionicons
+										name="checkbox"
+										size={16}
+										color="#FFFFFF"
+										style={{ marginRight: 8 }}
+									/>
+									<Text style={styles.generatorBtnText}>
+										Сгенерировать Д/З (3 задачи с чекбоксами)
+									</Text>
+								</TouchableOpacity>
+
+								<TouchableOpacity
+									style={[
+										styles.generatorBtn,
+										{ backgroundColor: "#5856D6" },
+									]}
+									onPress={handleGenerateTestEvents}
+								>
+									<Ionicons
+										name="calendar"
+										size={16}
+										color="#FFFFFF"
+										style={{ marginRight: 8 }}
+									/>
+									<Text style={styles.generatorBtnText}>
+										Сгенерировать события (2 кружка)
+									</Text>
+								</TouchableOpacity>
+
+								<TouchableOpacity
+									style={[
+										styles.generatorBtn,
+										{
+											backgroundColor: theme.isDark
+												? "rgba(255, 69, 58, 0.15)"
+												: "rgba(255, 59, 48, 0.1)",
+											borderColor: theme.danger,
+											borderWidth: StyleSheet.hairlineWidth,
+											marginTop: 4,
+											marginBottom: 0,
+										},
+									]}
+									onPress={handleClearTestData}
+								>
+									<Ionicons
+										name="trash-outline"
+										size={16}
+										color={theme.danger}
+										style={{ marginRight: 8 }}
+									/>
+									<Text
+										style={[
+											styles.generatorBtnText,
+											{ color: theme.danger },
+										]}
+									>
+										Очистить тестовые оценки и события
+									</Text>
+								</TouchableOpacity>
+							</View>
+						</View>
+					</View>
+
+					{/* 4. СЕКЦИЯ: ТЕСТИРОВАНИЕ ВРЕМЕНИ (TIME TRAVEL) */}
 					<View style={styles.section}>
 						<Text
 							style={[
@@ -2085,5 +2983,52 @@ const styles = StyleSheet.create({
 	},
 	storageBytes: {
 		fontSize: 12,
+	},
+	switchRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		paddingHorizontal: 16,
+		paddingVertical: 12,
+	},
+	switchTitle: {
+		fontSize: 15,
+		fontWeight: "600",
+	},
+	switchSubtitle: {
+		fontSize: 12,
+		marginTop: 2,
+		lineHeight: 16,
+	},
+	segmentedWrapper: {
+		flexDirection: "row",
+		padding: 4,
+		borderRadius: RADIUS.button,
+		marginHorizontal: 16,
+		marginVertical: 10,
+	},
+	segmentBtn: {
+		flex: 1,
+		paddingVertical: 7,
+		alignItems: "center",
+		justifyContent: "center",
+		borderRadius: 7,
+	},
+	segmentBtnText: {
+		fontSize: 13,
+	},
+	generatorBtn: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		paddingVertical: 11,
+		paddingHorizontal: 14,
+		borderRadius: RADIUS.button,
+		marginBottom: 8,
+	},
+	generatorBtnText: {
+		color: "#FFFFFF",
+		fontSize: 13,
+		fontWeight: "700",
 	},
 });

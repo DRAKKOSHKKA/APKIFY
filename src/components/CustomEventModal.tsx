@@ -46,7 +46,9 @@ const COLOR_OPTIONS = [
 	"#00C7BE", // Apple Бирюзовый
 ];
 
-export const CustomEventModal: React.FC<CustomEventModalProps> = ({
+export const CustomEventModal: React.FC<
+	CustomEventModalProps
+> = ({
 	visible,
 	eventToEdit,
 	initialDate,
@@ -99,7 +101,10 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 
 	const handleSave = async () => {
 		if (!title.trim() || !date.trim()) {
-			Alert.alert("Ошибка", "Пожалуйста, введите название события и дату.");
+			Alert.alert(
+				"Ошибка",
+				"Пожалуйста, введите название события и дату."
+			);
 			return;
 		}
 
@@ -112,7 +117,9 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 			} catch {}
 
 			await onSave({
-				...(eventToEdit?.id ? { id: eventToEdit.id } : {}),
+				...(eventToEdit?.id
+					? { id: eventToEdit.id }
+					: {}),
 				title: title.trim(),
 				date: date.trim(),
 				startTime: startTime.trim(),
@@ -178,7 +185,11 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 			<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
 				<View style={styles.overlay}>
 					<KeyboardAvoidingView
-						behavior={Platform.OS === "ios" ? "padding" : undefined}
+						behavior={
+							Platform.OS === "ios"
+								? "padding"
+								: undefined
+						}
 						style={styles.keyboardContainer}
 					>
 						<View
@@ -195,7 +206,8 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 								style={[
 									styles.header,
 									{
-										borderBottomColor: theme.separator,
+										borderBottomColor:
+											theme.separator,
 									},
 								]}
 							>
@@ -208,7 +220,9 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 									<Text
 										style={[
 											styles.headerBtnCancel,
-											{ color: theme.textSecondary },
+											{
+												color: theme.textSecondary,
+											},
 										]}
 									>
 										Отмена
@@ -222,7 +236,9 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 									]}
 									numberOfLines={1}
 								>
-									{isEditing ? "Редактирование" : "Новое событие"}
+									{isEditing
+										? "Редактирование"
+										: "Новое событие"}
 								</Text>
 
 								<TouchableOpacity
@@ -234,7 +250,9 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 									<Text
 										style={[
 											styles.headerBtnSave,
-											{ color: theme.accent },
+											{
+												color: theme.accent,
+											},
 										]}
 									>
 										Готово
@@ -244,8 +262,12 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 
 							<ScrollView
 								style={styles.scrollArea}
-								contentContainerStyle={styles.scrollContent}
-								showsVerticalScrollIndicator={false}
+								contentContainerStyle={
+									styles.scrollContent
+								}
+								showsVerticalScrollIndicator={
+									false
+								}
 								keyboardShouldPersistTaps="handled"
 							>
 								{/* Секция: Название */}
@@ -253,7 +275,9 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 									<Text
 										style={[
 											styles.sectionHeader,
-											{ color: theme.textSecondary },
+											{
+												color: theme.textSecondary,
+											},
 										]}
 									>
 										НАЗВАНИЕ
@@ -262,21 +286,31 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 										style={[
 											styles.groupedBox,
 											{
-												backgroundColor: theme.chipBackground,
-												borderColor: theme.border,
+												backgroundColor:
+													theme.chipBackground,
+												borderColor:
+													theme.border,
 											},
 										]}
 									>
 										<TextInput
 											style={[
 												styles.textInput,
-												{ color: theme.text },
+												{
+													color: theme.text,
+												},
 											]}
 											placeholder="Например: Робототехника, Спорт, Консультация..."
-											placeholderTextColor={theme.textSecondary}
+											placeholderTextColor={
+												theme.textSecondary
+											}
 											value={title}
-											onChangeText={setTitle}
-											autoFocus={!isEditing}
+											onChangeText={
+												setTitle
+											}
+											autoFocus={
+												!isEditing
+											}
 										/>
 									</View>
 								</View>
@@ -286,7 +320,9 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 									<Text
 										style={[
 											styles.sectionHeader,
-											{ color: theme.textSecondary },
+											{
+												color: theme.textSecondary,
+											},
 										]}
 									>
 										ВРЕМЯ И ДАТА
@@ -295,16 +331,24 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 										style={[
 											styles.groupedBox,
 											{
-												backgroundColor: theme.chipBackground,
-												borderColor: theme.border,
+												backgroundColor:
+													theme.chipBackground,
+												borderColor:
+													theme.border,
 											},
 										]}
 									>
-										<View style={styles.inputRow}>
+										<View
+											style={
+												styles.inputRow
+											}
+										>
 											<Text
 												style={[
 													styles.inputRowLabel,
-													{ color: theme.textSecondary },
+													{
+														color: theme.textSecondary,
+													},
 												]}
 											>
 												Начало
@@ -312,27 +356,42 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 											<TextInput
 												style={[
 													styles.inlineTextInput,
-													{ color: theme.text },
+													{
+														color: theme.text,
+													},
 												]}
 												placeholder="15:00"
-												placeholderTextColor={theme.textSecondary}
+												placeholderTextColor={
+													theme.textSecondary
+												}
 												value={startTime}
-												onChangeText={setStartTime}
+												onChangeText={
+													setStartTime
+												}
 											/>
 										</View>
 
 										<View
 											style={[
 												styles.rowDivider,
-												{ backgroundColor: theme.separator },
+												{
+													backgroundColor:
+														theme.separator,
+												},
 											]}
 										/>
 
-										<View style={styles.inputRow}>
+										<View
+											style={
+												styles.inputRow
+											}
+										>
 											<Text
 												style={[
 													styles.inputRowLabel,
-													{ color: theme.textSecondary },
+													{
+														color: theme.textSecondary,
+													},
 												]}
 											>
 												Конец
@@ -340,27 +399,42 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 											<TextInput
 												style={[
 													styles.inlineTextInput,
-													{ color: theme.text },
+													{
+														color: theme.text,
+													},
 												]}
 												placeholder="16:30"
-												placeholderTextColor={theme.textSecondary}
+												placeholderTextColor={
+													theme.textSecondary
+												}
 												value={endTime}
-												onChangeText={setEndTime}
+												onChangeText={
+													setEndTime
+												}
 											/>
 										</View>
 
 										<View
 											style={[
 												styles.rowDivider,
-												{ backgroundColor: theme.separator },
+												{
+													backgroundColor:
+														theme.separator,
+												},
 											]}
 										/>
 
-										<View style={styles.inputRow}>
+										<View
+											style={
+												styles.inputRow
+											}
+										>
 											<Text
 												style={[
 													styles.inputRowLabel,
-													{ color: theme.textSecondary },
+													{
+														color: theme.textSecondary,
+													},
 												]}
 											>
 												Дата
@@ -368,12 +442,18 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 											<TextInput
 												style={[
 													styles.inlineTextInput,
-													{ color: theme.text },
+													{
+														color: theme.text,
+													},
 												]}
 												placeholder="ДД.ММ.ГГГГ"
-												placeholderTextColor={theme.textSecondary}
+												placeholderTextColor={
+													theme.textSecondary
+												}
 												value={date}
-												onChangeText={setDate}
+												onChangeText={
+													setDate
+												}
 											/>
 										</View>
 									</View>
@@ -384,7 +464,9 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 									<Text
 										style={[
 											styles.sectionHeader,
-											{ color: theme.textSecondary },
+											{
+												color: theme.textSecondary,
+											},
 										]}
 									>
 										МЕСТО И ПРЕПОДАВАТЕЛЬ
@@ -393,16 +475,24 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 										style={[
 											styles.groupedBox,
 											{
-												backgroundColor: theme.chipBackground,
-												borderColor: theme.border,
+												backgroundColor:
+													theme.chipBackground,
+												borderColor:
+													theme.border,
 											},
 										]}
 									>
-										<View style={styles.inputRow}>
+										<View
+											style={
+												styles.inputRow
+											}
+										>
 											<Text
 												style={[
 													styles.inputRowLabel,
-													{ color: theme.textSecondary },
+													{
+														color: theme.textSecondary,
+													},
 												]}
 											>
 												Кабинет
@@ -410,27 +500,42 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 											<TextInput
 												style={[
 													styles.inlineTextInput,
-													{ color: theme.text },
+													{
+														color: theme.text,
+													},
 												]}
 												placeholder="Каб. 214 или спортзал..."
-												placeholderTextColor={theme.textSecondary}
+												placeholderTextColor={
+													theme.textSecondary
+												}
 												value={room}
-												onChangeText={setRoom}
+												onChangeText={
+													setRoom
+												}
 											/>
 										</View>
 
 										<View
 											style={[
 												styles.rowDivider,
-												{ backgroundColor: theme.separator },
+												{
+													backgroundColor:
+														theme.separator,
+												},
 											]}
 										/>
 
-										<View style={styles.inputRow}>
+										<View
+											style={
+												styles.inputRow
+											}
+										>
 											<Text
 												style={[
 													styles.inputRowLabel,
-													{ color: theme.textSecondary },
+													{
+														color: theme.textSecondary,
+													},
 												]}
 											>
 												Ведущий
@@ -438,12 +543,18 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 											<TextInput
 												style={[
 													styles.inlineTextInput,
-													{ color: theme.text },
+													{
+														color: theme.text,
+													},
 												]}
 												placeholder="Преподаватель или тренер..."
-												placeholderTextColor={theme.textSecondary}
+												placeholderTextColor={
+													theme.textSecondary
+												}
 												value={teacher}
-												onChangeText={setTeacher}
+												onChangeText={
+													setTeacher
+												}
 											/>
 										</View>
 									</View>
@@ -454,7 +565,9 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 									<Text
 										style={[
 											styles.sectionHeader,
-											{ color: theme.textSecondary },
+											{
+												color: theme.textSecondary,
+											},
 										]}
 									>
 										ЗАМЕТКА
@@ -463,8 +576,10 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 										style={[
 											styles.groupedBox,
 											{
-												backgroundColor: theme.chipBackground,
-												borderColor: theme.border,
+												backgroundColor:
+													theme.chipBackground,
+												borderColor:
+													theme.border,
 											},
 										]}
 									>
@@ -472,12 +587,18 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 											style={[
 												styles.textInput,
 												styles.textArea,
-												{ color: theme.text },
+												{
+													color: theme.text,
+												},
 											]}
 											placeholder="Дополнительные детали, что взять с собой..."
-											placeholderTextColor={theme.textSecondary}
+											placeholderTextColor={
+												theme.textSecondary
+											}
 											value={note}
-											onChangeText={setNote}
+											onChangeText={
+												setNote
+											}
 											multiline
 											numberOfLines={3}
 											textAlignVertical="top"
@@ -490,40 +611,59 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 									<Text
 										style={[
 											styles.sectionHeader,
-											{ color: theme.textSecondary },
+											{
+												color: theme.textSecondary,
+											},
 										]}
 									>
 										ЦВЕТОВАЯ МЕТКА
 									</Text>
-									<View style={styles.colorsPaletteRow}>
-										{COLOR_OPTIONS.map((c) => {
-											const isSelected = color === c;
-											return (
-												<TouchableOpacity
-													key={c}
-													style={[
-														styles.colorCircle,
-														{ backgroundColor: c },
-														isSelected && styles.colorCircleActive,
-													]}
-													activeOpacity={0.8}
-													onPress={() => {
-														try {
-															Haptics.selectionAsync();
-														} catch {}
-														setColor(c);
-													}}
-												>
-													{isSelected && (
-														<Ionicons
-															name="checkmark"
-															size={18}
-															color="#FFFFFF"
-														/>
-													)}
-												</TouchableOpacity>
-											);
-										})}
+									<View
+										style={
+											styles.colorsPaletteRow
+										}
+									>
+										{COLOR_OPTIONS.map(
+											(c) => {
+												const isSelected =
+													color === c;
+												return (
+													<TouchableOpacity
+														key={c}
+														style={[
+															styles.colorCircle,
+															{
+																backgroundColor:
+																	c,
+															},
+															isSelected &&
+																styles.colorCircleActive,
+														]}
+														activeOpacity={
+															0.8
+														}
+														onPress={() => {
+															try {
+																Haptics.selectionAsync();
+															} catch {}
+															setColor(
+																c
+															);
+														}}
+													>
+														{isSelected && (
+															<Ionicons
+																name="checkmark"
+																size={
+																	18
+																}
+																color="#FFFFFF"
+															/>
+														)}
+													</TouchableOpacity>
+												);
+											}
+										)}
 									</View>
 								</View>
 
@@ -533,23 +673,34 @@ export const CustomEventModal: React.FC<CustomEventModalProps> = ({
 										style={[
 											styles.deleteButton,
 											{
-												backgroundColor: theme.isDark
-													? "rgba(255, 59, 48, 0.12)"
-													: "#FFF1F0",
-												borderColor: "#FF3B30" + "40",
+												backgroundColor:
+													theme.isDark
+														? "rgba(255, 59, 48, 0.12)"
+														: "#FFF1F0",
+												borderColor:
+													"#FF3B30" +
+													"40",
 											},
 										]}
 										activeOpacity={0.7}
-										onPress={handleDeletePrompt}
+										onPress={
+											handleDeletePrompt
+										}
 										disabled={isSubmitting}
 									>
 										<Ionicons
 											name="trash-outline"
 											size={16}
 											color="#FF3B30"
-											style={{ marginRight: 6 }}
+											style={{
+												marginRight: 6,
+											}}
 										/>
-										<Text style={styles.deleteButtonText}>
+										<Text
+											style={
+												styles.deleteButtonText
+											}
+										>
 											Удалить событие
 										</Text>
 									</TouchableOpacity>

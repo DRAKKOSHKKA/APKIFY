@@ -78,6 +78,18 @@ export type DayCallMode =
 	| "saturday"
 	| "shortened_45";
 
+export type LiveActivityStyle = "dynamic_island" | "lock_screen" | "minimal";
+
+export interface LiveActivitySettings {
+	enabled: boolean;
+	style: LiveActivityStyle;
+	showSeconds: boolean;
+	showProgress: boolean;
+	showNextLesson: boolean;
+	pinToTop: boolean;
+	hapticFeedback: boolean;
+}
+
 export interface AppSettings {
 	themeMode: ThemeMode;
 	accentColor?: AccentColor;
@@ -87,4 +99,5 @@ export interface AppSettings {
 	notificationsEnabled: boolean;
 	defaultEntity: SearchResultItem;
 	dayCallModes?: Record<string, DayCallMode>;
+	liveActivity?: LiveActivitySettings;
 }

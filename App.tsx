@@ -704,6 +704,14 @@ export default function App() {
 	};
 
 	/**
+	 * Перезагрузка кастомных событий (кружков)
+	 */
+	const handleRefreshEvents = async () => {
+		const updated = await getCustomEventsStore();
+		setCustomEvents(updated.events);
+	};
+
+	/**
 	 * Переключение режима звонков для конкретного дня (стандартные 80м / сокращённые 45м / суббота 60м)
 	 */
 	const handleSetDayCallMode = async (
@@ -965,6 +973,8 @@ export default function App() {
 						)
 					}
 					onClose={() => setIsDebugOpen(false)}
+					onRefreshGrades={handleRefreshGrades}
+					onRefreshEvents={handleRefreshEvents}
 				/>
 
 				{/* Модальное окно добавления/редактирования оценки и заметки */}

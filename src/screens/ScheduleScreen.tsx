@@ -38,6 +38,7 @@ import { EmptyDay } from "../components/EmptyDay";
 import { CustomEvent } from "../types/events";
 import { getEventsForDate } from "../services/eventsStorage";
 import { CustomEventCard } from "../components/CustomEventCard";
+import { LiveActivityBanner } from "../components/LiveActivityBanner";
 
 if (
 	Platform.OS === "android" &&
@@ -652,6 +653,15 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 					</View>
 				) : selectedDay ? (
 					<View>
+						{/* Эфир Активности (Live Activity / Dynamic Island) */}
+						<LiveActivityBanner
+							lessons={displayedLessons}
+							isToday={isDayCurrentlyToday}
+							mockDate={mockDate}
+							theme={theme}
+							settings={settings.liveActivity}
+						/>
+
 						{/* Дата выбранного дня */}
 						<View style={styles.dayHeader}>
 							<View style={styles.dayHeaderLeft}>
@@ -671,41 +681,6 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 							<View
 								style={styles.dayHeaderActions}
 							>
-								{/* Кнопка добавления кастомного события на этот день */}
-								{onOpenEventModal && (
-									<TouchableOpacity
-										style={[
-											styles.shareIconBtn,
-											{
-												backgroundColor:
-													theme.chipBackground,
-												borderColor:
-													theme.border,
-											},
-										]}
-										activeOpacity={0.7}
-										onPress={() =>
-											onOpenEventModal(
-												undefined,
-												selectedDay?.dayDate
-											)
-										}
-										hitSlop={{
-											top: 8,
-											bottom: 8,
-											left: 8,
-											right: 8,
-										}}
-										accessibilityLabel="Добавить кружок или событие"
-									>
-										<Ionicons
-											name="add"
-											size={18}
-											color={theme.accent}
-										/>
-									</TouchableOpacity>
-								)}
-
 								{/* Компактная иконка Поделиться расписанием дня */}
 								<TouchableOpacity
 									style={[

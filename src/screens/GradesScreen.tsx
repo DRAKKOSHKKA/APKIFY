@@ -160,7 +160,9 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 	const handleToggleHomework = async (entry: GradeEntry) => {
 		try {
 			try {
-				Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+				Haptics.impactAsync(
+					Haptics.ImpactFeedbackStyle.Medium
+				);
 			} catch {}
 			await upsertGradeEntry({
 				...entry,
@@ -168,7 +170,10 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 			});
 			await onRefreshGrades();
 		} catch (err) {
-			console.warn("Ошибка переключения статуса Д/З:", err);
+			console.warn(
+				"Ошибка переключения статуса Д/З:",
+				err
+			);
 		}
 	};
 
@@ -1523,7 +1528,11 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 										onEditGrade(entry)
 									}
 								>
-									<View style={styles.homeworkRow}>
+									<View
+										style={
+											styles.homeworkRow
+										}
+									>
 										{/* Круглый интерактивный чекбокс в стиле iOS */}
 										<TouchableOpacity
 											style={[
@@ -1585,9 +1594,13 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 															color: theme.text,
 														},
 													]}
-													numberOfLines={1}
+													numberOfLines={
+														1
+													}
 												>
-													{entry.subject}
+													{
+														entry.subject
+													}
 												</Text>
 												<Text
 													style={[
@@ -1655,7 +1668,9 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 															},
 														]}
 													>
-														{entry.note}
+														{
+															entry.note
+														}
 													</Text>
 												</View>
 											) : null}

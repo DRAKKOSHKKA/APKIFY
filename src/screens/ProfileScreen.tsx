@@ -452,6 +452,484 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 					</View>
 				</View>
 
+				{/* СЕКЦИЯ: ЭФИР АКТИВНОСТИ (LIVE ACTIVITIES) */}
+				<View style={styles.section}>
+					<Text
+						style={[
+							styles.sectionTitle,
+							{ color: theme.textSecondary },
+						]}
+					>
+						ЭФИР АКТИВНОСТИ (LIVE ACTIVITIES)
+					</Text>
+					<View
+						style={[
+							styles.card,
+							{
+								backgroundColor:
+									theme.groupedCell,
+								borderColor: theme.border,
+							},
+						]}
+					>
+						{/* Главный тумблер включения */}
+						<View style={styles.switchRow}>
+							<View style={styles.labelRowCompact}>
+								<View
+									style={[
+										styles.iconSquare,
+										{
+											backgroundColor:
+												"#34C759",
+										},
+									]}
+								>
+									<Ionicons
+										name="pulse"
+										size={17}
+										color="#FFFFFF"
+									/>
+								</View>
+								<View style={styles.textColumn}>
+									<Text
+										style={[
+											styles.rowLabel,
+											{
+												color: theme.text,
+											},
+										]}
+									>
+										Эфир Активности
+									</Text>
+									<Text
+										style={[
+											styles.rowSubLabel,
+											{
+												color: theme.textSecondary,
+											},
+										]}
+									>
+										Виджет текущей пары в стиле Dynamic Island
+									</Text>
+								</View>
+							</View>
+							<Switch
+								value={
+									settings.liveActivity?.enabled ??
+									true
+								}
+								onValueChange={(val) => {
+									try {
+										Haptics.selectionAsync();
+									} catch {}
+									onUpdateSettings({
+										liveActivity: {
+											...(settings.liveActivity || {
+												style: "dynamic_island",
+												showSeconds: true,
+												showProgress: true,
+												showNextLesson: true,
+												pinToTop: false,
+												hapticFeedback: true,
+											}),
+											enabled: val,
+										},
+									});
+								}}
+								trackColor={{
+									false: theme.chipBackground,
+									true: theme.success,
+								}}
+								thumbColor="#FFFFFF"
+								ios_backgroundColor={
+									theme.chipBackground
+								}
+							/>
+						</View>
+
+						{(settings.liveActivity?.enabled ?? true) && (
+							<>
+								<View
+									style={[
+										styles.divider,
+										{
+											backgroundColor:
+												theme.separator,
+										},
+									]}
+								/>
+
+								{/* Стиль отображения */}
+								<View style={styles.columnRow}>
+									<View style={styles.labelRow}>
+										<View
+											style={[
+												styles.iconSquare,
+												{
+													backgroundColor:
+														"#007AFF",
+												},
+											]}
+										>
+											<Ionicons
+												name="shapes-outline"
+												size={17}
+												color="#FFFFFF"
+											/>
+										</View>
+										<View style={{ flex: 1 }}>
+											<Text
+												style={[
+													styles.rowLabel,
+													{
+														color: theme.text,
+													},
+												]}
+											>
+												Стиль оформления
+											</Text>
+											<Text
+												style={[
+													styles.colorSelectedLabel,
+													{
+														color: theme.textSecondary,
+													},
+												]}
+											>
+												{(settings.liveActivity?.style || "dynamic_island") === "dynamic_island"
+													? "Динамический остров"
+													: (settings.liveActivity?.style === "lock_screen"
+															? "Экран блокировки"
+															: "Компактный")}
+											</Text>
+										</View>
+									</View>
+
+									<View
+										style={[
+											styles.segmented,
+											{ backgroundColor: theme.chipBackground },
+										]}
+									>
+										{[
+											{ key: "dynamic_island", label: "Остров" },
+											{ key: "lock_screen", label: "Плитка" },
+											{ key: "minimal", label: "Мини" },
+										].map((item) => {
+											const active =
+												(settings.liveActivity?.style || "dynamic_island") === item.key;
+											return (
+												<TouchableOpacity
+													key={item.key}
+													style={[
+														styles.segmentBtn,
+														active && [
+															styles.segmentBtnActive,
+															{
+																backgroundColor:
+																	theme.card,
+															},
+														],
+													]}
+													onPress={() => {
+														try {
+															Haptics.selectionAsync();
+														} catch {}
+														onUpdateSettings({
+															liveActivity: {
+																...(settings.liveActivity || {
+																	enabled: true,
+																	showSeconds: true,
+																	showProgress: true,
+																	showNextLesson: true,
+																	pinToTop: false,
+																	hapticFeedback: true,
+																}),
+																style: item.key as any,
+															},
+														});
+													}}
+												>
+													<Text
+														style={[
+															styles.segmentBtnText,
+															{
+																color: active
+																	? theme.text
+																	: theme.textSecondary,
+																fontWeight: active
+																	? "700"
+																	: "500",
+															},
+														]}
+													>
+														{item.label}
+													</Text>
+												</TouchableOpacity>
+											);
+										})}
+									</View>
+								</View>
+
+								<View
+									style={[
+										styles.divider,
+										{
+											backgroundColor:
+												theme.separator,
+										},
+									]}
+								/>
+
+								{/* Секунды в таймере */}
+								<View style={styles.switchRow}>
+									<View style={styles.labelRowCompact}>
+										<View
+											style={[
+												styles.iconSquare,
+												{
+													backgroundColor:
+														"#FF9500",
+												},
+											]}
+										>
+											<Ionicons
+												name="timer-outline"
+												size={17}
+												color="#FFFFFF"
+											/>
+										</View>
+										<View style={styles.textColumn}>
+											<Text
+												style={[
+													styles.rowLabel,
+													{
+														color: theme.text,
+													},
+												]}
+											>
+												Секунды в таймере
+											</Text>
+											<Text
+												style={[
+													styles.rowSubLabel,
+													{
+														color: theme.textSecondary,
+													},
+												]}
+											>
+												Живой отсчёт секунд до конца пары
+											</Text>
+										</View>
+									</View>
+									<Switch
+										value={
+											settings.liveActivity?.showSeconds ??
+											true
+										}
+										onValueChange={(val) => {
+											try {
+												Haptics.selectionAsync();
+											} catch {}
+											onUpdateSettings({
+												liveActivity: {
+													...(settings.liveActivity || {
+														enabled: true,
+														style: "dynamic_island",
+														showProgress: true,
+														showNextLesson: true,
+														pinToTop: false,
+														hapticFeedback: true,
+													}),
+													showSeconds: val,
+												},
+											});
+										}}
+										trackColor={{
+											false: theme.chipBackground,
+											true: theme.success,
+										}}
+										thumbColor="#FFFFFF"
+										ios_backgroundColor={
+											theme.chipBackground
+										}
+									/>
+								</View>
+
+								<View
+									style={[
+										styles.divider,
+										{
+											backgroundColor:
+												theme.separator,
+										},
+									]}
+								/>
+
+								{/* Шкала прогресса */}
+								<View style={styles.switchRow}>
+									<View style={styles.labelRowCompact}>
+										<View
+											style={[
+												styles.iconSquare,
+												{
+													backgroundColor:
+														"#AF52DE",
+												},
+											]}
+										>
+											<Ionicons
+												name="bar-chart-outline"
+												size={17}
+												color="#FFFFFF"
+											/>
+										</View>
+										<View style={styles.textColumn}>
+											<Text
+												style={[
+													styles.rowLabel,
+													{
+														color: theme.text,
+													},
+												]}
+											>
+												Шкала прогресса
+											</Text>
+											<Text
+												style={[
+													styles.rowSubLabel,
+													{
+														color: theme.textSecondary,
+													},
+												]}
+											>
+												Плавное заполнение полосы времени
+											</Text>
+										</View>
+									</View>
+									<Switch
+										value={
+											settings.liveActivity?.showProgress ??
+											true
+										}
+										onValueChange={(val) => {
+											try {
+												Haptics.selectionAsync();
+											} catch {}
+											onUpdateSettings({
+												liveActivity: {
+													...(settings.liveActivity || {
+														enabled: true,
+														style: "dynamic_island",
+														showSeconds: true,
+														showNextLesson: true,
+														pinToTop: false,
+														hapticFeedback: true,
+													}),
+													showProgress: val,
+												},
+											});
+										}}
+										trackColor={{
+											false: theme.chipBackground,
+											true: theme.success,
+										}}
+										thumbColor="#FFFFFF"
+										ios_backgroundColor={
+											theme.chipBackground
+										}
+									/>
+								</View>
+
+								<View
+									style={[
+										styles.divider,
+										{
+											backgroundColor:
+												theme.separator,
+										},
+									]}
+								/>
+
+								{/* Превью следующей пары */}
+								<View style={styles.switchRow}>
+									<View style={styles.labelRowCompact}>
+										<View
+											style={[
+												styles.iconSquare,
+												{
+													backgroundColor:
+														"#5856D6",
+												},
+											]}
+										>
+											<Ionicons
+												name="arrow-forward-outline"
+												size={17}
+												color="#FFFFFF"
+											/>
+										</View>
+										<View style={styles.textColumn}>
+											<Text
+												style={[
+													styles.rowLabel,
+													{
+														color: theme.text,
+													},
+												]}
+											>
+												Превью следующей пары
+											</Text>
+											<Text
+												style={[
+													styles.rowSubLabel,
+													{
+														color: theme.textSecondary,
+													},
+												]}
+											>
+												Показывать, какая пара будет далее
+											</Text>
+										</View>
+									</View>
+									<Switch
+										value={
+											settings.liveActivity?.showNextLesson ??
+											true
+										}
+										onValueChange={(val) => {
+											try {
+												Haptics.selectionAsync();
+											} catch {}
+											onUpdateSettings({
+												liveActivity: {
+													...(settings.liveActivity || {
+														enabled: true,
+														style: "dynamic_island",
+														showSeconds: true,
+														showProgress: true,
+														pinToTop: false,
+														hapticFeedback: true,
+													}),
+													showNextLesson: val,
+												},
+											});
+										}}
+										trackColor={{
+											false: theme.chipBackground,
+											true: theme.success,
+										}}
+										thumbColor="#FFFFFF"
+										ios_backgroundColor={
+											theme.chipBackground
+										}
+									/>
+								</View>
+							</>
+						)}
+					</View>
+				</View>
+
 				{/* СЕКЦИЯ 3: СПРАВОЧНИК И ЗВОНКИ */}
 				<View style={styles.section}>
 					<Text
