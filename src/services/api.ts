@@ -77,20 +77,50 @@ export function getSemesterWeeks(
 }
 
 /**
+ * Безопасный запрос с таймаутом (защита от зависания интерфейса при падении сайта)
+ */
+export async function fetchWithTimeout(
+	url: string,
+	options: RequestInit = {},
+	timeoutMs: number = 7000
+): Promise<Response> {
+	const controller = new AbortController();
+	const timer = setTimeout(() => {
+		controller.abort();
+	}, timeoutMs);
+
+	try {
+		const response = await fetch(url, {
+			...options,
+			signal: controller.signal,
+		});
+		clearTimeout(timer);
+		return response;
+	} catch (error: any) {
+		clearTimeout(timer);
+		if (error.name === "AbortError") {
+			throw new Error("Сервер колледжа не отвечает (таймаут соединения 7 сек)");
+		}
+		throw error;
+	}
+}
+
+/**
  * Получение текущей активной недели с главной страницы колледжа
  */
 export async function getCurrentWeekId(
 	ownerId: number = DEFAULT_OWNER_ID
 ): Promise<string> {
 	try {
-		const res = await fetch(
+		const res = await fetchWithTimeout(
 			`${BASE_URL}/SearchString/Index/${ownerId}`,
 			{
 				headers: {
 					"User-Agent":
 						"Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15",
 				},
-			}
+			},
+			5000
 		);
 		if (res.ok) {
 			const html = await res.text();
@@ -105,11 +135,12 @@ export async function getCurrentWeekId(
 		}
 	} catch (err) {
 		console.warn(
-			"Не удалось получить текущую неделю с сервера, используем дефолтную:",
+			"Не удалось получить текущую неделю с сервера, рассчитываем по календарю:",
 			err
 		);
 	}
-	return DEFAULT_WEEK_ID;
+	// Если сервер недоступен, рассчитываем точную календарную неделю семестра
+	return getRealCurrentWeekId();
 }
 
 /**
@@ -124,13 +155,17 @@ export async function searchEntities(
 
 	const url = `${BASE_URL}/SearchString/KeySearch?Id=${ownerId}&SearchProductName=${encodeURIComponent(trimmed)}`;
 
-	const response = await fetch(url, {
-		headers: {
-			"Accept": "application/json",
-			"User-Agent":
-				"Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15",
+	const response = await fetchWithTimeout(
+		url,
+		{
+			headers: {
+				"Accept": "application/json",
+				"User-Agent":
+					"Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15",
+			},
 		},
-	});
+		5000
+	);
 
 	if (!response.ok) {
 		throw new Error(
@@ -166,12 +201,16 @@ export async function fetchSchedule(
 	const url = `${BASE_URL}/Raspisanie/SearchedRaspisanie?OwnerId=${entity.OwnerId}&SearchId=${entity.SearchId}&SearchString=${encodeURIComponent(entity.SearchContent)}&Type=${entity.Type}&WeekId=${targetWeekId}`;
 
 	const startTime = Date.now();
-	const response = await fetch(url, {
-		headers: {
-			"User-Agent":
-				"Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15",
+	const response = await fetchWithTimeout(
+		url,
+		{
+			headers: {
+				"User-Agent":
+					"Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15",
+			},
 		},
-	});
+		7000
+	);
 
 	const latencyMs = Date.now() - startTime;
 

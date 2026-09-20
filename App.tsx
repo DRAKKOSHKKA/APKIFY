@@ -20,6 +20,8 @@ import {
 	getCurrentEntity,
 	saveCurrentEntity,
 	getCachedSchedule,
+	getLatestCachedSchedule,
+	getFallbackDemoSchedule,
 	saveCachedSchedule,
 	getFavorites,
 	toggleFavorite,
@@ -119,7 +121,10 @@ export default function App() {
 	};
 
 	/**
-	 * Загрузка расписания
+	 * Загрузка расписания с алгоритмом Stale-While-Revalidate:
+	 * 1. Мгновенно отображаем сохранённый кэш (если есть).
+	 * 2. В фоне опрашиваем сайт колледжа.
+	 * 3. Если сайт недоступен — сохраняем кэш на экране и показываем информационную плашку.
 	 */
 	const loadSchedule = useCallback(
 		async (
@@ -134,16 +139,21 @@ export default function App() {
 			}
 			setErrorMessage(null);
 
-			// Проверяем локальный кэш для мгновенного рендера
-			const cached = await getCachedSchedule(
-				targetEntity,
-				weekId
-			);
+			// 1. Мгновенная попытка загрузки из локального кэша
+			let cached = await getCachedSchedule(targetEntity, weekId);
+			if (!cached) {
+				cached = await getLatestCachedSchedule(targetEntity);
+			}
+
 			if (cached && !isRefresh) {
 				setSchedule(cached);
 				setSelectedDayIndex(pickTodayIndex(cached.days));
+				if (cached.weekId && !weekId) {
+					setSelectedWeekId(cached.weekId);
+				}
 			}
 
+			// 2. Фоновый запрос актуального расписания
 			try {
 				const targetWeek =
 					weekId ||
@@ -167,6 +177,7 @@ export default function App() {
 
 				setSchedule(freshData);
 				setIsOffline(false);
+				setErrorMessage(null);
 				await saveCachedSchedule(freshData);
 
 				if (!cached || isRefresh) {
@@ -176,11 +187,19 @@ export default function App() {
 				}
 			} catch (err: any) {
 				console.warn("Ошибка загрузки расписания:", err);
+				// Если сайт недоступен, пробуем подтянуть любой сохранённый кэш
+				if (!cached) {
+					cached = await getLatestCachedSchedule(targetEntity);
+				}
+
 				if (cached) {
+					setSchedule(cached);
 					setIsOffline(true);
+					setErrorMessage(null);
 				} else {
+					setIsOffline(true);
 					setErrorMessage(
-						"Не удалось загрузить расписание. Проверьте интернет-соединение."
+						"Сайт колледжа или интернет недоступен, а сохранённых данных для этой группы пока нет."
 					);
 				}
 			} finally {
@@ -422,6 +441,20 @@ export default function App() {
 		}
 	};
 
+	const handleLoadDemo = useCallback(async () => {
+		setIsLoading(true);
+		try {
+			const demoData = getFallbackDemoSchedule(entity);
+			setSchedule(demoData);
+			setIsOffline(true);
+			setErrorMessage(null);
+			setSelectedDayIndex(pickTodayIndex(demoData.days));
+			await saveCachedSchedule(demoData);
+		} finally {
+			setIsLoading(false);
+		}
+	}, [entity]);
+
 	const activeSchedule = customSchedule || schedule;
 
 	return (
@@ -468,6 +501,7 @@ export default function App() {
 						onRetry={() =>
 							loadSchedule(entity, selectedWeekId)
 						}
+						onLoadDemo={handleLoadDemo}
 						onDismissUpdateNotice={() =>
 							setIsScheduleUpdated(false)
 						}

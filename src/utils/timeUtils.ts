@@ -385,3 +385,62 @@ export function normalizeSaturdayTimes(
 		days: updatedDays,
 	};
 }
+
+/**
+ * Человекочитаемое форматирование времени последнего сохранения кэша
+ */
+export function formatLastUpdated(timestamp?: number): string {
+	if (!timestamp || isNaN(timestamp) || timestamp <= 0) {
+		return "сохранено ранее";
+	}
+	const date = new Date(timestamp);
+	const now = new Date();
+	const diffMs = Math.max(0, now.getTime() - date.getTime());
+
+	const timeStr = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+
+	const isToday =
+		date.getDate() === now.getDate() &&
+		date.getMonth() === now.getMonth() &&
+		date.getFullYear() === now.getFullYear();
+
+	if (isToday) {
+		const diffMins = Math.floor(diffMs / (1000 * 60));
+		if (diffMins < 5) {
+			return "только что";
+		}
+		return `сегодня в ${timeStr}`;
+	}
+
+	const yesterday = new Date(now);
+	yesterday.setDate(yesterday.getDate() - 1);
+	const isYesterday =
+		date.getDate() === yesterday.getDate() &&
+		date.getMonth() === yesterday.getMonth() &&
+		date.getFullYear() === yesterday.getFullYear();
+
+	if (isYesterday) {
+		return `вчера в ${timeStr}`;
+	}
+
+	const dayStr = String(date.getDate()).padStart(2, "0");
+	const monthStr = String(date.getMonth() + 1).padStart(2, "0");
+	const daysAgo = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+	if (daysAgo >= 2) {
+		return `${dayStr}.${monthStr} в ${timeStr} (${daysAgo} дн. назад)`;
+	}
+	return `${dayStr}.${monthStr} в ${timeStr}`;
+}
+
+/**
+ * Проверка, устарел ли локальный кэш (сохранён более 6 часов назад или в другой день)
+ */
+export function isCacheStale(timestamp?: number): boolean {
+	if (!timestamp || isNaN(timestamp) || timestamp <= 0) {
+		return true;
+	}
+	const now = Date.now();
+	const diffHours = (now - timestamp) / (1000 * 60 * 60);
+	return diffHours > 6;
+}
+

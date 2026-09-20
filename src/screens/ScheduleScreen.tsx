@@ -23,6 +23,7 @@ import { ThemeColors } from "../theme/colors";
 import {
 	formatFullDate,
 	getCurrentDayLiveStatus,
+	formatLastUpdated,
 } from "../utils/timeUtils";
 import * as Haptics from "expo-haptics";
 
@@ -61,6 +62,7 @@ interface ScheduleScreenProps {
 	onToggleFav?: () => void;
 	onRefresh: () => void;
 	onRetry: () => void;
+	onLoadDemo?: () => void;
 	onDismissUpdateNotice?: () => void;
 	onResetMockTime?: () => void;
 }
@@ -83,6 +85,7 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 	onOpenCalls,
 	onRefresh,
 	onRetry,
+	onLoadDemo,
 	onDismissUpdateNotice,
 	onResetMockTime,
 }) => {
@@ -337,17 +340,84 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 				/>
 			)}
 
-			{/* Спокойное уведомление об офлайн-режиме (если сети нет) */}
+			{/* Информативное предупреждение об офлайн-режиме (когда сайт лежит или нет интернета) */}
 			{isOffline && (
-				<View style={styles.offlineNotice}>
-					<Text
-						style={[
-							styles.offlineText,
-							{ color: theme.textSecondary },
-						]}
-					>
-						Офлайн-копия
-					</Text>
+				<View
+					style={[
+						styles.offlineBanner,
+						{
+							backgroundColor: theme.isDark
+								? "rgba(255, 149, 0, 0.14)"
+								: "rgba(255, 149, 0, 0.10)",
+							borderColor: theme.isDark
+								? "rgba(255, 149, 0, 0.45)"
+								: "rgba(255, 149, 0, 0.35)",
+						},
+					]}
+				>
+					<View style={styles.offlineBannerContent}>
+						<Ionicons
+							name="cloud-offline"
+							size={22}
+							color="#FF9500"
+							style={styles.offlineBannerIcon}
+						/>
+						<View style={styles.offlineBannerTextCol}>
+							<Text
+								style={[
+									styles.offlineBannerTitle,
+									{
+										color: theme.isDark
+											? "#FFB340"
+											: "#C96800",
+									},
+								]}
+								numberOfLines={1}
+							>
+								Офлайн-режим • Сайт колледжа недоступен
+							</Text>
+							<Text
+								style={[
+									styles.offlineBannerSubtitle,
+									{
+										color: theme.isDark
+											? "#E0B366"
+											: "#8A4B00",
+									},
+								]}
+								numberOfLines={2}
+							>
+								{schedule?.lastUpdated
+									? `Показаны сохранённые данные (${formatLastUpdated(schedule.lastUpdated)}). Они могут быть неактуальны.`
+									: "Показаны сохранённые данные из локальной памяти. Они могут быть неактуальны."}
+							</Text>
+						</View>
+						<TouchableOpacity
+							style={[
+								styles.offlineSyncBtn,
+								{
+									backgroundColor: theme.isDark
+										? "rgba(255, 149, 0, 0.25)"
+										: "rgba(255, 149, 0, 0.20)",
+								},
+							]}
+							onPress={() => {
+								try {
+									Haptics.impactAsync(
+										Haptics.ImpactFeedbackStyle.Light
+									);
+								} catch {}
+								onRetry();
+							}}
+							hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+						>
+							<Ionicons
+								name="sync"
+								size={16}
+								color={theme.isDark ? "#FFB340" : "#C96800"}
+							/>
+						</TouchableOpacity>
+					</View>
 				</View>
 			)}
 
@@ -366,18 +436,29 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 			>
 				{errorMessage && !schedule ? (
 					<View style={styles.centerBox}>
-						<Ionicons
-							name="cloud-offline-outline"
-							size={48}
-							color={theme.textSecondary}
-						/>
+						<View
+							style={[
+								styles.errorIconWrap,
+								{
+									backgroundColor: theme.isDark
+										? "rgba(255, 69, 58, 0.15)"
+										: "rgba(255, 69, 58, 0.10)",
+								},
+							]}
+						>
+							<Ionicons
+								name="cloud-offline-outline"
+								size={40}
+								color={theme.isDark ? "#FF453A" : "#D70015"}
+							/>
+						</View>
 						<Text
 							style={[
 								styles.errorTitle,
 								{ color: theme.text },
 							]}
 						>
-							Нет связи с сервером
+							Сайт колледжа сейчас недоступен
 						</Text>
 						<Text
 							style={[
@@ -387,20 +468,59 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 						>
 							{errorMessage}
 						</Text>
-						<TouchableOpacity
-							style={[
-								styles.retryBtn,
-								{
-									backgroundColor:
-										theme.accent,
-								},
-							]}
-							onPress={onRetry}
-						>
-							<Text style={styles.retryBtnText}>
-								Повторить
-							</Text>
-						</TouchableOpacity>
+						<View style={styles.errorActions}>
+							<TouchableOpacity
+								style={[
+									styles.retryBtn,
+									{
+										backgroundColor:
+											theme.accent,
+									},
+								]}
+								activeOpacity={0.7}
+								onPress={onRetry}
+							>
+								<Ionicons
+									name="refresh"
+									size={16}
+									color="#FFFFFF"
+									style={{ marginRight: 6 }}
+								/>
+								<Text style={styles.retryBtnText}>
+									Повторить попытку
+								</Text>
+							</TouchableOpacity>
+
+							{onLoadDemo && (
+								<TouchableOpacity
+									style={[
+										styles.demoBtn,
+										{
+											backgroundColor:
+												theme.chipBackground,
+											borderColor: theme.border,
+										},
+									]}
+									activeOpacity={0.7}
+									onPress={onLoadDemo}
+								>
+									<Ionicons
+										name="document-text-outline"
+										size={16}
+										color={theme.text}
+										style={{ marginRight: 6 }}
+									/>
+									<Text
+										style={[
+											styles.demoBtnText,
+											{ color: theme.text },
+										]}
+									>
+										Офлайн расписание (демо)
+									</Text>
+								</TouchableOpacity>
+							)}
+						</View>
 					</View>
 				) : selectedDay ? (
 					<View>
@@ -1067,13 +1187,45 @@ const styles = StyleSheet.create({
 		width: "100%",
 		alignSelf: "center",
 	},
-	offlineNotice: {
-		alignItems: "center",
-		paddingVertical: 4,
+	offlineBanner: {
+		marginHorizontal: 16,
+		marginTop: 6,
+		marginBottom: 6,
+		borderRadius: 14,
+		borderWidth: 1,
+		padding: 10,
+		maxWidth: 720,
+		width: "92%",
+		alignSelf: "center",
 	},
-	offlineText: {
+	offlineBannerContent: {
+		flexDirection: "row",
+		alignItems: "center",
+	},
+	offlineBannerIcon: {
+		marginRight: 10,
+	},
+	offlineBannerTextCol: {
+		flex: 1,
+		paddingRight: 6,
+	},
+	offlineBannerTitle: {
+		fontSize: 12,
+		fontWeight: "700",
+		letterSpacing: -0.1,
+		marginBottom: 2,
+	},
+	offlineBannerSubtitle: {
 		fontSize: 11,
 		fontWeight: "500",
+		lineHeight: 15,
+	},
+	offlineSyncBtn: {
+		width: 32,
+		height: 32,
+		borderRadius: 16,
+		alignItems: "center",
+		justifyContent: "center",
 	},
 	dayHeader: {
 		flexDirection: "row",
@@ -1300,14 +1452,44 @@ const styles = StyleSheet.create({
 		marginBottom: 16,
 		lineHeight: 18,
 	},
+	errorIconWrap: {
+		width: 76,
+		height: 76,
+		borderRadius: 38,
+		alignItems: "center",
+		justifyContent: "center",
+		marginBottom: 4,
+	},
+	errorActions: {
+		width: "100%",
+		maxWidth: 300,
+		marginTop: 8,
+		gap: 10,
+	},
 	retryBtn: {
-		paddingHorizontal: 18,
-		paddingVertical: 8,
-		borderRadius: 18,
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		paddingHorizontal: 20,
+		paddingVertical: 12,
+		borderRadius: RADIUS.button,
 	},
 	retryBtnText: {
+		fontSize: 15,
+		fontWeight: "700",
+		color: "#FFFFFF",
+	},
+	demoBtn: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		paddingHorizontal: 20,
+		paddingVertical: 12,
+		borderRadius: RADIUS.button,
+		borderWidth: StyleSheet.hairlineWidth,
+	},
+	demoBtnText: {
 		fontSize: 14,
 		fontWeight: "600",
-		color: "#FFFFFF",
 	},
 });
