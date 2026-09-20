@@ -129,7 +129,10 @@ export async function saveCachedSchedule(
 		await AsyncStorage.setItem(latestKey, json);
 
 		// 3. Глобально последнее открытое расписание приложения
-		await AsyncStorage.setItem(STORAGE_KEYS.GLOBAL_LATEST, json);
+		await AsyncStorage.setItem(
+			STORAGE_KEYS.GLOBAL_LATEST,
+			json
+		);
 
 		// 4. Легаси-ключ для обратной совместимости
 		const legacyKey = `${STORAGE_KEYS.SCHEDULE_CACHE_PREFIX}${data.entity.OwnerId}_${data.entity.SearchId}_current`;
@@ -168,20 +171,25 @@ export async function getCachedSchedule(
 		const latestKey = `${STORAGE_KEYS.SCHEDULE_LATEST_PREFIX}${entity.OwnerId}_${entity.SearchId}`;
 		const latestJson = await AsyncStorage.getItem(latestKey);
 		if (latestJson) {
-			return normalizeSaturdayTimes(JSON.parse(latestJson));
+			return normalizeSaturdayTimes(
+				JSON.parse(latestJson)
+			);
 		}
 
 		// 4. Сканируем все ключи этой группы в хранилище (любая сохраненная неделя)
 		const allKeys = await AsyncStorage.getAllKeys();
 		const entityPrefix = `${STORAGE_KEYS.SCHEDULE_CACHE_PREFIX}${entity.OwnerId}_${entity.SearchId}_`;
-		const groupKeys = allKeys.filter((k) => k.startsWith(entityPrefix));
+		const groupKeys = allKeys.filter((k) =>
+			k.startsWith(entityPrefix)
+		);
 		if (groupKeys.length > 0) {
 			const items = await AsyncStorage.multiGet(groupKeys);
 			let bestData: ScheduleData | null = null;
 			for (const [, val] of items) {
 				if (val) {
 					try {
-						const parsed: ScheduleData = JSON.parse(val);
+						const parsed: ScheduleData =
+							JSON.parse(val);
 						if (
 							!bestData ||
 							(parsed.lastUpdated || 0) >
@@ -199,9 +207,12 @@ export async function getCachedSchedule(
 
 		// 5. Проверяем старый легаси-ключ _current
 		const currentKey = `${STORAGE_KEYS.SCHEDULE_CACHE_PREFIX}${entity.OwnerId}_${entity.SearchId}_current`;
-		const currentJson = await AsyncStorage.getItem(currentKey);
+		const currentJson =
+			await AsyncStorage.getItem(currentKey);
 		if (currentJson) {
-			return normalizeSaturdayTimes(JSON.parse(currentJson));
+			return normalizeSaturdayTimes(
+				JSON.parse(currentJson)
+			);
 		}
 	} catch (err) {
 		console.warn("Ошибка чтения кэша расписания:", err);
@@ -226,23 +237,29 @@ export async function getLatestCachedSchedule(
 			STORAGE_KEYS.GLOBAL_LATEST
 		);
 		if (globalLatest) {
-			return normalizeSaturdayTimes(JSON.parse(globalLatest));
+			return normalizeSaturdayTimes(
+				JSON.parse(globalLatest)
+			);
 		}
 
 		// Сканируем вообще все кэши в AsyncStorage
 		const allKeys = await AsyncStorage.getAllKeys();
 		const allCacheKeys = allKeys.filter(
 			(k) =>
-				k.startsWith(STORAGE_KEYS.SCHEDULE_CACHE_PREFIX) ||
+				k.startsWith(
+					STORAGE_KEYS.SCHEDULE_CACHE_PREFIX
+				) ||
 				k.startsWith(STORAGE_KEYS.SCHEDULE_LATEST_PREFIX)
 		);
 		if (allCacheKeys.length > 0) {
-			const items = await AsyncStorage.multiGet(allCacheKeys);
+			const items =
+				await AsyncStorage.multiGet(allCacheKeys);
 			let bestData: ScheduleData | null = null;
 			for (const [, val] of items) {
 				if (val) {
 					try {
-						const parsed: ScheduleData = JSON.parse(val);
+						const parsed: ScheduleData =
+							JSON.parse(val);
 						if (
 							!bestData ||
 							(parsed.lastUpdated || 0) >
@@ -272,13 +289,18 @@ export function getFallbackDemoSchedule(
 ): ScheduleData {
 	const currentWeekId = getRealCurrentWeekId();
 	const weeks = getSemesterWeeks(currentWeekId, currentWeekId);
-	const activeWeek = weeks.find((w) => w.weekId === currentWeekId) || weeks[0];
+	const activeWeek =
+		weeks.find((w) => w.weekId === currentWeekId) ||
+		weeks[0];
 
 	const demoSchedule: ScheduleData = {
 		entity: targetEntity,
 		weekId: currentWeekId,
-		currentWeekNum: activeWeek ? `${activeWeek.weekNum} неделя` : "1 неделя",
-		currentWeekDates: activeWeek?.dateRange || "14.09 — 20.09",
+		currentWeekNum: activeWeek
+			? `${activeWeek.weekNum} неделя`
+			: "1 неделя",
+		currentWeekDates:
+			activeWeek?.dateRange || "14.09 — 20.09",
 		realCurrentWeekId: currentWeekId,
 		weeks,
 		lastUpdated: Date.now() - 3600000 * 3, // Сохранено 3 часа назад
@@ -292,7 +314,8 @@ export function getFallbackDemoSchedule(
 						id: "fb-1",
 						pairIndex: 1,
 						time: "08:00 - 09:20",
-						subject: "МДК 02.01 Разработка программных модулей (Лекция)",
+						subject:
+							"МДК 02.01 Разработка программных модулей (Лекция)",
 						teacher: "Хайруллин Р.М.",
 						room: "312а",
 						group: targetEntity.SearchContent,
@@ -301,7 +324,8 @@ export function getFallbackDemoSchedule(
 						id: "fb-2a",
 						pairIndex: 2,
 						time: "09:30 - 10:50",
-						subject: "МДК 02.01 Разработка ПО (Лабораторная работа)",
+						subject:
+							"МДК 02.01 Разработка ПО (Лабораторная работа)",
 						teacher: "Хайруллин Р.М.",
 						room: "312а",
 						group: `${targetEntity.SearchContent} (1-я подгруппа)`,
@@ -310,7 +334,8 @@ export function getFallbackDemoSchedule(
 						id: "fb-2b",
 						pairIndex: 2,
 						time: "09:30 - 10:50",
-						subject: "Иностранный язык в профессиональной деятельности",
+						subject:
+							"Иностранный язык в профессиональной деятельности",
 						teacher: "Смирнова Е.А.",
 						room: "204",
 						group: `${targetEntity.SearchContent} (2-я подгруппа)`,
@@ -319,7 +344,8 @@ export function getFallbackDemoSchedule(
 						id: "fb-3",
 						pairIndex: 3,
 						time: "11:20 - 12:40",
-						subject: "Математические методы в программировании",
+						subject:
+							"Математические методы в программировании",
 						teacher: "Закиров И.Р.",
 						room: "108",
 						group: targetEntity.SearchContent,
@@ -353,7 +379,8 @@ export function getFallbackDemoSchedule(
 						id: "fb-2-2",
 						pairIndex: 2,
 						time: "09:30 - 10:50",
-						subject: "Проектирование и дизайн интерфейсов",
+						subject:
+							"Проектирование и дизайн интерфейсов",
 						teacher: "Валеев Т.И.",
 						room: "310",
 						group: targetEntity.SearchContent,
@@ -362,7 +389,8 @@ export function getFallbackDemoSchedule(
 						id: "fb-2-3a",
 						pairIndex: 3,
 						time: "11:20 - 12:40",
-						subject: "Иностранный язык в профессиональной деятельности",
+						subject:
+							"Иностранный язык в профессиональной деятельности",
 						teacher: "Смирнова Е.А.",
 						room: "204",
 						group: `${targetEntity.SearchContent} 1 п/г`,
@@ -371,7 +399,8 @@ export function getFallbackDemoSchedule(
 						id: "fb-2-3b",
 						pairIndex: 3,
 						time: "11:20 - 12:40",
-						subject: "Учебная практика (Программирование)",
+						subject:
+							"Учебная практика (Программирование)",
 						teacher: "Закиров И.Р.",
 						room: "108",
 						group: `${targetEntity.SearchContent} 2 п/г`,
@@ -387,7 +416,8 @@ export function getFallbackDemoSchedule(
 						id: "fb-3-1",
 						pairIndex: 1,
 						time: "08:00 - 09:20",
-						subject: "МДК 02.02 Инструментальные средства разработки ПО",
+						subject:
+							"МДК 02.02 Инструментальные средства разработки ПО",
 						teacher: "Хайруллин Р.М.",
 						room: "312а",
 						group: targetEntity.SearchContent,
@@ -405,7 +435,8 @@ export function getFallbackDemoSchedule(
 						id: "fb-3-3",
 						pairIndex: 3,
 						time: "11:20 - 12:40",
-						subject: "Базы данных и СУБД (Практикум)",
+						subject:
+							"Базы данных и СУБД (Практикум)",
 						teacher: "Сафина Г.М.",
 						room: "308",
 						group: targetEntity.SearchContent,
@@ -421,7 +452,8 @@ export function getFallbackDemoSchedule(
 						id: "fb-4-1",
 						pairIndex: 1,
 						time: "08:00 - 09:20",
-						subject: "Основы алгоритмизации и логики",
+						subject:
+							"Основы алгоритмизации и логики",
 						teacher: "Закиров И.Р.",
 						room: "108",
 						group: targetEntity.SearchContent,
@@ -430,7 +462,8 @@ export function getFallbackDemoSchedule(
 						id: "fb-4-2",
 						pairIndex: 2,
 						time: "09:30 - 10:50",
-						subject: "Компьютерные сети и телекоммуникации",
+						subject:
+							"Компьютерные сети и телекоммуникации",
 						teacher: "Газизов А.М.",
 						room: "216",
 						group: targetEntity.SearchContent,
@@ -455,7 +488,8 @@ export function getFallbackDemoSchedule(
 						id: "fb-5-1",
 						pairIndex: 1,
 						time: "08:00 - 09:20",
-						subject: "Веб-разработка и клиентские технологии",
+						subject:
+							"Веб-разработка и клиентские технологии",
 						teacher: "Шакиров И.Ф.",
 						room: "314",
 						group: targetEntity.SearchContent,
@@ -464,7 +498,8 @@ export function getFallbackDemoSchedule(
 						id: "fb-5-2",
 						pairIndex: 2,
 						time: "09:30 - 10:50",
-						subject: "МДК 02.01 Разработка программных модулей",
+						subject:
+							"МДК 02.01 Разработка программных модулей",
 						teacher: "Хайруллин Р.М.",
 						room: "312а",
 						group: targetEntity.SearchContent,
@@ -489,7 +524,8 @@ export function getFallbackDemoSchedule(
 						id: "fb-6-1",
 						pairIndex: 1,
 						time: "08:00 - 09:00",
-						subject: "Учебная практика (Программирование)",
+						subject:
+							"Учебная практика (Программирование)",
 						teacher: "Закиров И.Р.",
 						room: "108",
 						group: targetEntity.SearchContent,
@@ -498,7 +534,8 @@ export function getFallbackDemoSchedule(
 						id: "fb-6-2",
 						pairIndex: 2,
 						time: "09:05 - 10:05",
-						subject: "МДК 02.01 Разработка программных модулей",
+						subject:
+							"МДК 02.01 Разработка программных модулей",
 						teacher: "Хайруллин Р.М.",
 						room: "312а",
 						group: targetEntity.SearchContent,
@@ -507,7 +544,8 @@ export function getFallbackDemoSchedule(
 						id: "fb-6-3",
 						pairIndex: 3,
 						time: "10:15 - 11:15",
-						subject: "Консультация по курсовому проектированию",
+						subject:
+							"Консультация по курсовому проектированию",
 						teacher: "Хайруллин Р.М.",
 						room: "312а",
 						group: targetEntity.SearchContent,

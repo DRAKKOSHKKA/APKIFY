@@ -1,17 +1,20 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { StyleSheet, View, useColorScheme } from "react-native";
+import { StyleSheet, View, useColorScheme, Alert } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import {
 	SafeAreaProvider,
 	SafeAreaView,
 } from "react-native-safe-area-context";
+import * as Clipboard from "expo-clipboard";
 
 import {
 	AppSettings,
 	FavoriteItem,
+	Lesson,
 	ScheduleData,
 	SearchResultItem,
 } from "./src/types/schedule";
+import { GradeEntry } from "./src/types/grades";
 import {
 	fetchSchedule,
 	getCurrentWeekId,
@@ -31,15 +34,26 @@ import {
 	DEFAULT_ENTITY,
 	DEFAULT_SETTINGS,
 } from "./src/services/storage";
+import {
+	getGradesStore,
+	upsertGradeEntry,
+	deleteGradeEntry,
+	exportGradesFile,
+	importGradesFile,
+	getGradesExportJsonString,
+	importGradesFromJsonString,
+} from "./src/services/gradesStorage";
 import { getActiveTheme } from "./src/theme/colors";
 
 import { TabBar, TabType } from "./src/components/TabBar";
 import { ScheduleScreen } from "./src/screens/ScheduleScreen";
+import { GradesScreen } from "./src/screens/GradesScreen";
 import { ProfileScreen } from "./src/screens/ProfileScreen";
 import { SearchModal } from "./src/components/SearchModal";
 import { WeekModal } from "./src/components/WeekModal";
 import { CallsScheduleModal } from "./src/components/CallsScheduleModal";
 import { DebugModal } from "./src/components/DebugModal";
+import { GradeModal } from "./src/components/GradeModal";
 
 export default function App() {
 	const systemColorScheme = useColorScheme();
@@ -86,6 +100,21 @@ export default function App() {
 		useState<boolean>(false);
 	const [isDebugOpen, setIsDebugOpen] =
 		useState<boolean>(false);
+
+	// Оценки и заметки (хранение в специальной папке)
+	const [grades, setGrades] = useState<GradeEntry[]>([]);
+	const [isGradeModalOpen, setIsGradeModalOpen] =
+		useState<boolean>(false);
+	const [selectedGradeEntry, setSelectedGradeEntry] =
+		useState<GradeEntry | null>(null);
+	const [gradeInitialData, setGradeInitialData] = useState<{
+		subject: string;
+		date: string;
+		pairIndex?: number;
+		time?: string;
+		room?: string;
+		teacher?: string;
+	} | null>(null);
 
 	// Автономность и симуляция Debug
 	const [isScheduleUpdated, setIsScheduleUpdated] =
@@ -140,9 +169,13 @@ export default function App() {
 			setErrorMessage(null);
 
 			// 1. Мгновенная попытка загрузки из локального кэша
-			let cached = await getCachedSchedule(targetEntity, weekId);
+			let cached = await getCachedSchedule(
+				targetEntity,
+				weekId
+			);
 			if (!cached) {
-				cached = await getLatestCachedSchedule(targetEntity);
+				cached =
+					await getLatestCachedSchedule(targetEntity);
 			}
 
 			if (cached && !isRefresh) {
@@ -189,7 +222,10 @@ export default function App() {
 				console.warn("Ошибка загрузки расписания:", err);
 				// Если сайт недоступен, пробуем подтянуть любой сохранённый кэш
 				if (!cached) {
-					cached = await getLatestCachedSchedule(targetEntity);
+					cached =
+						await getLatestCachedSchedule(
+							targetEntity
+						);
 				}
 
 				if (cached) {
@@ -230,6 +266,14 @@ export default function App() {
 
 			const favStatus = await isFavorite(initialEntity);
 			setIsFav(favStatus);
+
+			// Загрузка оценок из специальной папки / кэша
+			try {
+				const store = await getGradesStore();
+				setGrades(store.entries);
+			} catch (err) {
+				console.warn("Ошибка загрузки оценок при старте:", err);
+			}
 
 			await loadSchedule(initialEntity);
 		}
@@ -455,6 +499,144 @@ export default function App() {
 		}
 	}, [entity]);
 
+	/**
+	 * Открыть добавление/редактирование оценки для пары из расписания
+	 */
+	const handleOpenGradeForLesson = (lesson: Lesson, date: string) => {
+		const existing = grades.find(
+			(g) =>
+				g.subject.trim().toLowerCase() ===
+					lesson.subject.trim().toLowerCase() &&
+				g.date === date &&
+				g.pairIndex === lesson.pairIndex
+		);
+		if (existing) {
+			setSelectedGradeEntry(existing);
+			setGradeInitialData(null);
+		} else {
+			setSelectedGradeEntry(null);
+			setGradeInitialData({
+				subject: lesson.subject,
+				date,
+				pairIndex: lesson.pairIndex,
+				time: lesson.time,
+				room: lesson.room,
+				teacher: lesson.teacher,
+			});
+		}
+		setIsGradeModalOpen(true);
+	};
+
+	/**
+	 * Ручное добавление оценки с экрана оценок
+	 */
+	const handleOpenAddGrade = () => {
+		setSelectedGradeEntry(null);
+		setGradeInitialData(null);
+		setIsGradeModalOpen(true);
+	};
+
+	/**
+	 * Редактирование существующей записи оценки
+	 */
+	const handleEditGrade = (entry: GradeEntry) => {
+		setSelectedGradeEntry(entry);
+		setGradeInitialData(null);
+		setIsGradeModalOpen(true);
+	};
+
+	/**
+	 * Сохранение оценки / заметки в специальную папку и кэш
+	 */
+	const handleSaveGrade = async (
+		entryData: Omit<GradeEntry, "id" | "createdAt" | "updatedAt"> & {
+			id?: string;
+		}
+	) => {
+		await upsertGradeEntry(entryData);
+		const updated = await getGradesStore();
+		setGrades(updated.entries);
+	};
+
+	/**
+	 * Удаление оценки
+	 */
+	const handleDeleteGrade = async (id: string) => {
+		await deleteGradeEntry(id);
+		const updated = await getGradesStore();
+		setGrades(updated.entries);
+	};
+
+	/**
+	 * Экспорт файла оценок через системный Share Sheet
+	 */
+	const handleExportGradesFile = async () => {
+		const ok = await exportGradesFile();
+		if (!ok) {
+			Alert.alert("Экспорт", "Не удалось открыть диалог экспорта файла.");
+		}
+	};
+
+	/**
+	 * Импорт файла оценок из системного диалога
+	 */
+	const handleImportGradesFile = async () => {
+		try {
+			const res = await importGradesFile();
+			if (res) {
+				const updated = await getGradesStore();
+				setGrades(updated.entries);
+				Alert.alert("Успешно", `Импортировано записей: ${res.count}`);
+			}
+		} catch (err: any) {
+			Alert.alert(
+				"Ошибка импорта",
+				err.message || "Не удалось импортировать файл."
+			);
+		}
+	};
+
+	/**
+	 * Копирование JSON резервной копии в буфер
+	 */
+	const handleExportGradesClipboard = async () => {
+		try {
+			const json = await getGradesExportJsonString();
+			await Clipboard.setStringAsync(json);
+			Alert.alert(
+				"Скопировано",
+				"JSON резервной копии успешно скопирован в буфер обмена."
+			);
+		} catch (err: any) {
+			Alert.alert("Ошибка", "Не удалось скопировать данные в буфер обмена.");
+		}
+	};
+
+	/**
+	 * Импорт JSON из строки
+	 */
+	const handleImportGradesClipboard = async (jsonString: string) => {
+		try {
+			const res = await importGradesFromJsonString(jsonString);
+			const updated = await getGradesStore();
+			setGrades(updated.entries);
+			Alert.alert("Успешно", `Импортировано записей: ${res.count}`);
+		} catch (err: any) {
+			Alert.alert(
+				"Ошибка импорта",
+				err.message || "Некорректный формат JSON бэкапа."
+			);
+		}
+	};
+
+	/**
+	 * Принудительное обновление состояния оценок
+	 */
+	const handleRefreshGrades = async () => {
+		const updated = await getGradesStore();
+		setGrades(updated.entries);
+	};
+
 	const activeSchedule = customSchedule || schedule;
 
 	return (
@@ -485,6 +667,8 @@ export default function App() {
 						errorMessage={errorMessage}
 						settings={settings}
 						theme={theme}
+						grades={grades}
+						onOpenGradeModal={handleOpenGradeForLesson}
 						onSelectDayIndex={setSelectedDayIndex}
 						onOpenSearch={() =>
 							setIsSearchOpen(true)
@@ -506,6 +690,22 @@ export default function App() {
 							setIsScheduleUpdated(false)
 						}
 						onResetMockTime={handleResetMockDate}
+					/>
+				)}
+
+				{/* Экран Оценки и успеваемость */}
+				{currentTab === "grades" && (
+					<GradesScreen
+						grades={grades}
+						theme={theme}
+						settings={settings}
+						onAddGrade={handleOpenAddGrade}
+						onEditGrade={handleEditGrade}
+						onExportFile={handleExportGradesFile}
+						onImportFile={handleImportGradesFile}
+						onExportClipboard={handleExportGradesClipboard}
+						onImportClipboard={handleImportGradesClipboard}
+						onRefreshGrades={handleRefreshGrades}
 					/>
 				)}
 
@@ -600,6 +800,17 @@ export default function App() {
 						)
 					}
 					onClose={() => setIsDebugOpen(false)}
+				/>
+
+				{/* Модальное окно добавления/редактирования оценки и заметки */}
+				<GradeModal
+					visible={isGradeModalOpen}
+					entryToEdit={selectedGradeEntry}
+					initialData={gradeInitialData}
+					theme={theme}
+					onSave={handleSaveGrade}
+					onDelete={handleDeleteGrade}
+					onClose={() => setIsGradeModalOpen(false)}
 				/>
 			</SafeAreaView>
 		</SafeAreaProvider>

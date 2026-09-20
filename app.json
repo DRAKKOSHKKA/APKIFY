@@ -17,7 +17,9 @@
 			"supportsTablet": true,
 			"bundleIdentifier": "ru.apk.schedule",
 			"infoPlist": {
-				"ITSAppUsesNonExemptEncryption": false
+				"ITSAppUsesNonExemptEncryption": false,
+				"UIFileSharingEnabled": true,
+				"LSSupportsOpeningDocumentsInPlace": true
 			}
 		},
 		"android": {
@@ -33,7 +35,18 @@
 		"web": {
 			"favicon": "./assets/favicon.png"
 		},
-		"plugins": ["expo-font", "expo-asset"],
+		"plugins": [
+			"expo-font",
+			"expo-asset",
+			"expo-sharing",
+			[
+				"expo-file-system",
+				{
+					"supportsOpeningDocumentsInPlace": true,
+					"enableFileSharing": true
+				}
+			]
+		],
 		"extra": {
 			"eas": {
 				"projectId": "798a9bdd-23da-40ef-b24d-1f429dae961b"

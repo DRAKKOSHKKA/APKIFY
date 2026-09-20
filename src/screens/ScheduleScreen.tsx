@@ -19,6 +19,8 @@ import {
 	ScheduleData,
 	SearchResultItem,
 } from "../types/schedule";
+import { GradeEntry } from "../types/grades";
+import { findGradeForLesson } from "../services/gradesStorage";
 import { ThemeColors } from "../theme/colors";
 import {
 	formatFullDate,
@@ -65,6 +67,8 @@ interface ScheduleScreenProps {
 	onLoadDemo?: () => void;
 	onDismissUpdateNotice?: () => void;
 	onResetMockTime?: () => void;
+	grades?: GradeEntry[];
+	onOpenGradeModal?: (lesson: Lesson, date: string) => void;
 }
 
 export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
@@ -88,6 +92,8 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 	onLoadDemo,
 	onDismissUpdateNotice,
 	onResetMockTime,
+	grades = [],
+	onOpenGradeModal,
 }) => {
 	const selectedDay = schedule?.days[selectedDayIndex];
 
@@ -362,7 +368,9 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 							color="#FF9500"
 							style={styles.offlineBannerIcon}
 						/>
-						<View style={styles.offlineBannerTextCol}>
+						<View
+							style={styles.offlineBannerTextCol}
+						>
 							<Text
 								style={[
 									styles.offlineBannerTitle,
@@ -374,7 +382,8 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 								]}
 								numberOfLines={1}
 							>
-								Офлайн-режим • Сайт колледжа недоступен
+								Офлайн-режим • Сайт колледжа
+								недоступен
 							</Text>
 							<Text
 								style={[
@@ -404,17 +413,28 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 							onPress={() => {
 								try {
 									Haptics.impactAsync(
-										Haptics.ImpactFeedbackStyle.Light
+										Haptics
+											.ImpactFeedbackStyle
+											.Light
 									);
 								} catch {}
 								onRetry();
 							}}
-							hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+							hitSlop={{
+								top: 8,
+								bottom: 8,
+								left: 8,
+								right: 8,
+							}}
 						>
 							<Ionicons
 								name="sync"
 								size={16}
-								color={theme.isDark ? "#FFB340" : "#C96800"}
+								color={
+									theme.isDark
+										? "#FFB340"
+										: "#C96800"
+								}
 							/>
 						</TouchableOpacity>
 					</View>
@@ -449,7 +469,11 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 							<Ionicons
 								name="cloud-offline-outline"
 								size={40}
-								color={theme.isDark ? "#FF453A" : "#D70015"}
+								color={
+									theme.isDark
+										? "#FF453A"
+										: "#D70015"
+								}
 							/>
 						</View>
 						<Text
@@ -486,7 +510,9 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 									color="#FFFFFF"
 									style={{ marginRight: 6 }}
 								/>
-								<Text style={styles.retryBtnText}>
+								<Text
+									style={styles.retryBtnText}
+								>
 									Повторить попытку
 								</Text>
 							</TouchableOpacity>
@@ -498,7 +524,8 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 										{
 											backgroundColor:
 												theme.chipBackground,
-											borderColor: theme.border,
+											borderColor:
+												theme.border,
 										},
 									]}
 									activeOpacity={0.7}
@@ -508,12 +535,16 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 										name="document-text-outline"
 										size={16}
 										color={theme.text}
-										style={{ marginRight: 6 }}
+										style={{
+											marginRight: 6,
+										}}
 									/>
 									<Text
 										style={[
 											styles.demoBtnText,
-											{ color: theme.text },
+											{
+												color: theme.text,
+											},
 										]}
 									>
 										Офлайн расписание (демо)
@@ -1137,6 +1168,13 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 											selectedDayIndex
 										: selectedDay.isToday;
 
+								const lessonGrade = findGradeForLesson(
+									grades,
+									lesson.subject,
+									selectedDay.dayDate,
+									lesson.pairIndex
+								);
+
 								return (
 									<LessonCard
 										key={lesson.id}
@@ -1149,6 +1187,13 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 											settings.glassEffect
 										}
 										mockDate={mockDate}
+										gradeEntry={lessonGrade}
+										onPress={() =>
+											onOpenGradeModal?.(
+												lesson,
+												selectedDay.dayDate
+											)
+										}
 									/>
 								);
 							})

@@ -99,7 +99,9 @@ export async function fetchWithTimeout(
 	} catch (error: any) {
 		clearTimeout(timer);
 		if (error.name === "AbortError") {
-			throw new Error("Сервер колледжа не отвечает (таймаут соединения 7 сек)");
+			throw new Error(
+				"Сервер колледжа не отвечает (таймаут соединения 7 сек)"
+			);
 		}
 		throw error;
 	}

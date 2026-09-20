@@ -424,7 +424,10 @@ export function formatLastUpdated(timestamp?: number): string {
 	}
 
 	const dayStr = String(date.getDate()).padStart(2, "0");
-	const monthStr = String(date.getMonth() + 1).padStart(2, "0");
+	const monthStr = String(date.getMonth() + 1).padStart(
+		2,
+		"0"
+	);
 	const daysAgo = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 	if (daysAgo >= 2) {
 		return `${dayStr}.${monthStr} в ${timeStr} (${daysAgo} дн. назад)`;
@@ -443,4 +446,3 @@ export function isCacheStale(timestamp?: number): boolean {
 	const diffHours = (now - timestamp) / (1000 * 60 * 60);
 	return diffHours > 6;
 }
-

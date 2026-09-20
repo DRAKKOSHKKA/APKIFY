@@ -12,7 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { ThemeColors } from "../theme/colors";
 
-export type TabType = "schedule" | "profile";
+export type TabType = "schedule" | "grades" | "profile";
 
 interface TabBarProps {
 	currentTab: TabType;
@@ -40,6 +40,12 @@ export const TabBar: React.FC<TabBarProps> = ({
 			label: "Расписание",
 			activeIcon: "calendar",
 			inactiveIcon: "calendar-outline",
+		},
+		{
+			key: "grades",
+			label: "Оценки",
+			activeIcon: "school",
+			inactiveIcon: "school-outline",
 		},
 		{
 			key: "profile",
