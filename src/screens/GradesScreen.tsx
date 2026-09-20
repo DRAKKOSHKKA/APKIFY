@@ -18,6 +18,7 @@ import { GradeEntry, SubjectSummary } from "../types/grades";
 import {
 	calculateOverview,
 	calculateSubjectSummaries,
+	getEntryGradesList,
 } from "../services/gradesStorage";
 
 interface GradesScreenProps {
@@ -118,15 +119,24 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 		);
 		const filtered = searchQuery.trim()
 			? list.filter((e) => {
-					const query = searchQuery.toLowerCase().trim();
+					const query = searchQuery
+						.toLowerCase()
+						.trim();
 					return (
-						e.subject.toLowerCase().includes(query) ||
+						e.subject
+							.toLowerCase()
+							.includes(query) ||
 						(e.homework &&
-							e.homework.toLowerCase().includes(query)) ||
-						(e.note && e.note.toLowerCase().includes(query)) ||
+							e.homework
+								.toLowerCase()
+								.includes(query)) ||
+						(e.note &&
+							e.note
+								.toLowerCase()
+								.includes(query)) ||
 						e.date.includes(query)
 					);
-			  })
+				})
 			: list;
 
 		return [...filtered].sort((a, b) => {
@@ -321,7 +331,8 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 						style={[
 							styles.headerBackupBtn,
 							{
-								backgroundColor: theme.chipBackground,
+								backgroundColor:
+									theme.chipBackground,
 								borderColor: theme.border,
 							},
 						]}
@@ -442,14 +453,21 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 										styles.gradePillItem,
 										{
 											backgroundColor:
-												"rgba(52, 199, 89, 0.12)",
+												theme.isDark
+													? "rgba(52, 199, 89, 0.18)"
+													: "rgba(52, 199, 89, 0.12)",
+											borderColor:
+												theme.isDark
+													? "rgba(52, 199, 89, 0.35)"
+													: "rgba(52, 199, 89, 0.22)",
 										},
 									]}
 								>
 									<Text
-										style={
-											styles.gradePillNum
-										}
+										style={[
+											styles.gradePillNum,
+											{ color: "#34C759" },
+										]}
 									>
 										5
 									</Text>
@@ -468,14 +486,21 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 										styles.gradePillItem,
 										{
 											backgroundColor:
-												"rgba(0, 122, 255, 0.12)",
+												theme.isDark
+													? "rgba(0, 122, 255, 0.18)"
+													: "rgba(0, 122, 255, 0.12)",
+											borderColor:
+												theme.isDark
+													? "rgba(0, 122, 255, 0.35)"
+													: "rgba(0, 122, 255, 0.22)",
 										},
 									]}
 								>
 									<Text
-										style={
-											styles.gradePillNum
-										}
+										style={[
+											styles.gradePillNum,
+											{ color: "#007AFF" },
+										]}
 									>
 										4
 									</Text>
@@ -494,14 +519,21 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 										styles.gradePillItem,
 										{
 											backgroundColor:
-												"rgba(255, 149, 0, 0.12)",
+												theme.isDark
+													? "rgba(255, 149, 0, 0.18)"
+													: "rgba(255, 149, 0, 0.12)",
+											borderColor:
+												theme.isDark
+													? "rgba(255, 149, 0, 0.35)"
+													: "rgba(255, 149, 0, 0.22)",
 										},
 									]}
 								>
 									<Text
-										style={
-											styles.gradePillNum
-										}
+										style={[
+											styles.gradePillNum,
+											{ color: "#FF9500" },
+										]}
 									>
 										3
 									</Text>
@@ -520,14 +552,21 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 										styles.gradePillItem,
 										{
 											backgroundColor:
-												"rgba(255, 59, 48, 0.12)",
+												theme.isDark
+													? "rgba(255, 59, 48, 0.18)"
+													: "rgba(255, 59, 48, 0.12)",
+											borderColor:
+												theme.isDark
+													? "rgba(255, 59, 48, 0.35)"
+													: "rgba(255, 59, 48, 0.22)",
 										},
 									]}
 								>
 									<Text
-										style={
-											styles.gradePillNum
-										}
+										style={[
+											styles.gradePillNum,
+											{ color: "#FF3B30" },
+										]}
 									>
 										2
 									</Text>
@@ -584,7 +623,8 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 									},
 								]}
 							>
-								{overview.totalNotesCount} заметок
+								{overview.totalNotesCount}{" "}
+								заметок
 							</Text>
 						</View>
 
@@ -594,7 +634,8 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 									name="checkbox-outline"
 									size={14}
 									color={
-										overview.pendingHomeworkCount > 0
+										overview.pendingHomeworkCount >
+										0
 											? theme.warning
 											: "#34C759"
 									}
@@ -604,14 +645,16 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 										styles.footerInfoText,
 										{
 											color:
-												overview.pendingHomeworkCount > 0
+												overview.pendingHomeworkCount >
+												0
 													? theme.warning
 													: "#34C759",
 											fontWeight: "600",
 										},
 									]}
 								>
-									{overview.pendingHomeworkCount > 0
+									{overview.pendingHomeworkCount >
+									0
 										? `${overview.pendingHomeworkCount} Д/З сдать`
 										: `${overview.totalHomeworkCount} Д/З сдано`}
 								</Text>
@@ -1094,7 +1137,9 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 																					? "checkmark-circle"
 																					: "time-outline"
 																			}
-																			size={11}
+																			size={
+																				11
+																			}
 																			color={
 																				entry.isHomeworkDone
 																					? "#34C759"
@@ -1115,9 +1160,14 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 																							: "none",
 																				},
 																			]}
-																			numberOfLines={1}
+																			numberOfLines={
+																				1
+																			}
 																		>
-																			Д/З: {entry.homework}
+																			Д/З:{" "}
+																			{
+																				entry.homework
+																			}
 																		</Text>
 																	</View>
 																) : null}
@@ -1146,27 +1196,45 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 																	styles.entryRight
 																}
 															>
-																{entry.grade ? (
+																{getEntryGradesList(entry).length > 0 ? (
 																	<View
-																		style={[
-																			styles.entryGradeBadge,
-																			{
-																				backgroundColor:
-																					getGradeColor(
-																						entry.grade
-																					),
-																			},
-																		]}
+																		style={
+																			styles.entryGradesListRow
+																		}
 																	>
-																		<Text
-																			style={
-																				styles.entryGradeText
-																			}
-																		>
-																			{
-																				entry.grade
-																			}
-																		</Text>
+																		{getEntryGradesList(
+																			entry
+																		).map(
+																			(
+																				g,
+																				gIdx
+																			) => (
+																				<View
+																					key={
+																						gIdx
+																					}
+																					style={[
+																						styles.entryGradeBadge,
+																						{
+																							backgroundColor:
+																								getGradeColor(
+																									g
+																								),
+																						},
+																					]}
+																				>
+																					<Text
+																						style={
+																							styles.entryGradeText
+																						}
+																					>
+																						{
+																							g
+																						}
+																					</Text>
+																				</View>
+																			)
+																		)}
 																	</View>
 																) : (
 																	<Ionicons
@@ -1297,25 +1365,45 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 											</Text>
 										</View>
 
-										{entry.grade ? (
+										{getEntryGradesList(entry).length > 0 ? (
 											<View
-												style={[
-													styles.historyGradeBadge,
-													{
-														backgroundColor:
-															getGradeColor(
-																entry.grade
-															),
-													},
-												]}
+												style={
+													styles.entryGradesListRow
+												}
 											>
-												<Text
-													style={
-														styles.historyGradeText
-													}
-												>
-													{entry.grade}
-												</Text>
+												{getEntryGradesList(
+													entry
+												).map(
+													(
+														g,
+														gIdx
+													) => (
+														<View
+															key={
+																gIdx
+															}
+															style={[
+																styles.historyGradeBadge,
+																{
+																	backgroundColor:
+																		getGradeColor(
+																			g
+																		),
+																},
+															]}
+														>
+															<Text
+																style={
+																	styles.historyGradeText
+																}
+															>
+																{
+																	g
+																}
+															</Text>
+														</View>
+													)
+												)}
 											</View>
 										) : null}
 									</View>
@@ -1348,7 +1436,9 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 														? "#34C759"
 														: "#FF9500"
 												}
-												style={{ marginRight: 6 }}
+												style={{
+													marginRight: 6,
+												}}
 											/>
 											<Text
 												style={[
@@ -1365,7 +1455,8 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 											>
 												<Text
 													style={{
-														fontWeight: "700",
+														fontWeight:
+															"700",
 													}}
 												>
 													Д/З:{" "}
@@ -1376,10 +1467,9 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 												style={[
 													styles.hwStatusMiniText,
 													{
-														color:
-															entry.isHomeworkDone
-																? "#34C759"
-																: "#FF9500",
+														color: entry.isHomeworkDone
+															? "#34C759"
+															: "#FF9500",
 													},
 												]}
 											>
@@ -1456,14 +1546,19 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 									style={[
 										styles.homeworkCard,
 										{
-											backgroundColor: cardBg,
-											borderColor: entry.isHomeworkDone
-												? cardBorder
-												: theme.warning + "60",
+											backgroundColor:
+												cardBg,
+											borderColor:
+												entry.isHomeworkDone
+													? cardBorder
+													: theme.warning +
+														"60",
 										},
 									]}
 									activeOpacity={0.75}
-									onPress={() => onEditGrade(entry)}
+									onPress={() =>
+										onEditGrade(entry)
+									}
 								>
 									<View
 										style={
@@ -1539,10 +1634,9 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 												style={[
 													styles.hwStatusPillText,
 													{
-														color:
-															entry.isHomeworkDone
-																? "#34C759"
-																: "#FF9500",
+														color: entry.isHomeworkDone
+															? "#34C759"
+															: "#FF9500",
 													},
 												]}
 											>
@@ -1612,7 +1706,9 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 											<Ionicons
 												name="document-text"
 												size={12}
-												color={theme.accent}
+												color={
+													theme.accent
+												}
 												style={{
 													marginRight: 6,
 												}}
@@ -1651,7 +1747,9 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 								<Text
 									style={[
 										styles.emptySubtitle,
-										{ color: theme.textSecondary },
+										{
+											color: theme.textSecondary,
+										},
 									]}
 								>
 									{searchQuery.trim()
@@ -1787,17 +1885,23 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
-		paddingHorizontal: 10,
-		paddingVertical: 6,
+		paddingHorizontal: 12,
+		paddingVertical: 8,
 		borderRadius: RADIUS.badge,
+		borderWidth: 1,
 	},
 	gradePillNum: {
-		fontSize: 15,
-		fontWeight: "800",
+		fontSize: 16,
+		fontWeight: "900",
 	},
 	gradePillCount: {
-		fontSize: 12,
+		fontSize: 13,
 		fontWeight: "700",
+	},
+	entryGradesListRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 5,
 	},
 	overviewFooter: {
 		flexDirection: "row",

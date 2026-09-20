@@ -147,7 +147,8 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 					onPress: () => {
 						try {
 							Haptics.impactAsync(
-								Haptics.ImpactFeedbackStyle.Medium
+								Haptics.ImpactFeedbackStyle
+									.Medium
 							);
 						} catch {}
 						onSetDayCallMode?.(
@@ -161,7 +162,8 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 					onPress: () => {
 						try {
 							Haptics.impactAsync(
-								Haptics.ImpactFeedbackStyle.Medium
+								Haptics.ImpactFeedbackStyle
+									.Medium
 							);
 						} catch {}
 						onSetDayCallMode?.(
@@ -175,7 +177,8 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 					onPress: () => {
 						try {
 							Haptics.impactAsync(
-								Haptics.ImpactFeedbackStyle.Medium
+								Haptics.ImpactFeedbackStyle
+									.Medium
 							);
 						} catch {}
 						onSetDayCallMode?.(
@@ -705,82 +708,6 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 										</TouchableOpacity>
 									)}
 
-								{/* Кнопка смены режима звонков дня */}
-								<TouchableOpacity
-									style={[
-										styles.callModeBtn,
-										currentDayMode === "shortened_45"
-											? {
-													backgroundColor:
-														theme.isDark
-															? "rgba(255, 149, 0, 0.2)"
-															: "rgba(255, 149, 0, 0.12)",
-													borderColor:
-														"#FF9500",
-											  }
-											: {
-													backgroundColor:
-														theme.chipBackground,
-													borderColor:
-														theme.border,
-											  },
-									]}
-									activeOpacity={0.7}
-									onPress={() => {
-										try {
-											Haptics.impactAsync(
-												Haptics
-													.ImpactFeedbackStyle
-													.Light
-											);
-										} catch {}
-										handlePromptDayCallMode();
-									}}
-									hitSlop={{
-										top: 8,
-										bottom: 8,
-										left: 8,
-										right: 8,
-									}}
-									accessibilityLabel="Режим звонков"
-								>
-									<Ionicons
-										name={
-											currentDayMode ===
-											"shortened_45"
-												? "flash"
-												: "time-outline"
-										}
-										size={13}
-										color={
-											currentDayMode ===
-											"shortened_45"
-												? "#FF9500"
-												: theme.accent
-										}
-										style={{ marginRight: 3 }}
-									/>
-									<Text
-										style={[
-											styles.callModeBtnText,
-											{
-												color:
-													currentDayMode ===
-													"shortened_45"
-														? "#FF9500"
-														: theme.text,
-											},
-										]}
-									>
-										{currentDayMode ===
-										"shortened_45"
-											? "45м"
-											: currentDayMode ===
-											  "saturday"
-											? "60м"
-											: "80м"}
-									</Text>
-								</TouchableOpacity>
 
 								{/* Компактная иконка Поделиться расписанием дня */}
 								<TouchableOpacity
@@ -828,9 +755,7 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 									},
 								]}
 								activeOpacity={0.75}
-								onPress={
-									handlePromptDayCallMode
-								}
+								onPress={handlePromptDayCallMode}
 							>
 								<View
 									style={
@@ -887,9 +812,7 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 									},
 								]}
 								activeOpacity={0.75}
-								onPress={
-									handlePromptDayCallMode
-								}
+								onPress={handlePromptDayCallMode}
 							>
 								<Ionicons
 									name="time-outline"
@@ -1506,18 +1429,6 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		gap: 8,
-	},
-	callModeBtn: {
-		flexDirection: "row",
-		alignItems: "center",
-		paddingHorizontal: 8,
-		paddingVertical: 5,
-		borderRadius: 14,
-		borderWidth: 1,
-	},
-	callModeBtnText: {
-		fontSize: 12,
-		fontWeight: "700",
 	},
 	shareIconBtn: {
 		width: 32,

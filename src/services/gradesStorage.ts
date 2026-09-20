@@ -290,6 +290,32 @@ export function findGradeForLesson(
 }
 
 /**
+ * Извлечь список отдельных оценок из записи (поддерживает массив grades, строку grade и разделители , /)
+ */
+export function getEntryGradesList(entry: GradeEntry): string[] {
+	if (Array.isArray(entry.grades) && entry.grades.length > 0) {
+		return entry.grades
+			.filter((g) => g && String(g).trim().length > 0)
+			.map((g) => String(g).trim());
+	}
+	if (
+		entry.grade &&
+		typeof entry.grade === "string" &&
+		entry.grade.trim().length > 0
+	) {
+		const parts = entry.grade
+			.split(/[,\/]/)
+			.map((p) => p.trim())
+			.filter(Boolean);
+		if (parts.length > 0) {
+			return parts;
+		}
+		return [entry.grade.trim()];
+	}
+	return [];
+}
+
+/**
  * Подсчёт средней оценки и группировка по предметам
  */
 export function calculateSubjectSummaries(
@@ -332,9 +358,10 @@ export function calculateSubjectSummaries(
 				if (e.note && e.note.trim().length > 0) {
 					notesCount++;
 				}
-				if (e.grade) {
-					gradesList.push(e.grade);
-					const num = parseInt(e.grade, 10);
+				const entryGrades = getEntryGradesList(e);
+				for (const g of entryGrades) {
+					gradesList.push(g);
+					const num = parseInt(g, 10);
 					if (!isNaN(num) && num >= 2 && num <= 5) {
 						numericSum += num;
 						numericCount++;
@@ -407,9 +434,10 @@ export function calculateOverview(
 		if (e.note && e.note.trim().length > 0) {
 			totalNotes++;
 		}
-		if (e.grade) {
+		const entryGrades = getEntryGradesList(e);
+		for (const g of entryGrades) {
 			totalGrades++;
-			const num = parseInt(e.grade, 10);
+			const num = parseInt(g, 10);
 			if (!isNaN(num) && num >= 2 && num <= 5) {
 				numericSum += num;
 				numericCount++;

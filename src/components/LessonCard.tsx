@@ -10,6 +10,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Lesson } from "../types/schedule";
 import { GradeEntry } from "../types/grades";
+import { getEntryGradesList } from "../services/gradesStorage";
 import { getLessonStatus } from "../utils/timeUtils";
 import { ThemeColors } from "../theme/colors";
 import { RADIUS } from "../theme/tokens";
@@ -217,30 +218,36 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 							{lesson.pairIndex} пара
 						</Text>
 
-						{/* Бейдж полученной оценки */}
-						{gradeEntry?.grade && (
-							<View
-								style={[
-									styles.gradeBadge,
-									{
-										backgroundColor:
-											getGradeColor(
-												gradeEntry.grade
-											),
-									},
-								]}
-							>
-								<Text
-									style={styles.gradeBadgeText}
-								>
-									{gradeEntry.grade}
-								</Text>
-							</View>
-						)}
+						{/* Бейджи полученных оценок */}
+						{gradeEntry &&
+							getEntryGradesList(gradeEntry).map(
+								(g, idx) => (
+									<View
+										key={idx}
+										style={[
+											styles.gradeBadge,
+											{
+												backgroundColor:
+													getGradeColor(
+														g
+													),
+											},
+										]}
+									>
+										<Text
+											style={
+												styles.gradeBadgeText
+											}
+										>
+											{g}
+										</Text>
+									</View>
+								)
+							)}
 
 						{/* Индикатор заметки без оценки */}
 						{gradeEntry?.note &&
-							!gradeEntry?.grade &&
+							getEntryGradesList(gradeEntry).length === 0 &&
 							!gradeEntry?.homework && (
 								<View
 									style={[

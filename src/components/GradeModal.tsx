@@ -31,7 +31,10 @@ interface GradeModalProps {
 	} | null;
 	theme: ThemeColors;
 	onSave: (
-		entryData: Omit<GradeEntry, "id" | "createdAt" | "updatedAt"> & {
+		entryData: Omit<
+			GradeEntry,
+			"id" | "createdAt" | "updatedAt"
+		> & {
 			id?: string;
 		}
 	) => Promise<void>;
@@ -81,15 +84,6 @@ const EXTRA_GRADE_OPTIONS: {
 	{ label: "Н/А", value: "н/а", color: "#8E8E93" },
 ];
 
-const HOMEWORK_TAGS = [
-	"📖 Параграф",
-	"✍️ Задачи",
-	"💻 Лабораторная",
-	"📝 Конспект",
-	"🎯 Контрольная",
-	"📄 Доклад",
-];
-
 export const GradeModal: React.FC<GradeModalProps> = ({
 	visible,
 	entryToEdit,
@@ -101,16 +95,22 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 }) => {
 	const [subject, setSubject] = useState("");
 	const [date, setDate] = useState("");
-	const [selectedGrade, setSelectedGrade] = useState<GradeValue | undefined>(
-		undefined
-	);
+	const [selectedGrades, setSelectedGrades] = useState<GradeValue[]>([]);
 	const [homeworkText, setHomeworkText] = useState("");
 	const [isHomeworkDone, setIsHomeworkDone] = useState(false);
 	const [noteText, setNoteText] = useState("");
-	const [pairIndex, setPairIndex] = useState<number | undefined>(undefined);
-	const [time, setTime] = useState<string | undefined>(undefined);
-	const [room, setRoom] = useState<string | undefined>(undefined);
-	const [teacher, setTeacher] = useState<string | undefined>(undefined);
+	const [pairIndex, setPairIndex] = useState<
+		number | undefined
+	>(undefined);
+	const [time, setTime] = useState<string | undefined>(
+		undefined
+	);
+	const [room, setRoom] = useState<string | undefined>(
+		undefined
+	);
+	const [teacher, setTeacher] = useState<string | undefined>(
+		undefined
+	);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	useEffect(() => {
@@ -118,9 +118,30 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 			if (entryToEdit) {
 				setSubject(entryToEdit.subject || "");
 				setDate(entryToEdit.date || "");
-				setSelectedGrade(entryToEdit.grade);
+				let initGrades: GradeValue[] = [];
+				if (
+					Array.isArray(entryToEdit.grades) &&
+					entryToEdit.grades.length > 0
+				) {
+					initGrades = [...entryToEdit.grades];
+				} else if (
+					entryToEdit.grade &&
+					typeof entryToEdit.grade === "string"
+				) {
+					const parts = entryToEdit.grade
+						.split(/[,\/]/)
+						.map((p) => p.trim())
+						.filter(Boolean);
+					initGrades =
+						parts.length > 0
+							? parts
+							: [entryToEdit.grade.trim()];
+				}
+				setSelectedGrades(initGrades);
 				setHomeworkText(entryToEdit.homework || "");
-				setIsHomeworkDone(entryToEdit.isHomeworkDone || false);
+				setIsHomeworkDone(
+					entryToEdit.isHomeworkDone || false
+				);
 				setNoteText(entryToEdit.note || "");
 				setPairIndex(entryToEdit.pairIndex);
 				setTime(entryToEdit.time);
@@ -129,7 +150,7 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 			} else if (initialData) {
 				setSubject(initialData.subject || "");
 				setDate(initialData.date || "");
-				setSelectedGrade(undefined);
+				setSelectedGrades([]);
 				setHomeworkText("");
 				setIsHomeworkDone(false);
 				setNoteText("");
@@ -139,12 +160,18 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 				setTeacher(initialData.teacher);
 			} else {
 				const today = new Date();
-				const d = String(today.getDate()).padStart(2, "0");
-				const m = String(today.getMonth() + 1).padStart(2, "0");
+				const d = String(today.getDate()).padStart(
+					2,
+					"0"
+				);
+				const m = String(today.getMonth() + 1).padStart(
+					2,
+					"0"
+				);
 				const y = today.getFullYear();
 				setSubject("");
 				setDate(`${d}.${m}.${y}`);
-				setSelectedGrade(undefined);
+				setSelectedGrades([]);
 				setHomeworkText("");
 				setIsHomeworkDone(false);
 				setNoteText("");
@@ -156,26 +183,29 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 		}
 	}, [visible, entryToEdit, initialData]);
 
-	const handleGradeSelect = (val: GradeValue) => {
+	const handleAddGrade = (val: GradeValue) => {
+		try {
+			Haptics.impactAsync(
+				Haptics.ImpactFeedbackStyle.Light
+			);
+		} catch {}
+		setSelectedGrades((prev) => [...prev, val]);
+	};
+
+	const handleRemoveGradeAtIndex = (index: number) => {
 		try {
 			Haptics.selectionAsync();
 		} catch {}
-		if (selectedGrade === val) {
-			setSelectedGrade(undefined); // Снять выбор
-		} else {
-			setSelectedGrade(val);
-		}
+		setSelectedGrades((prev) =>
+			prev.filter((_, i) => i !== index)
+		);
 	};
 
-	const handleTagPress = (tag: string) => {
+	const handleClearAllGrades = () => {
 		try {
-			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+			Haptics.selectionAsync();
 		} catch {}
-		if (!homeworkText.trim()) {
-			setHomeworkText(tag + " ");
-		} else if (!homeworkText.includes(tag)) {
-			setHomeworkText((prev) => `${tag} • ${prev}`);
-		}
+		setSelectedGrades([]);
 	};
 
 	const handleToggleHomeworkDone = () => {
@@ -198,6 +228,12 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 				);
 			} catch {}
 
+			const finalGrades = selectedGrades;
+			const finalGradeString =
+				selectedGrades.length > 0
+					? selectedGrades.join(", ")
+					: undefined;
+
 			await onSave({
 				id: entryToEdit?.id,
 				subject: subject.trim(),
@@ -206,10 +242,20 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 				time,
 				room,
 				teacher,
-				grade: selectedGrade,
-				homework: homeworkText.trim() ? homeworkText.trim() : undefined,
-				isHomeworkDone: homeworkText.trim() ? isHomeworkDone : undefined,
-				note: noteText.trim() ? noteText.trim() : undefined,
+				grade: finalGradeString,
+				grades:
+					finalGrades.length > 0
+						? finalGrades
+						: undefined,
+				homework: homeworkText.trim()
+					? homeworkText.trim()
+					: undefined,
+				isHomeworkDone: homeworkText.trim()
+					? isHomeworkDone
+					: undefined,
+				note: noteText.trim()
+					? noteText.trim()
+					: undefined,
 			});
 			onClose();
 		} catch (err) {
@@ -249,7 +295,11 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 			<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
 				<View style={styles.overlay}>
 					<KeyboardAvoidingView
-						behavior={Platform.OS === "ios" ? "padding" : undefined}
+						behavior={
+							Platform.OS === "ios"
+								? "padding"
+								: undefined
+						}
 						style={styles.keyboardContainer}
 					>
 						<View
@@ -263,11 +313,17 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 						>
 							{/* Заголовок модального окна */}
 							<View style={styles.header}>
-								<View style={styles.headerTitleWrap}>
+								<View
+									style={
+										styles.headerTitleWrap
+									}
+								>
 									<Text
 										style={[
 											styles.modalTitle,
-											{ color: theme.text },
+											{
+												color: theme.text,
+											},
 										]}
 										numberOfLines={1}
 									>
@@ -278,12 +334,18 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 									<Text
 										style={[
 											styles.modalSubtitle,
-											{ color: theme.textSecondary },
+											{
+												color: theme.textSecondary,
+											},
 										]}
 									>
 										{date}
-										{pairIndex ? ` • ${pairIndex} пара` : ""}
-										{time ? ` (${time})` : ""}
+										{pairIndex
+											? ` • ${pairIndex} пара`
+											: ""}
+										{time
+											? ` (${time})`
+											: ""}
 									</Text>
 								</View>
 								<TouchableOpacity
@@ -300,15 +362,21 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 									<Ionicons
 										name="close"
 										size={18}
-										color={theme.textSecondary}
+										color={
+											theme.textSecondary
+										}
 									/>
 								</TouchableOpacity>
 							</View>
 
 							<ScrollView
 								style={styles.scrollArea}
-								contentContainerStyle={styles.scrollContent}
-								showsVerticalScrollIndicator={false}
+								contentContainerStyle={
+									styles.scrollContent
+								}
+								showsVerticalScrollIndicator={
+									false
+								}
 								keyboardShouldPersistTaps="handled"
 							>
 								{/* Предмет */}
@@ -316,12 +384,15 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 									<Text
 										style={[
 											styles.fieldLabel,
-											{ color: theme.textSecondary },
+											{
+												color: theme.textSecondary,
+											},
 										]}
 									>
 										ПРЕДМЕТ
 									</Text>
-									{initialData || entryToEdit ? (
+									{initialData ||
+									entryToEdit ? (
 										<View
 											style={[
 												styles.readOnlySubjectBox,
@@ -336,12 +407,15 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 											<Text
 												style={[
 													styles.readOnlySubjectText,
-													{ color: theme.text },
+													{
+														color: theme.text,
+													},
 												]}
 											>
 												{subject}
 											</Text>
-											{(room || teacher) && (
+											{(room ||
+												teacher) && (
 												<Text
 													style={[
 														styles.metaText,
@@ -353,10 +427,12 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 													{room
 														? `каб. ${room}`
 														: ""}
-													{room && teacher
+													{room &&
+													teacher
 														? " • "
 														: ""}
-													{teacher || ""}
+													{teacher ||
+														""}
 												</Text>
 											)}
 										</View>
@@ -377,14 +453,20 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 												theme.textSecondary
 											}
 											value={subject}
-											onChangeText={setSubject}
+											onChangeText={
+												setSubject
+											}
 										/>
 									)}
 								</View>
 
-								{/* Быстрый выбор оценки (увеличенная высота плашек) */}
+								{/* Быстрый выбор оценки и поддержка нескольких оценок */}
 								<View style={styles.fieldGroup}>
-									<View style={styles.gradeHeaderRow}>
+									<View
+										style={
+											styles.gradeHeaderRow
+										}
+									>
 										<Text
 											style={[
 												styles.fieldLabel,
@@ -393,16 +475,27 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 												},
 											]}
 										>
-											ОЦЕНКА В ЭТОТ ДЕНЬ
+											ОЦЕНКИ В ЭТОТ ДЕНЬ{" "}
+											{selectedGrades.length >
+											1
+												? `(${selectedGrades.length})`
+												: ""}
 										</Text>
-										{selectedGrade && (
+										{selectedGrades.length >
+											0 && (
 											<TouchableOpacity
-												onPress={() =>
-													setSelectedGrade(
-														undefined
-													)
+												onPress={
+													handleClearAllGrades
 												}
-												activeOpacity={0.7}
+												activeOpacity={
+													0.7
+												}
+												hitSlop={{
+													top: 8,
+													bottom: 8,
+													left: 8,
+													right: 8,
+												}}
 											>
 												<Text
 													style={[
@@ -412,37 +505,147 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 														},
 													]}
 												>
-													Снять оценку
+													Очистить всё
 												</Text>
 											</TouchableOpacity>
 										)}
 									</View>
 
+									{/* Список уже выбранных оценок в виде плашек с крестиком */}
+									{selectedGrades.length >
+										0 && (
+										<View
+											style={
+												styles.selectedGradesContainer
+											}
+										>
+											<Text
+												style={[
+													styles.selectedGradesLabel,
+													{
+														color: theme.textSecondary,
+													},
+												]}
+											>
+												Выставлено:
+											</Text>
+											<ScrollView
+												horizontal
+												showsHorizontalScrollIndicator={
+													false
+												}
+												contentContainerStyle={
+													styles.selectedGradesScroll
+												}
+											>
+												{selectedGrades.map(
+													(
+														val,
+														idx
+													) => {
+														const opt =
+															GRADE_OPTIONS.find(
+																(
+																	o
+																) =>
+																	o.value ===
+																	val
+															) ||
+															EXTRA_GRADE_OPTIONS.find(
+																(
+																	o
+																) =>
+																	o.value ===
+																	val
+															);
+														const color =
+															opt
+																? opt.color
+																: "#8E8E93";
+														return (
+															<TouchableOpacity
+																key={`${val}-${idx}`}
+																style={[
+																	styles.selectedGradePill,
+																	{
+																		backgroundColor:
+																			color,
+																	},
+																]}
+																activeOpacity={
+																	0.75
+																}
+																onPress={() =>
+																	handleRemoveGradeAtIndex(
+																		idx
+																	)
+																}
+															>
+																<Text
+																	style={
+																		styles.selectedGradePillText
+																	}
+																>
+																	{
+																		val
+																	}
+																</Text>
+																<Ionicons
+																	name="close-circle"
+																	size={
+																		15
+																	}
+																	color="#FFFFFF"
+																	style={{
+																		marginLeft: 5,
+																	}}
+																/>
+															</TouchableOpacity>
+														);
+													}
+												)}
+											</ScrollView>
+										</View>
+									)}
+
+									<Text
+										style={[
+											styles.addGradeHint,
+											{
+												color: theme.textSecondary,
+											},
+										]}
+									>
+										{selectedGrades.length ===
+										0
+											? "Нажмите на оценку, чтобы выставить:"
+											: "Нажмите, чтобы добавить ещё оценку:"}
+									</Text>
+
 									{/* Основные цифровые оценки 5, 4, 3, 2 */}
-									<View style={styles.gradesRow}>
-										{GRADE_OPTIONS.map((item) => {
-											const isSelected =
-												selectedGrade ===
-												item.value;
-											return (
+									<View
+										style={styles.gradesRow}
+									>
+										{GRADE_OPTIONS.map(
+											(item) => (
 												<TouchableOpacity
-													key={item.value}
+													key={
+														item.value
+													}
 													style={[
 														styles.gradeBtn,
 														{
 															backgroundColor:
-																isSelected
-																	? item.color
-																	: item.subtleBg,
+																item.subtleBg,
 															borderColor:
-																isSelected
-																	? item.color
-																	: "transparent",
+																"transparent",
 														},
 													]}
-													activeOpacity={0.75}
+													activeOpacity={
+														0.75
+													}
 													onPress={() =>
-														handleGradeSelect(
+														handleAddGrade(
 															item.value
 														)
 													}
@@ -451,44 +654,45 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 														style={[
 															styles.gradeBtnText,
 															{
-																color: isSelected
-																	? "#FFFFFF"
-																	: item.color,
+																color: item.color,
 															},
 														]}
 													>
-														{item.label}
+														{
+															item.label
+														}
 													</Text>
 												</TouchableOpacity>
-											);
-										})}
+											)
+										)}
 									</View>
 
 									{/* Дополнительные оценки (Зачёт, Незачёт, Н/А) */}
-									<View style={styles.extraGradesRow}>
-										{EXTRA_GRADE_OPTIONS.map((item) => {
-											const isSelected =
-												selectedGrade ===
-												item.value;
-											return (
+									<View
+										style={
+											styles.extraGradesRow
+										}
+									>
+										{EXTRA_GRADE_OPTIONS.map(
+											(item) => (
 												<TouchableOpacity
-													key={item.value}
+													key={
+														item.value
+													}
 													style={[
 														styles.extraGradeBtn,
 														{
 															backgroundColor:
-																isSelected
-																	? item.color
-																	: theme.chipBackground,
+																theme.chipBackground,
 															borderColor:
-																isSelected
-																	? item.color
-																	: theme.border,
+																theme.border,
 														},
 													]}
-													activeOpacity={0.75}
+													activeOpacity={
+														0.75
+													}
 													onPress={() =>
-														handleGradeSelect(
+														handleAddGrade(
 															item.value
 														)
 													}
@@ -497,23 +701,27 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 														style={[
 															styles.extraGradeBtnText,
 															{
-																color: isSelected
-																	? "#FFFFFF"
-																	: theme.text,
+																color: theme.text,
 															},
 														]}
 													>
-														{item.label}
+														{
+															item.label
+														}
 													</Text>
 												</TouchableOpacity>
-											);
-										})}
+											)
+										)}
 									</View>
 								</View>
 
 								{/* УЛУЧШЕННЫЙ БЛОК ДОМАШНЕГО ЗАДАНИЯ (Д/З) */}
 								<View style={styles.fieldGroup}>
-									<View style={styles.hwHeaderRow}>
+									<View
+										style={
+											styles.hwHeaderRow
+										}
+									>
 										<Text
 											style={[
 												styles.fieldLabel,
@@ -522,9 +730,11 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 												},
 											]}
 										>
-											ДОМАШНЕЕ ЗАДАНИЕ (Д/З)
+											ДОМАШНЕЕ ЗАДАНИЕ
+											(Д/З)
 										</Text>
-										{homeworkText.trim().length > 0 && (
+										{homeworkText.trim()
+											.length > 0 && (
 											<TouchableOpacity
 												style={[
 													styles.hwStatusToggle,
@@ -539,7 +749,9 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 																: theme.border,
 													},
 												]}
-												activeOpacity={0.75}
+												activeOpacity={
+													0.75
+												}
 												onPress={
 													handleToggleHomeworkDone
 												}
@@ -556,7 +768,9 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 															? "#34C759"
 															: theme.textSecondary
 													}
-													style={{ marginRight: 4 }}
+													style={{
+														marginRight: 4,
+													}}
 												/>
 												<Text
 													style={[
@@ -576,42 +790,6 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 										)}
 									</View>
 
-									{/* Быстрые теги Д/З */}
-									<ScrollView
-										horizontal
-										showsHorizontalScrollIndicator={false}
-										contentContainerStyle={styles.hwTagsRow}
-									>
-										{HOMEWORK_TAGS.map((tag) => (
-											<TouchableOpacity
-												key={tag}
-												style={[
-													styles.hwTagChip,
-													{
-														backgroundColor:
-															theme.chipBackground,
-														borderColor:
-															theme.border,
-													},
-												]}
-												activeOpacity={0.7}
-												onPress={() =>
-													handleTagPress(tag)
-												}
-											>
-												<Text
-													style={[
-														styles.hwTagChipText,
-														{
-															color: theme.text,
-														},
-													]}
-												>
-													{tag}
-												</Text>
-											</TouchableOpacity>
-										))}
-									</ScrollView>
 
 									<TextInput
 										style={[
@@ -619,7 +797,8 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 											{
 												backgroundColor:
 													theme.chipBackground,
-												borderColor: theme.border,
+												borderColor:
+													theme.border,
 												color: theme.text,
 											},
 										]}
@@ -631,7 +810,9 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 										numberOfLines={3}
 										textAlignVertical="top"
 										value={homeworkText}
-										onChangeText={setHomeworkText}
+										onChangeText={
+											setHomeworkText
+										}
 									/>
 								</View>
 
@@ -640,10 +821,13 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 									<Text
 										style={[
 											styles.fieldLabel,
-											{ color: theme.textSecondary },
+											{
+												color: theme.textSecondary,
+											},
 										]}
 									>
-										ЗАМЕТКА К ПАРЕ (НЕОБЯЗАТЕЛЬНО)
+										ЗАМЕТКА К ПАРЕ
+										(НЕОБЯЗАТЕЛЬНО)
 									</Text>
 									<TextInput
 										style={[
@@ -651,7 +835,8 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 											{
 												backgroundColor:
 													theme.chipBackground,
-												borderColor: theme.border,
+												borderColor:
+													theme.border,
 												color: theme.text,
 											},
 										]}
@@ -663,7 +848,9 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 										numberOfLines={2}
 										textAlignVertical="top"
 										value={noteText}
-										onChangeText={setNoteText}
+										onChangeText={
+											setNoteText
+										}
 									/>
 								</View>
 							</ScrollView>
@@ -672,7 +859,10 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 							<View
 								style={[
 									styles.actionsRow,
-									{ borderTopColor: theme.separator },
+									{
+										borderTopColor:
+											theme.separator,
+									},
 								]}
 							>
 								{isEditing && onDelete && (
@@ -715,7 +905,9 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 									<Text
 										style={[
 											styles.cancelBtnText,
-											{ color: theme.text },
+											{
+												color: theme.text,
+											},
 										]}
 									>
 										Отмена
@@ -726,7 +918,8 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 									style={[
 										styles.saveBtn,
 										{
-											backgroundColor: theme.accent,
+											backgroundColor:
+												theme.accent,
 											opacity:
 												!subject.trim() ||
 												isSubmitting
@@ -737,10 +930,15 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 									activeOpacity={0.75}
 									onPress={handleSave}
 									disabled={
-										!subject.trim() || isSubmitting
+										!subject.trim() ||
+										isSubmitting
 									}
 								>
-									<Text style={styles.saveBtnText}>
+									<Text
+										style={
+											styles.saveBtnText
+										}
+									>
 										Сохранить
 									</Text>
 								</TouchableOpacity>
@@ -903,20 +1101,39 @@ const styles = StyleSheet.create({
 		fontSize: 11,
 		fontWeight: "700",
 	},
-	hwTagsRow: {
+	selectedGradesContainer: {
 		flexDirection: "row",
-		gap: 6,
+		alignItems: "center",
+		paddingVertical: 4,
+		gap: 8,
+	},
+	selectedGradesLabel: {
+		fontSize: 12,
+		fontWeight: "600",
+	},
+	selectedGradesScroll: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 8,
 		paddingVertical: 2,
 	},
-	hwTagChip: {
-		paddingHorizontal: 10,
-		paddingVertical: 5,
+	selectedGradePill: {
+		flexDirection: "row",
+		alignItems: "center",
+		paddingHorizontal: 12,
+		paddingVertical: 6,
 		borderRadius: RADIUS.capsule,
-		borderWidth: StyleSheet.hairlineWidth,
 	},
-	hwTagChipText: {
-		fontSize: 11,
-		fontWeight: "600",
+	selectedGradePillText: {
+		color: "#FFFFFF",
+		fontSize: 15,
+		fontWeight: "800",
+	},
+	addGradeHint: {
+		fontSize: 12,
+		fontWeight: "500",
+		marginTop: 2,
+		marginBottom: -2,
 	},
 	noteInput: {
 		minHeight: 70,

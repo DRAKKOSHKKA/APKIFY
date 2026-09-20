@@ -43,13 +43,15 @@ export const CallsScheduleModal: React.FC<
 		mode?: DayCallMode | "weekday"
 	): DayCallMode => {
 		if (mode === "weekday") return "standard";
-		if (mode === "saturday" || mode === "shortened_45") return mode;
+		if (mode === "saturday" || mode === "shortened_45")
+			return mode;
 		return "standard";
 	};
 
-	const [scheduleType, setScheduleType] = useState<DayCallMode>(() =>
-		normalizeMode(initialScheduleType)
-	);
+	const [scheduleType, setScheduleType] =
+		useState<DayCallMode>(() =>
+			normalizeMode(initialScheduleType)
+		);
 
 	React.useEffect(() => {
 		if (visible && initialScheduleType) {
@@ -166,11 +168,14 @@ export const CallsScheduleModal: React.FC<
 									Режим пар на {selectedDate}:
 								</Text>
 							</View>
-							<View style={styles.applyDayModesRow}>
+							<View
+								style={styles.applyDayModesRow}
+							>
 								<TouchableOpacity
 									style={[
 										styles.applyDayModeBtn,
-										(currentDayMode || "standard") ===
+										(currentDayMode ||
+											"standard") ===
 											"standard" && [
 											styles.applyDayModeBtnActive,
 											{
@@ -179,7 +184,8 @@ export const CallsScheduleModal: React.FC<
 											},
 										],
 										{
-											borderColor: theme.border,
+											borderColor:
+												theme.border,
 										},
 									]}
 									onPress={() => {
@@ -194,7 +200,9 @@ export const CallsScheduleModal: React.FC<
 											selectedDate,
 											"standard"
 										);
-										setScheduleType("standard");
+										setScheduleType(
+											"standard"
+										);
 									}}
 								>
 									<Text
@@ -226,7 +234,8 @@ export const CallsScheduleModal: React.FC<
 											},
 										],
 										{
-											borderColor: theme.border,
+											borderColor:
+												theme.border,
 										},
 									]}
 									onPress={() => {
@@ -274,7 +283,8 @@ export const CallsScheduleModal: React.FC<
 											},
 										],
 										{
-											borderColor: theme.border,
+											borderColor:
+												theme.border,
 										},
 									]}
 									onPress={() => {
@@ -289,7 +299,9 @@ export const CallsScheduleModal: React.FC<
 											selectedDate,
 											"saturday"
 										);
-										setScheduleType("saturday");
+										setScheduleType(
+											"saturday"
+										);
 									}}
 								>
 									<Text

@@ -73,7 +73,10 @@ export type AccentColor =
 	| "teal";
 export type SubgroupFilter = "all" | "1" | "2";
 
-export type DayCallMode = "standard" | "saturday" | "shortened_45";
+export type DayCallMode =
+	| "standard"
+	| "saturday"
+	| "shortened_45";
 
 export interface AppSettings {
 	themeMode: ThemeMode;

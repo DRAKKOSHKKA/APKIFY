@@ -1,4 +1,9 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, {
+	useState,
+	useEffect,
+	useCallback,
+	useMemo,
+} from "react";
 import {
 	StyleSheet,
 	View,
@@ -675,15 +680,22 @@ export default function App() {
 		date: string,
 		mode: DayCallMode
 	) => {
-		const currentModes = { ...(settings.dayCallModes || {}) };
+		const currentModes = {
+			...(settings.dayCallModes || {}),
+		};
 		currentModes[date] = mode;
-		await handleUpdateSettings({ dayCallModes: currentModes });
+		await handleUpdateSettings({
+			dayCallModes: currentModes,
+		});
 	};
 
 	const activeSchedule = useMemo(() => {
 		const base = customSchedule || schedule;
 		if (!base) return null;
-		return normalizeSaturdayTimes(base, settings.dayCallModes);
+		return normalizeSaturdayTimes(
+			base,
+			settings.dayCallModes
+		);
 	}, [customSchedule, schedule, settings.dayCallModes]);
 
 	return (
@@ -817,18 +829,20 @@ export default function App() {
 					visible={isCallsOpen}
 					theme={theme}
 					selectedDate={
-						activeSchedule?.days[selectedDayIndex]?.dayDate
+						activeSchedule?.days[selectedDayIndex]
+							?.dayDate
 					}
 					currentDayMode={
 						activeSchedule?.days[selectedDayIndex]
 							? settings.dayCallModes?.[
-									activeSchedule.days[selectedDayIndex]
-										.dayDate
-							  ] ||
-							  (selectedDayIndex === 5 ||
-							  activeSchedule.days[
+									activeSchedule.days[
+										selectedDayIndex
+									].dayDate
+								] ||
+								(selectedDayIndex === 5 ||
+								activeSchedule.days[
 									selectedDayIndex
-							  ].dayName
+								].dayName
 									.toLowerCase()
 									.includes("суббот")
 									? "saturday"
@@ -839,13 +853,14 @@ export default function App() {
 					initialScheduleType={
 						activeSchedule?.days[selectedDayIndex]
 							? settings.dayCallModes?.[
-									activeSchedule.days[selectedDayIndex]
-										.dayDate
-							  ] ||
-							  (selectedDayIndex === 5 ||
-							  activeSchedule.days[
+									activeSchedule.days[
+										selectedDayIndex
+									].dayDate
+								] ||
+								(selectedDayIndex === 5 ||
+								activeSchedule.days[
 									selectedDayIndex
-							  ].dayName
+								].dayName
 									.toLowerCase()
 									.includes("суббот")
 									? "saturday"
