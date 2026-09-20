@@ -1196,7 +1196,11 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 																	styles.entryRight
 																}
 															>
-																{getEntryGradesList(entry).length > 0 ? (
+																{getEntryGradesList(
+																	entry
+																)
+																	.length >
+																0 ? (
 																	<View
 																		style={
 																			styles.entryGradesListRow
@@ -1365,7 +1369,9 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 											</Text>
 										</View>
 
-										{getEntryGradesList(entry).length > 0 ? (
+										{getEntryGradesList(
+											entry
+										).length > 0 ? (
 											<View
 												style={
 													styles.entryGradesListRow

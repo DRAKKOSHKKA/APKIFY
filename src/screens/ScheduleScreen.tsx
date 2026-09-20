@@ -708,7 +708,6 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 										</TouchableOpacity>
 									)}
 
-
 								{/* Компактная иконка Поделиться расписанием дня */}
 								<TouchableOpacity
 									style={[

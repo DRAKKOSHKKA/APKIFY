@@ -95,7 +95,9 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 }) => {
 	const [subject, setSubject] = useState("");
 	const [date, setDate] = useState("");
-	const [selectedGrades, setSelectedGrades] = useState<GradeValue[]>([]);
+	const [selectedGrades, setSelectedGrades] = useState<
+		GradeValue[]
+	>([]);
 	const [homeworkText, setHomeworkText] = useState("");
 	const [isHomeworkDone, setIsHomeworkDone] = useState(false);
 	const [noteText, setNoteText] = useState("");
@@ -789,7 +791,6 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 											</TouchableOpacity>
 										)}
 									</View>
-
 
 									<TextInput
 										style={[

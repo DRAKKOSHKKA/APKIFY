@@ -247,7 +247,8 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 
 						{/* Индикатор заметки без оценки */}
 						{gradeEntry?.note &&
-							getEntryGradesList(gradeEntry).length === 0 &&
+							getEntryGradesList(gradeEntry)
+								.length === 0 &&
 							!gradeEntry?.homework && (
 								<View
 									style={[
