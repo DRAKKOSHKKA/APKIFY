@@ -220,29 +220,38 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 
 						{/* Бейджи полученных оценок */}
 						{gradeEntry &&
-							getEntryGradesList(gradeEntry).map(
-								(g, idx) => (
-									<View
-										key={idx}
-										style={[
-											styles.gradeBadge,
-											{
-												backgroundColor:
-													getGradeColor(
-														g
-													),
-											},
-										]}
-									>
-										<Text
-											style={
-												styles.gradeBadgeText
-											}
+							getEntryGradesList(gradeEntry)
+								.length > 0 && (
+								<View
+									style={
+										styles.gradesBadgesWrap
+									}
+								>
+									{getEntryGradesList(
+										gradeEntry
+									).map((g, idx) => (
+										<View
+											key={idx}
+											style={[
+												styles.gradeBadge,
+												{
+													backgroundColor:
+														getGradeColor(
+															g
+														),
+												},
+											]}
 										>
-											{g}
-										</Text>
-									</View>
-								)
+											<Text
+												style={
+													styles.gradeBadgeText
+												}
+											>
+												{g}
+											</Text>
+										</View>
+									))}
+								</View>
 							)}
 
 						{/* Индикатор заметки без оценки */}
@@ -647,19 +656,29 @@ const styles = StyleSheet.create({
 	},
 	cardHeader: {
 		flexDirection: "row",
-		alignItems: "center",
+		alignItems: "flex-start",
 		justifyContent: "space-between",
 		marginBottom: 6,
 	},
 	headerLeftRow: {
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 8,
+		flexWrap: "wrap",
+		flex: 1,
+		gap: 6,
+		marginRight: 8,
+	},
+	gradesBadgesWrap: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		alignItems: "center",
+		gap: 4,
 	},
 	headerRightRow: {
 		flexDirection: "row",
 		alignItems: "center",
 		gap: 6,
+		flexShrink: 0,
 	},
 	pairIndex: {
 		fontSize: 11,
@@ -668,7 +687,8 @@ const styles = StyleSheet.create({
 		textTransform: "uppercase",
 	},
 	gradeBadge: {
-		paddingHorizontal: 7,
+		minWidth: 24,
+		paddingHorizontal: 6,
 		paddingVertical: 2,
 		borderRadius: 6,
 		alignItems: "center",

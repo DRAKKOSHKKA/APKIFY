@@ -55,6 +55,12 @@ import {
 	getGradesExportJsonString,
 	importGradesFromJsonString,
 } from "./src/services/gradesStorage";
+import { CustomEvent } from "./src/types/events";
+import {
+	getCustomEventsStore,
+	upsertCustomEvent,
+	deleteCustomEvent,
+} from "./src/services/eventsStorage";
 import { getActiveTheme } from "./src/theme/colors";
 
 import { TabBar, TabType } from "./src/components/TabBar";
@@ -66,6 +72,7 @@ import { WeekModal } from "./src/components/WeekModal";
 import { CallsScheduleModal } from "./src/components/CallsScheduleModal";
 import { DebugModal } from "./src/components/DebugModal";
 import { GradeModal } from "./src/components/GradeModal";
+import { CustomEventModal } from "./src/components/CustomEventModal";
 
 export default function App() {
 	const systemColorScheme = useColorScheme();
@@ -127,6 +134,16 @@ export default function App() {
 		room?: string;
 		teacher?: string;
 	} | null>(null);
+
+	// Кастомные события (кружки, факультативы, консультации)
+	const [customEvents, setCustomEvents] = useState<CustomEvent[]>([]);
+	const [isEventModalOpen, setIsEventModalOpen] =
+		useState<boolean>(false);
+	const [selectedEventToEdit, setSelectedEventToEdit] =
+		useState<CustomEvent | null>(null);
+	const [eventInitialDate, setEventInitialDate] = useState<
+		string | undefined
+	>(undefined);
 
 	// Автономность и симуляция Debug
 	const [isScheduleUpdated, setIsScheduleUpdated] =
@@ -286,6 +303,17 @@ export default function App() {
 			} catch (err) {
 				console.warn(
 					"Ошибка загрузки оценок при старте:",
+					err
+				);
+			}
+
+			// Загрузка кастомных событий (кружки и т.д.)
+			try {
+				const eventsStore = await getCustomEventsStore();
+				setCustomEvents(eventsStore.events);
+			} catch (err) {
+				console.warn(
+					"Ошибка загрузки событий при старте:",
 					err
 				);
 			}
@@ -689,6 +717,43 @@ export default function App() {
 		});
 	};
 
+	/**
+	 * Открыть добавление/редактирование кастомного события
+	 */
+	const handleOpenCustomEventModal = (
+		event?: CustomEvent,
+		initialDate?: string
+	) => {
+		setSelectedEventToEdit(event || null);
+		setEventInitialDate(initialDate);
+		setIsEventModalOpen(true);
+	};
+
+	/**
+	 * Сохранение кастомного события (кружка, секции)
+	 */
+	const handleSaveCustomEvent = async (
+		eventData: Omit<
+			CustomEvent,
+			"id" | "createdAt" | "updatedAt"
+		> & {
+			id?: string;
+		}
+	) => {
+		await upsertCustomEvent(eventData);
+		const updated = await getCustomEventsStore();
+		setCustomEvents(updated.events);
+	};
+
+	/**
+	 * Удаление кастомного события
+	 */
+	const handleDeleteCustomEvent = async (id: string) => {
+		await deleteCustomEvent(id);
+		const updated = await getCustomEventsStore();
+		setCustomEvents(updated.events);
+	};
+
 	const activeSchedule = useMemo(() => {
 		const base = customSchedule || schedule;
 		if (!base) return null;
@@ -731,6 +796,8 @@ export default function App() {
 							handleOpenGradeForLesson
 						}
 						onSetDayCallMode={handleSetDayCallMode}
+						customEvents={customEvents}
+						onOpenEventModal={handleOpenCustomEventModal}
 						onSelectDayIndex={setSelectedDayIndex}
 						onOpenSearch={() =>
 							setIsSearchOpen(true)
@@ -905,6 +972,17 @@ export default function App() {
 					onSave={handleSaveGrade}
 					onDelete={handleDeleteGrade}
 					onClose={() => setIsGradeModalOpen(false)}
+				/>
+
+				{/* Модальное окно добавления/редактирования кастомного события */}
+				<CustomEventModal
+					visible={isEventModalOpen}
+					eventToEdit={selectedEventToEdit}
+					initialDate={eventInitialDate}
+					theme={theme}
+					onSave={handleSaveCustomEvent}
+					onDelete={handleDeleteCustomEvent}
+					onClose={() => setIsEventModalOpen(false)}
 				/>
 			</SafeAreaView>
 		</SafeAreaProvider>

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
 	StyleSheet,
 	Text,
@@ -35,6 +35,9 @@ import { Header } from "../components/Header";
 import { DaySelector } from "../components/DaySelector";
 import { LessonCard } from "../components/LessonCard";
 import { EmptyDay } from "../components/EmptyDay";
+import { CustomEvent } from "../types/events";
+import { getEventsForDate } from "../services/eventsStorage";
+import { CustomEventCard } from "../components/CustomEventCard";
 
 if (
 	Platform.OS === "android" &&
@@ -72,6 +75,8 @@ interface ScheduleScreenProps {
 	grades?: GradeEntry[];
 	onOpenGradeModal?: (lesson: Lesson, date: string) => void;
 	onSetDayCallMode?: (date: string, mode: DayCallMode) => void;
+	customEvents?: CustomEvent[];
+	onOpenEventModal?: (event?: CustomEvent, date?: string) => void;
 }
 
 export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
@@ -98,8 +103,16 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 	grades = [],
 	onOpenGradeModal,
 	onSetDayCallMode,
+	customEvents = [],
+	onOpenEventModal,
 }) => {
 	const selectedDay = schedule?.days[selectedDayIndex];
+
+	// Кастомные события для выбранного дня
+	const dayEvents = useMemo(() => {
+		if (!selectedDay) return [];
+		return getEventsForDate(customEvents, selectedDay.dayDate);
+	}, [customEvents, selectedDay?.dayDate]);
 
 	// Индекс сегодняшнего дня
 	const todayIndex = schedule?.days
@@ -707,6 +720,41 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 											</Text>
 										</TouchableOpacity>
 									)}
+
+								{/* Кнопка добавления кастомного события на этот день */}
+								{onOpenEventModal && (
+									<TouchableOpacity
+										style={[
+											styles.shareIconBtn,
+											{
+												backgroundColor:
+													theme.chipBackground,
+												borderColor:
+													theme.border,
+											},
+										]}
+										activeOpacity={0.7}
+										onPress={() =>
+											onOpenEventModal(
+												undefined,
+												selectedDay?.dayDate
+											)
+										}
+										hitSlop={{
+											top: 8,
+											bottom: 8,
+											left: 8,
+											right: 8,
+										}}
+										accessibilityLabel="Добавить кружок или событие"
+									>
+										<Ionicons
+											name="add"
+											size={18}
+											color={theme.accent}
+										/>
+									</TouchableOpacity>
+								)}
 
 								{/* Компактная иконка Поделиться расписанием дня */}
 								<TouchableOpacity
@@ -1332,6 +1380,79 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 								theme={theme}
 							/>
 						)}
+
+						{/* Кастомные события (кружки, секции, факультативы) */}
+						{dayEvents.length > 0 && (
+							<View style={styles.customEventsSection}>
+								<View style={styles.customEventsSectionHeader}>
+									<Ionicons
+										name="calendar-outline"
+										size={15}
+										color={theme.accent}
+										style={{ marginRight: 6 }}
+									/>
+									<Text
+										style={[
+											styles.customEventsSectionTitle,
+											{ color: theme.textSecondary },
+										]}
+									>
+										События и кружки ({dayEvents.length})
+									</Text>
+								</View>
+								{dayEvents.map((event: CustomEvent) => (
+									<CustomEventCard
+										key={event.id}
+										event={event}
+										theme={theme}
+										glassEffect={settings.glassEffect}
+										onPress={() =>
+											onOpenEventModal?.(
+												event,
+												selectedDay.dayDate
+											)
+										}
+									/>
+								))}
+							</View>
+						)}
+
+						{/* Кнопка добавления события снизу списка */}
+						{onOpenEventModal && (
+							<TouchableOpacity
+								style={[
+									styles.addEventBottomBtn,
+									{
+										borderColor: theme.border,
+										backgroundColor: theme.isDark
+											? "rgba(255, 255, 255, 0.04)"
+											: "rgba(0, 0, 0, 0.02)",
+									},
+								]}
+								activeOpacity={0.7}
+								onPress={() =>
+									onOpenEventModal(
+										undefined,
+										selectedDay.dayDate
+									)
+								}
+							>
+								<Ionicons
+									name="add-circle-outline"
+									size={18}
+									color={theme.accent}
+									style={{ marginRight: 6 }}
+								/>
+								<Text
+									style={[
+										styles.addEventBottomBtnText,
+										{ color: theme.accent },
+									]}
+								>
+									Добавить кружок или событие
+								</Text>
+							</TouchableOpacity>
+						)}
 					</View>
 				) : isLoading ? (
 					<View style={styles.centerBox}>
@@ -1690,6 +1811,39 @@ const styles = StyleSheet.create({
 		borderWidth: StyleSheet.hairlineWidth,
 	},
 	demoBtnText: {
+		fontSize: 14,
+		fontWeight: "600",
+	},
+	customEventsSection: {
+		marginTop: 16,
+		marginBottom: 4,
+	},
+	customEventsSectionHeader: {
+		flexDirection: "row",
+		alignItems: "center",
+		paddingHorizontal: 20,
+		marginBottom: 8,
+	},
+	customEventsSectionTitle: {
+		fontSize: 12,
+		fontWeight: "700",
+		textTransform: "uppercase",
+		letterSpacing: 0.5,
+	},
+	addEventBottomBtn: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		paddingVertical: 14,
+		paddingHorizontal: 16,
+		marginHorizontal: 16,
+		marginTop: 14,
+		marginBottom: 8,
+		borderRadius: 16,
+		borderWidth: 1,
+		borderStyle: "dashed",
+	},
+	addEventBottomBtnText: {
 		fontSize: 14,
 		fontWeight: "600",
 	},

@@ -894,46 +894,73 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 														styles.gradesInlineRow
 													}
 												>
-													{summary
-														.grades
-														.length >
-													0 ? (
-														summary.grades
-															.slice(
-																0,
-																10
-															)
-															.map(
-																(
-																	val,
-																	idx
-																) => (
-																	<View
-																		key={
-																			idx
-																		}
+													{summary.grades.length > 0 ? (
+														<>
+															{summary.grades
+																.slice(
+																	0,
+																	10
+																)
+																.map(
+																	(
+																		val,
+																		idx
+																	) => (
+																		<View
+																			key={
+																				idx
+																			}
+																			style={[
+																				styles.inlineGradeBadge,
+																				{
+																					backgroundColor:
+																						getGradeColor(
+																							val
+																						),
+																				},
+																			]}
+																		>
+																			<Text
+																				style={
+																					styles.inlineGradeText
+																				}
+																			>
+																				{
+																					val
+																				}
+																			</Text>
+																		</View>
+																	)
+																)}
+															{summary.grades
+																.length >
+																10 && (
+																<View
+																	style={[
+																		styles.inlineGradeBadgeMore,
+																		{
+																			backgroundColor:
+																				theme.chipBackground,
+																		},
+																	]}
+																>
+																	<Text
 																		style={[
-																			styles.inlineGradeBadge,
+																			styles.inlineGradeTextMore,
 																			{
-																				backgroundColor:
-																					getGradeColor(
-																						val
-																					),
+																				color: theme.textSecondary,
 																			},
 																		]}
 																	>
-																		<Text
-																			style={
-																				styles.inlineGradeText
-																			}
-																		>
-																			{
-																				val
-																			}
-																		</Text>
-																	</View>
-																)
-															)
+																		+
+																		{summary
+																			.grades
+																			.length -
+																			10}
+																	</Text>
+																</View>
+															)}
+														</>
 													) : (
 														<Text
 															style={[
@@ -1374,7 +1401,7 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 										).length > 0 ? (
 											<View
 												style={
-													styles.entryGradesListRow
+													styles.historyGradesListRow
 												}
 											>
 												{getEntryGradesList(
@@ -1906,8 +1933,18 @@ const styles = StyleSheet.create({
 	},
 	entryGradesListRow: {
 		flexDirection: "row",
+		flexWrap: "wrap",
 		alignItems: "center",
-		gap: 5,
+		justifyContent: "flex-end",
+		gap: 4,
+	},
+	historyGradesListRow: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		alignItems: "center",
+		justifyContent: "flex-end",
+		maxWidth: "48%",
+		gap: 4,
 	},
 	overviewFooter: {
 		flexDirection: "row",
@@ -2001,11 +2038,23 @@ const styles = StyleSheet.create({
 		gap: 5,
 	},
 	inlineGradeBadge: {
-		width: 22,
+		minWidth: 22,
 		height: 22,
+		paddingHorizontal: 4,
 		borderRadius: 5,
 		alignItems: "center",
 		justifyContent: "center",
+	},
+	inlineGradeBadgeMore: {
+		height: 22,
+		paddingHorizontal: 5,
+		borderRadius: 5,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	inlineGradeTextMore: {
+		fontSize: 10,
+		fontWeight: "800",
 	},
 	inlineGradeText: {
 		color: "#FFFFFF",
@@ -2076,10 +2125,13 @@ const styles = StyleSheet.create({
 	},
 	entryRight: {
 		marginLeft: 8,
+		maxWidth: "48%",
+		alignItems: "flex-end",
 	},
 	entryGradeBadge: {
-		width: 28,
+		minWidth: 28,
 		height: 28,
+		paddingHorizontal: 5,
 		borderRadius: 7,
 		alignItems: "center",
 		justifyContent: "center",
@@ -2114,8 +2166,9 @@ const styles = StyleSheet.create({
 		fontWeight: "500",
 	},
 	historyGradeBadge: {
-		width: 32,
+		minWidth: 32,
 		height: 32,
+		paddingHorizontal: 6,
 		borderRadius: 8,
 		alignItems: "center",
 		justifyContent: "center",
