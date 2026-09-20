@@ -31,7 +31,9 @@ async function ensureDirectoryExists(): Promise<string> {
 	try {
 		const dirInfo = await FileSystem.getInfoAsync(dir);
 		if (!dirInfo.exists) {
-			await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
+			await FileSystem.makeDirectoryAsync(dir, {
+				intermediates: true,
+			});
 		}
 	} catch (err) {
 		console.warn("Ошибка создания директории оценок:", err);
@@ -42,16 +44,25 @@ async function ensureDirectoryExists(): Promise<string> {
 /**
  * Записать актуальные данные в файл на диске в специальной папке
  */
-async function writeToFile(data: GradesDataStore): Promise<void> {
+async function writeToFile(
+	data: GradesDataStore
+): Promise<void> {
 	try {
 		await ensureDirectoryExists();
 		const filePath = getGradesFilePath();
 		const jsonString = JSON.stringify(data, null, 2);
-		await FileSystem.writeAsStringAsync(filePath, jsonString, {
-			encoding: FileSystem.EncodingType.UTF8,
-		});
+		await FileSystem.writeAsStringAsync(
+			filePath,
+			jsonString,
+			{
+				encoding: FileSystem.EncodingType.UTF8,
+			}
+		);
 	} catch (err) {
-		console.warn("Ошибка записи файла оценок в файловую систему:", err);
+		console.warn(
+			"Ошибка записи файла оценок в файловую систему:",
+			err
+		);
 	}
 }
 
@@ -63,9 +74,12 @@ async function readFromFile(): Promise<GradesDataStore | null> {
 		const filePath = getGradesFilePath();
 		const info = await FileSystem.getInfoAsync(filePath);
 		if (info.exists) {
-			const content = await FileSystem.readAsStringAsync(filePath, {
-				encoding: FileSystem.EncodingType.UTF8,
-			});
+			const content = await FileSystem.readAsStringAsync(
+				filePath,
+				{
+					encoding: FileSystem.EncodingType.UTF8,
+				}
+			);
 			if (content && content.trim().length > 0) {
 				const parsed = JSON.parse(content);
 				if (Array.isArray(parsed.entries)) {
@@ -82,7 +96,10 @@ async function readFromFile(): Promise<GradesDataStore | null> {
 			}
 		}
 	} catch (err) {
-		console.warn("Ошибка чтения файла оценок из диска:", err);
+		console.warn(
+			"Ошибка чтения файла оценок из диска:",
+			err
+		);
 	}
 	return null;
 }
@@ -95,7 +112,8 @@ export async function getGradesStore(): Promise<GradesDataStore> {
 
 	// 1. Читаем из AsyncStorage для мгновенного доступа
 	try {
-		const cachedJson = await AsyncStorage.getItem(STORAGE_KEY);
+		const cachedJson =
+			await AsyncStorage.getItem(STORAGE_KEY);
 		if (cachedJson) {
 			memoryData = JSON.parse(cachedJson);
 		}
@@ -107,18 +125,32 @@ export async function getGradesStore(): Promise<GradesDataStore> {
 	const fileData = await readFromFile();
 
 	// Если в AsyncStorage пусто (например, после переустановки приложения), но файл на месте:
-	if ((!memoryData || memoryData.entries.length === 0) && fileData && fileData.entries.length > 0) {
+	if (
+		(!memoryData || memoryData.entries.length === 0) &&
+		fileData &&
+		fileData.entries.length > 0
+	) {
 		// Восстанавливаем кэш из сохранённого файла
 		try {
-			await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(fileData));
+			await AsyncStorage.setItem(
+				STORAGE_KEY,
+				JSON.stringify(fileData)
+			);
 		} catch {}
 		return fileData;
 	}
 
 	// Если файл свежее кэша
-	if (fileData && memoryData && fileData.lastUpdated > memoryData.lastUpdated) {
+	if (
+		fileData &&
+		memoryData &&
+		fileData.lastUpdated > memoryData.lastUpdated
+	) {
 		try {
-			await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(fileData));
+			await AsyncStorage.setItem(
+				STORAGE_KEY,
+				JSON.stringify(fileData)
+			);
 		} catch {}
 		return fileData;
 	}
@@ -143,16 +175,24 @@ export async function getGradesStore(): Promise<GradesDataStore> {
 /**
  * Сохранить все оценки сразу в AsyncStorage и в файл на диске
  */
-export async function saveGradesStore(store: GradesDataStore): Promise<void> {
+export async function saveGradesStore(
+	store: GradesDataStore
+): Promise<void> {
 	const updatedStore: GradesDataStore = {
 		...store,
 		lastUpdated: Date.now(),
 	};
 
 	try {
-		await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedStore));
+		await AsyncStorage.setItem(
+			STORAGE_KEY,
+			JSON.stringify(updatedStore)
+		);
 	} catch (err) {
-		console.warn("Ошибка записи в AsyncStorage оценок:", err);
+		console.warn(
+			"Ошибка записи в AsyncStorage оценок:",
+			err
+		);
 	}
 
 	await writeToFile(updatedStore);
@@ -162,7 +202,10 @@ export async function saveGradesStore(store: GradesDataStore): Promise<void> {
  * Добавить или обновить запись оценки/заметки
  */
 export async function upsertGradeEntry(
-	entryData: Omit<GradeEntry, "id" | "createdAt" | "updatedAt"> & { id?: string }
+	entryData: Omit<
+		GradeEntry,
+		"id" | "createdAt" | "updatedAt"
+	> & { id?: string }
 ): Promise<GradeEntry> {
 	const store = await getGradesStore();
 	const now = Date.now();
@@ -171,7 +214,9 @@ export async function upsertGradeEntry(
 
 	if (entryData.id) {
 		// Обновление существующей записи
-		const index = store.entries.findIndex((e) => e.id === entryData.id);
+		const index = store.entries.findIndex(
+			(e) => e.id === entryData.id
+		);
 		if (index !== -1) {
 			resultEntry = {
 				...store.entries[index],
@@ -208,7 +253,9 @@ export async function upsertGradeEntry(
 /**
  * Удалить запись оценки/заметки
  */
-export async function deleteGradeEntry(id: string): Promise<void> {
+export async function deleteGradeEntry(
+	id: string
+): Promise<void> {
 	const store = await getGradesStore();
 	store.entries = store.entries.filter((e) => e.id !== id);
 	await saveGradesStore(store);
@@ -225,10 +272,18 @@ export function findGradeForLesson(
 ): GradeEntry | undefined {
 	const normSubject = subject.trim().toLowerCase();
 	return entries.find((e) => {
-		const isSameSubject = e.subject.trim().toLowerCase() === normSubject;
+		const isSameSubject =
+			e.subject.trim().toLowerCase() === normSubject;
 		const isSameDate = e.date === date;
-		if (pairIndex !== undefined && e.pairIndex !== undefined) {
-			return isSameSubject && isSameDate && e.pairIndex === pairIndex;
+		if (
+			pairIndex !== undefined &&
+			e.pairIndex !== undefined
+		) {
+			return (
+				isSameSubject &&
+				isSameDate &&
+				e.pairIndex === pairIndex
+			);
 		}
 		return isSameSubject && isSameDate;
 	});
@@ -237,7 +292,9 @@ export function findGradeForLesson(
 /**
  * Подсчёт средней оценки и группировка по предметам
  */
-export function calculateSubjectSummaries(entries: GradeEntry[]): SubjectSummary[] {
+export function calculateSubjectSummaries(
+	entries: GradeEntry[]
+): SubjectSummary[] {
 	const grouped: Record<string, GradeEntry[]> = {};
 
 	for (const entry of entries) {
@@ -248,60 +305,85 @@ export function calculateSubjectSummaries(entries: GradeEntry[]): SubjectSummary
 		grouped[subj].push(entry);
 	}
 
-	const summaries: SubjectSummary[] = Object.keys(grouped).map((subject) => {
-		const subjectEntries = grouped[subject].sort((a, b) => b.createdAt - a.createdAt);
+	const summaries: SubjectSummary[] = Object.keys(grouped).map(
+		(subject) => {
+			const subjectEntries = grouped[subject].sort(
+				(a, b) => b.createdAt - a.createdAt
+			);
 
-		let numericSum = 0;
-		let numericCount = 0;
-		let c5 = 0;
-		let c4 = 0;
-		let c3 = 0;
-		let c2 = 0;
-		let notesCount = 0;
-		const gradesList: string[] = [];
+			let numericSum = 0;
+			let numericCount = 0;
+			let c5 = 0;
+			let c4 = 0;
+			let c3 = 0;
+			let c2 = 0;
+			let notesCount = 0;
+			let homeworkCount = 0;
+			let pendingHomeworkCount = 0;
+			const gradesList: string[] = [];
 
-		for (const e of subjectEntries) {
-			if (e.note && e.note.trim().length > 0) {
-				notesCount++;
-			}
-			if (e.grade) {
-				gradesList.push(e.grade);
-				const num = parseInt(e.grade, 10);
-				if (!isNaN(num) && num >= 2 && num <= 5) {
-					numericSum += num;
-					numericCount++;
-					if (num === 5) c5++;
-					if (num === 4) c4++;
-					if (num === 3) c3++;
-					if (num === 2) c2++;
+			for (const e of subjectEntries) {
+				if (e.homework && e.homework.trim().length > 0) {
+					homeworkCount++;
+					if (!e.isHomeworkDone) {
+						pendingHomeworkCount++;
+					}
+				}
+				if (e.note && e.note.trim().length > 0) {
+					notesCount++;
+				}
+				if (e.grade) {
+					gradesList.push(e.grade);
+					const num = parseInt(e.grade, 10);
+					if (!isNaN(num) && num >= 2 && num <= 5) {
+						numericSum += num;
+						numericCount++;
+						if (num === 5) c5++;
+						if (num === 4) c4++;
+						if (num === 3) c3++;
+						if (num === 2) c2++;
+					}
 				}
 			}
+
+			const average =
+				numericCount > 0
+					? Number(
+							(numericSum / numericCount).toFixed(
+								2
+							)
+						)
+					: null;
+
+			return {
+				subject,
+				grades: gradesList,
+				average,
+				totalGradesCount: gradesList.length,
+				count5: c5,
+				count4: c4,
+				count3: c3,
+				count2: c2,
+				notesCount,
+				homeworkCount,
+				pendingHomeworkCount,
+				entries: subjectEntries,
+			};
 		}
-
-		const average = numericCount > 0 ? Number((numericSum / numericCount).toFixed(2)) : null;
-
-		return {
-			subject,
-			grades: gradesList,
-			average,
-			totalGradesCount: gradesList.length,
-			count5: c5,
-			count4: c4,
-			count3: c3,
-			count2: c2,
-			notesCount,
-			entries: subjectEntries,
-		};
-	});
+	);
 
 	// Сортируем: сначала те предметы, по которым есть оценки (по алфавиту)
-	return summaries.sort((a, b) => a.subject.localeCompare(b.subject, "ru"));
+	return summaries.sort((a, b) =>
+		a.subject.localeCompare(b.subject, "ru")
+	);
 }
 
 /**
  * Общий обзор успеваемости (средний балл студента, общее число оценок)
  */
-export function calculateOverview(entries: GradeEntry[]): GradesOverview {
+export function calculateOverview(
+	entries: GradeEntry[]
+): GradesOverview {
 	let numericSum = 0;
 	let numericCount = 0;
 	let c5 = 0;
@@ -309,11 +391,19 @@ export function calculateOverview(entries: GradeEntry[]): GradesOverview {
 	let c3 = 0;
 	let c2 = 0;
 	let totalNotes = 0;
+	let totalHomework = 0;
+	let pendingHomework = 0;
 	let totalGrades = 0;
 	const subjects = new Set<string>();
 
 	for (const e of entries) {
 		subjects.add(e.subject.trim());
+		if (e.homework && e.homework.trim().length > 0) {
+			totalHomework++;
+			if (!e.isHomeworkDone) {
+				pendingHomework++;
+			}
+		}
 		if (e.note && e.note.trim().length > 0) {
 			totalNotes++;
 		}
@@ -331,7 +421,10 @@ export function calculateOverview(entries: GradeEntry[]): GradesOverview {
 		}
 	}
 
-	const averageGrade = numericCount > 0 ? Number((numericSum / numericCount).toFixed(2)) : null;
+	const averageGrade =
+		numericCount > 0
+			? Number((numericSum / numericCount).toFixed(2))
+			: null;
 
 	return {
 		averageGrade,
@@ -341,6 +434,8 @@ export function calculateOverview(entries: GradeEntry[]): GradesOverview {
 		count3: c3,
 		count2: c2,
 		totalNotesCount: totalNotes,
+		totalHomeworkCount: totalHomework,
+		pendingHomeworkCount: pendingHomework,
 		subjectsCount: subjects.size,
 	};
 }
@@ -374,26 +469,37 @@ export async function exportGradesFile(): Promise<boolean> {
 /**
  * Импорт файла из системного диалога выбора документов
  */
-export async function importGradesFile(): Promise<{ count: number } | null> {
+export async function importGradesFile(): Promise<{
+	count: number;
+} | null> {
 	try {
 		const res = await DocumentPicker.getDocumentAsync({
 			type: ["application/json", "text/plain", "*/*"],
 			copyToCacheDirectory: true,
 		});
 
-		if (res.canceled || !res.assets || res.assets.length === 0) {
+		if (
+			res.canceled ||
+			!res.assets ||
+			res.assets.length === 0
+		) {
 			return null;
 		}
 
 		const fileAsset = res.assets[0];
-		const content = await FileSystem.readAsStringAsync(fileAsset.uri, {
-			encoding: FileSystem.EncodingType.UTF8,
-		});
+		const content = await FileSystem.readAsStringAsync(
+			fileAsset.uri,
+			{
+				encoding: FileSystem.EncodingType.UTF8,
+			}
+		);
 
 		return importGradesFromJsonString(content);
 	} catch (err) {
 		console.warn("Ошибка импорта файла оценок:", err);
-		throw new Error("Не удалось прочитать выбранный файл. Убедитесь, что это корректный JSON файл бэкапа.");
+		throw new Error(
+			"Не удалось прочитать выбранный файл. Убедитесь, что это корректный JSON файл бэкапа."
+		);
 	}
 }
 
@@ -412,16 +518,26 @@ export async function importGradesFromJsonString(
 		} else if (Array.isArray(parsed)) {
 			importedEntries = parsed;
 		} else {
-			throw new Error("Неверная структура данных в файле.");
+			throw new Error(
+				"Неверная структура данных в файле."
+			);
 		}
 
 		// Валидация записей
-		const validEntries: GradeEntry[] = importedEntries.filter(
-			(e) => typeof e.subject === "string" && typeof e.date === "string"
-		);
+		const validEntries: GradeEntry[] =
+			importedEntries.filter(
+				(e) =>
+					typeof e.subject === "string" &&
+					typeof e.date === "string"
+			);
 
-		if (validEntries.length === 0 && importedEntries.length > 0) {
-			throw new Error("В файле не найдено корректных записей оценок.");
+		if (
+			validEntries.length === 0 &&
+			importedEntries.length > 0
+		) {
+			throw new Error(
+				"В файле не найдено корректных записей оценок."
+			);
 		}
 
 		const currentStore = await getGradesStore();
@@ -432,7 +548,9 @@ export async function importGradesFromJsonString(
 			map.set(existing.id, existing);
 		}
 		for (const imported of validEntries) {
-			const id = imported.id || `imp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+			const id =
+				imported.id ||
+				`imp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 			map.set(id, {
 				...imported,
 				id,
@@ -453,7 +571,9 @@ export async function importGradesFromJsonString(
 
 		return { count: validEntries.length };
 	} catch (err: any) {
-		throw new Error(err.message || "Ошибка парсинга JSON бэкапа.");
+		throw new Error(
+			err.message || "Ошибка парсинга JSON бэкапа."
+		);
 	}
 }
 
@@ -492,7 +612,9 @@ export async function getStorageInfo(): Promise<{
 		}
 	} catch {}
 
-	const lastDate = store.lastUpdated ? new Date(store.lastUpdated) : new Date();
+	const lastDate = store.lastUpdated
+		? new Date(store.lastUpdated)
+		: new Date();
 	const lastUpdatedFormatted = `${String(lastDate.getDate()).padStart(2, "0")}.${String(lastDate.getMonth() + 1).padStart(2, "0")} в ${String(lastDate.getHours()).padStart(2, "0")}:${String(lastDate.getMinutes()).padStart(2, "0")}`;
 
 	return {

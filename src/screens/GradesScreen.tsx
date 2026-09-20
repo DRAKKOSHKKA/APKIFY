@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import {
 	StyleSheet,
 	Text,
@@ -7,7 +7,6 @@ import {
 	TouchableOpacity,
 	TextInput,
 	Alert,
-	ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -19,7 +18,6 @@ import { GradeEntry, SubjectSummary } from "../types/grades";
 import {
 	calculateOverview,
 	calculateSubjectSummaries,
-	getStorageInfo,
 } from "../services/gradesStorage";
 
 interface GradesScreenProps {
@@ -35,7 +33,7 @@ interface GradesScreenProps {
 	onRefreshGrades: () => Promise<void>;
 }
 
-type ViewMode = "subjects" | "history";
+type ViewMode = "subjects" | "history" | "homework";
 
 function getGradeColor(grade?: string): string {
 	if (!grade) return "#8E8E93";
@@ -71,35 +69,18 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 	onImportClipboard,
 	onRefreshGrades,
 }) => {
-	const [viewMode, setViewMode] = useState<ViewMode>("subjects");
+	const [viewMode, setViewMode] =
+		useState<ViewMode>("subjects");
 	const [searchQuery, setSearchQuery] = useState("");
 	const [expandedSubjects, setExpandedSubjects] = useState<
 		Record<string, boolean>
 	>({});
-	const [storageInfo, setStorageInfo] = useState<{
-		folderName: string;
-		fileName: string;
-		fullPath: string;
-		fileExists: boolean;
-		fileSizeFormatted: string;
-		entriesCount: number;
-		lastUpdatedFormatted: string;
-	} | null>(null);
-	const [isLoadingAction, setIsLoadingAction] = useState(false);
-
-	// Загружаем инфо о папке и файле
-	useEffect(() => {
-		async function fetchInfo() {
-			try {
-				const info = await getStorageInfo();
-				setStorageInfo(info);
-			} catch {}
-		}
-		fetchInfo();
-	}, [grades]);
 
 	// Расчёт аналитики
-	const overview = useMemo(() => calculateOverview(grades), [grades]);
+	const overview = useMemo(
+		() => calculateOverview(grades),
+		[grades]
+	);
 	const subjectSummaries = useMemo(
 		() => calculateSubjectSummaries(grades),
 		[grades]
@@ -116,15 +97,43 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 
 	// Все записи хронологически
 	const sortedEntries = useMemo(() => {
-		const list = [...grades].sort((a, b) => b.createdAt - a.createdAt);
+		const list = [...grades].sort(
+			(a, b) => b.createdAt - a.createdAt
+		);
 		if (!searchQuery.trim()) return list;
 		const query = searchQuery.toLowerCase().trim();
 		return list.filter(
 			(e) =>
 				e.subject.toLowerCase().includes(query) ||
-				(e.note && e.note.toLowerCase().includes(query)) ||
+				(e.note &&
+					e.note.toLowerCase().includes(query)) ||
 				e.date.includes(query)
 		);
+	}, [grades, searchQuery]);
+
+	// Список домашних заданий
+	const homeworkList = useMemo(() => {
+		const list = grades.filter(
+			(e) => !!e.homework && e.homework.trim().length > 0
+		);
+		const filtered = searchQuery.trim()
+			? list.filter((e) => {
+					const query = searchQuery.toLowerCase().trim();
+					return (
+						e.subject.toLowerCase().includes(query) ||
+						(e.homework &&
+							e.homework.toLowerCase().includes(query)) ||
+						(e.note && e.note.toLowerCase().includes(query)) ||
+						e.date.includes(query)
+					);
+			  })
+			: list;
+
+		return [...filtered].sort((a, b) => {
+			if (!a.isHomeworkDone && b.isHomeworkDone) return -1;
+			if (a.isHomeworkDone && !b.isHomeworkDone) return 1;
+			return b.createdAt - a.createdAt;
+		});
 	}, [grades, searchQuery]);
 
 	const toggleExpand = (subject: string) => {
@@ -148,19 +157,26 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 							text: "Импортировать",
 							onPress: async (text?: string) => {
 								if (text) {
-									await onImportClipboard(text);
+									await onImportClipboard(
+										text
+									);
 								}
 							},
 						},
 					],
 					"plain-text"
-			  )
+				)
 			: (async () => {
 					try {
-						const hasString = await Clipboard.hasStringAsync();
+						const hasString =
+							await Clipboard.hasStringAsync();
 						if (hasString) {
-							const text = await Clipboard.getStringAsync();
-							if (text && text.trim().startsWith("{")) {
+							const text =
+								await Clipboard.getStringAsync();
+							if (
+								text &&
+								text.trim().startsWith("{")
+							) {
 								await onImportClipboard(text);
 							} else {
 								Alert.alert(
@@ -169,12 +185,68 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 								);
 							}
 						} else {
-							Alert.alert("Буфер пуст", "Скопируйте JSON бэкапа перед импортом.");
+							Alert.alert(
+								"Буфер пуст",
+								"Скопируйте JSON бэкапа перед импортом."
+							);
 						}
 					} catch (err: any) {
-						Alert.alert("Ошибка", err.message || "Не удалось прочитать буфер");
+						Alert.alert(
+							"Ошибка",
+							err.message ||
+								"Не удалось прочитать буфер"
+						);
 					}
-			  })();
+				})();
+	};
+
+	const handleShowBackupMenu = () => {
+		Alert.alert(
+			"Резервное копирование",
+			"Экспорт и импорт базы оценок и домашних заданий:",
+			[
+				{
+					text: "Поделиться файлом",
+					onPress: async () => {
+						try {
+							await onExportFile();
+						} catch (e: any) {
+							Alert.alert(
+								"Ошибка",
+								e.message ||
+									"Не удалось экспортировать файл"
+							);
+						}
+					},
+				},
+				{
+					text: "Импорт из файла",
+					onPress: async () => {
+						try {
+							await onImportFile();
+						} catch (e: any) {
+							Alert.alert(
+								"Ошибка",
+								e.message ||
+									"Не удалось импортировать файл"
+							);
+						}
+					},
+				},
+				{
+					text: "Скопировать JSON",
+					onPress: onExportClipboard,
+				},
+				{
+					text: "Вставить JSON",
+					onPress: handleImportClipboardPrompt,
+				},
+				{
+					text: "Отмена",
+					style: "cancel",
+				},
+			]
+		);
 	};
 
 	const cardBg = settings.glassEffect
@@ -225,7 +297,10 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 			>
 				<View style={styles.headerLeft}>
 					<Text
-						style={[styles.screenTitle, { color: theme.text }]}
+						style={[
+							styles.screenTitle,
+							{ color: theme.text },
+						]}
 					>
 						Оценки и успеваемость
 					</Text>
@@ -241,17 +316,50 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 					</Text>
 				</View>
 
-				<TouchableOpacity
-					style={[
-						styles.headerAddBtn,
-						{ backgroundColor: theme.accent },
-					]}
-					activeOpacity={0.8}
-					onPress={onAddGrade}
-				>
-					<Ionicons name="add" size={20} color="#FFFFFF" />
-					<Text style={styles.headerAddBtnText}>Запись</Text>
-				</TouchableOpacity>
+				<View style={styles.headerRightActions}>
+					<TouchableOpacity
+						style={[
+							styles.headerBackupBtn,
+							{
+								backgroundColor: theme.chipBackground,
+								borderColor: theme.border,
+							},
+						]}
+						activeOpacity={0.7}
+						onPress={handleShowBackupMenu}
+						hitSlop={{
+							top: 8,
+							bottom: 8,
+							left: 8,
+							right: 8,
+						}}
+						accessibilityLabel="Резервное копирование"
+					>
+						<Ionicons
+							name="ellipsis-horizontal"
+							size={18}
+							color={theme.text}
+						/>
+					</TouchableOpacity>
+
+					<TouchableOpacity
+						style={[
+							styles.headerAddBtn,
+							{ backgroundColor: theme.accent },
+						]}
+						activeOpacity={0.8}
+						onPress={onAddGrade}
+					>
+						<Ionicons
+							name="add"
+							size={20}
+							color="#FFFFFF"
+						/>
+						<Text style={styles.headerAddBtnText}>
+							Запись
+						</Text>
+					</TouchableOpacity>
+				</View>
 			</View>
 
 			<ScrollView
@@ -297,7 +405,9 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 										},
 									]}
 								>
-									{avg !== null ? avg.toFixed(2) : "—"}
+									{avg !== null
+										? avg.toFixed(2)
+										: "—"}
 								</Text>
 							</View>
 							<Text
@@ -319,7 +429,9 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 							<Text
 								style={[
 									styles.counterHeaderTitle,
-									{ color: theme.textSecondary },
+									{
+										color: theme.textSecondary,
+									},
 								]}
 							>
 								РАСПРЕДЕЛЕНИЕ ОЦЕНОК
@@ -334,7 +446,13 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 										},
 									]}
 								>
-									<Text style={styles.gradePillNum}>5</Text>
+									<Text
+										style={
+											styles.gradePillNum
+										}
+									>
+										5
+									</Text>
 									<Text
 										style={[
 											styles.gradePillCount,
@@ -354,7 +472,13 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 										},
 									]}
 								>
-									<Text style={styles.gradePillNum}>4</Text>
+									<Text
+										style={
+											styles.gradePillNum
+										}
+									>
+										4
+									</Text>
 									<Text
 										style={[
 											styles.gradePillCount,
@@ -374,7 +498,13 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 										},
 									]}
 								>
-									<Text style={styles.gradePillNum}>3</Text>
+									<Text
+										style={
+											styles.gradePillNum
+										}
+									>
+										3
+									</Text>
 									<Text
 										style={[
 											styles.gradePillCount,
@@ -394,7 +524,13 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 										},
 									]}
 								>
-									<Text style={styles.gradePillNum}>2</Text>
+									<Text
+										style={
+											styles.gradePillNum
+										}
+									>
+										2
+									</Text>
 									<Text
 										style={[
 											styles.gradePillCount,
@@ -424,10 +560,13 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 							<Text
 								style={[
 									styles.footerInfoText,
-									{ color: theme.textSecondary },
+									{
+										color: theme.textSecondary,
+									},
 								]}
 							>
-								{overview.subjectsCount} предметов
+								{overview.subjectsCount}{" "}
+								предметов
 							</Text>
 						</View>
 
@@ -440,16 +579,48 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 							<Text
 								style={[
 									styles.footerInfoText,
-									{ color: theme.textSecondary },
+									{
+										color: theme.textSecondary,
+									},
 								]}
 							>
-								{overview.totalNotesCount} заметок и Д/З
+								{overview.totalNotesCount} заметок
 							</Text>
 						</View>
+
+						{overview.totalHomeworkCount > 0 && (
+							<View style={styles.footerInfoItem}>
+								<Ionicons
+									name="checkbox-outline"
+									size={14}
+									color={
+										overview.pendingHomeworkCount > 0
+											? theme.warning
+											: "#34C759"
+									}
+								/>
+								<Text
+									style={[
+										styles.footerInfoText,
+										{
+											color:
+												overview.pendingHomeworkCount > 0
+													? theme.warning
+													: "#34C759",
+											fontWeight: "600",
+										},
+									]}
+								>
+									{overview.pendingHomeworkCount > 0
+										? `${overview.pendingHomeworkCount} Д/З сдать`
+										: `${overview.totalHomeworkCount} Д/З сдано`}
+								</Text>
+							</View>
+						)}
 					</View>
 				</View>
 
-				{/* Переключатель вкладок «По предметам» / «Все записи» */}
+				{/* Переключатель вкладок «По предметам» / «Все записи» / «Домашка» */}
 				<View style={styles.segmentedRow}>
 					<TouchableOpacity
 						style={[
@@ -481,8 +652,9 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 											: "500",
 								},
 							]}
+							numberOfLines={1}
 						>
-							По предметам ({subjectSummaries.length})
+							Предметы ({subjectSummaries.length})
 						</Text>
 					</TouchableOpacity>
 
@@ -516,8 +688,45 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 											: "500",
 								},
 							]}
+							numberOfLines={1}
 						>
-							Все записи ({grades.length})
+							Все ({grades.length})
+						</Text>
+					</TouchableOpacity>
+
+					<TouchableOpacity
+						style={[
+							styles.segmentBtn,
+							viewMode === "homework" && [
+								styles.segmentBtnActive,
+								{ backgroundColor: theme.card },
+							],
+						]}
+						activeOpacity={0.8}
+						onPress={() => {
+							try {
+								Haptics.selectionAsync();
+							} catch {}
+							setViewMode("homework");
+						}}
+					>
+						<Text
+							style={[
+								styles.segmentBtnText,
+								{
+									color:
+										viewMode === "homework"
+											? theme.text
+											: theme.textSecondary,
+									fontWeight:
+										viewMode === "homework"
+											? "700"
+											: "500",
+								},
+							]}
+							numberOfLines={1}
+						>
+							Д/З ({homeworkList.length})
 						</Text>
 					</TouchableOpacity>
 				</View>
@@ -528,7 +737,8 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 						style={[
 							styles.searchBox,
 							{
-								backgroundColor: theme.chipBackground,
+								backgroundColor:
+									theme.chipBackground,
 								borderColor: theme.border,
 							},
 						]}
@@ -540,15 +750,22 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 							style={{ marginRight: 8 }}
 						/>
 						<TextInput
-							style={[styles.searchInput, { color: theme.text }]}
+							style={[
+								styles.searchInput,
+								{ color: theme.text },
+							]}
 							placeholder="Поиск по предмету или заметке..."
-							placeholderTextColor={theme.textSecondary}
+							placeholderTextColor={
+								theme.textSecondary
+							}
 							value={searchQuery}
 							onChangeText={setSearchQuery}
 						/>
 						{searchQuery.length > 0 && (
 							<TouchableOpacity
-								onPress={() => setSearchQuery("")}
+								onPress={() =>
+									setSearchQuery("")
+								}
 								hitSlop={{
 									top: 8,
 									bottom: 8,
@@ -572,13 +789,18 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 						{filteredSummaries.length > 0 ? (
 							filteredSummaries.map((summary) => {
 								const isExpanded =
-									!!expandedSubjects[summary.subject];
+									!!expandedSubjects[
+										summary.subject
+									];
 								const sAvg = summary.average;
 								let sColor = theme.accent;
 								if (sAvg !== null) {
-									if (sAvg >= 4.75) sColor = "#34C759";
-									else if (sAvg >= 3.75) sColor = "#007AFF";
-									else if (sAvg >= 3.0) sColor = "#FF9500";
+									if (sAvg >= 4.75)
+										sColor = "#34C759";
+									else if (sAvg >= 3.75)
+										sColor = "#007AFF";
+									else if (sAvg >= 3.0)
+										sColor = "#FF9500";
 									else sColor = "#FF3B30";
 								}
 
@@ -588,16 +810,22 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 										style={[
 											styles.subjectCard,
 											{
-												backgroundColor: cardBg,
-												borderColor: cardBorder,
+												backgroundColor:
+													cardBg,
+												borderColor:
+													cardBorder,
 											},
 										]}
 									>
 										<TouchableOpacity
-											style={styles.subjectCardHeader}
+											style={
+												styles.subjectCardHeader
+											}
 											activeOpacity={0.75}
 											onPress={() =>
-												toggleExpand(summary.subject)
+												toggleExpand(
+													summary.subject
+												)
 											}
 										>
 											<View
@@ -608,10 +836,14 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 												<Text
 													style={[
 														styles.subjectName,
-														{ color: theme.text },
+														{
+															color: theme.text,
+														},
 													]}
 												>
-													{summary.subject}
+													{
+														summary.subject
+													}
 												</Text>
 												{/* Оценки в ряд */}
 												<View
@@ -619,10 +851,15 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 														styles.gradesInlineRow
 													}
 												>
-													{summary.grades.length >
+													{summary
+														.grades
+														.length >
 													0 ? (
 														summary.grades
-															.slice(0, 10)
+															.slice(
+																0,
+																10
+															)
 															.map(
 																(
 																	val,
@@ -663,7 +900,9 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 																},
 															]}
 														>
-															Оценок нет • только
+															Оценок
+															нет •
+															только
 															заметки
 														</Text>
 													)}
@@ -681,7 +920,9 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 														>
 															<Ionicons
 																name="document-text-outline"
-																size={11}
+																size={
+																	11
+																}
 																color={
 																	theme.accent
 																}
@@ -715,11 +956,16 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 												<Text
 													style={[
 														styles.subjectScoreText,
-														{ color: sColor },
+														{
+															color: sColor,
+														},
 													]}
 												>
-													{sAvg !== null
-														? sAvg.toFixed(2)
+													{sAvg !==
+													null
+														? sAvg.toFixed(
+																2
+															)
 														: "—"}
 												</Text>
 												<Ionicons
@@ -732,7 +978,9 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 													color={
 														theme.textSecondary
 													}
-													style={{ marginTop: 2 }}
+													style={{
+														marginTop: 2,
+													}}
 												/>
 											</View>
 										</TouchableOpacity>
@@ -751,7 +999,9 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 												{summary.entries.map(
 													(entry) => (
 														<TouchableOpacity
-															key={entry.id}
+															key={
+																entry.id
+															}
 															style={[
 																styles.entryItemRow,
 																{
@@ -759,7 +1009,9 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 																		theme.separator,
 																},
 															]}
-															activeOpacity={0.7}
+															activeOpacity={
+																0.7
+															}
 															onPress={() =>
 																onEditGrade(
 																	entry
@@ -820,6 +1072,56 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 																	) : null}
 																</View>
 
+																{entry.homework ? (
+																	<View
+																		style={[
+																			styles.entryHomeworkPill,
+																			{
+																				backgroundColor:
+																					entry.isHomeworkDone
+																						? "rgba(52, 199, 89, 0.12)"
+																						: "rgba(255, 149, 0, 0.12)",
+																				borderColor:
+																					entry.isHomeworkDone
+																						? "#34C759"
+																						: "#FF9500",
+																			},
+																		]}
+																	>
+																		<Ionicons
+																			name={
+																				entry.isHomeworkDone
+																					? "checkmark-circle"
+																					: "time-outline"
+																			}
+																			size={11}
+																			color={
+																				entry.isHomeworkDone
+																					? "#34C759"
+																					: "#FF9500"
+																			}
+																			style={{
+																				marginRight: 4,
+																			}}
+																		/>
+																		<Text
+																			style={[
+																				styles.entryHomeworkPillText,
+																				{
+																					color: theme.text,
+																					textDecorationLine:
+																						entry.isHomeworkDone
+																							? "line-through"
+																							: "none",
+																				},
+																			]}
+																			numberOfLines={1}
+																		>
+																			Д/З: {entry.homework}
+																		</Text>
+																	</View>
+																) : null}
+
 																{entry.note ? (
 																	<Text
 																		style={[
@@ -869,7 +1171,9 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 																) : (
 																	<Ionicons
 																		name="create-outline"
-																		size={16}
+																		size={
+																			16
+																		}
 																		color={
 																			theme.textSecondary
 																		}
@@ -902,21 +1206,31 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 								<Text
 									style={[
 										styles.emptySubtitle,
-										{ color: theme.textSecondary },
+										{
+											color: theme.textSecondary,
+										},
 									]}
 								>
-									Нажмите на любую пару в расписании, чтобы
-									добавить оценку или домашнее задание
+									Нажмите на любую пару в
+									расписании, чтобы добавить
+									оценку или домашнее задание
 								</Text>
 								<TouchableOpacity
 									style={[
 										styles.emptyActionBtn,
-										{ backgroundColor: theme.accent },
+										{
+											backgroundColor:
+												theme.accent,
+										},
 									]}
 									activeOpacity={0.8}
 									onPress={onAddGrade}
 								>
-									<Text style={styles.emptyActionBtnText}>
+									<Text
+										style={
+											styles.emptyActionBtnText
+										}
+									>
 										+ Добавить оценку
 									</Text>
 								</TouchableOpacity>
@@ -933,19 +1247,33 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 									style={[
 										styles.historyCard,
 										{
-											backgroundColor: cardBg,
-											borderColor: cardBorder,
+											backgroundColor:
+												cardBg,
+											borderColor:
+												cardBorder,
 										},
 									]}
 									activeOpacity={0.75}
-									onPress={() => onEditGrade(entry)}
+									onPress={() =>
+										onEditGrade(entry)
+									}
 								>
-									<View style={styles.historyCardHeader}>
-										<View style={styles.historyHeaderLeft}>
+									<View
+										style={
+											styles.historyCardHeader
+										}
+									>
+										<View
+											style={
+												styles.historyHeaderLeft
+											}
+										>
 											<Text
 												style={[
 													styles.historySubject,
-													{ color: theme.text },
+													{
+														color: theme.text,
+													},
 												]}
 												numberOfLines={1}
 											>
@@ -992,6 +1320,76 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 										) : null}
 									</View>
 
+									{entry.homework ? (
+										<View
+											style={[
+												styles.historyHomeworkBox,
+												{
+													backgroundColor:
+														entry.isHomeworkDone
+															? "rgba(52, 199, 89, 0.12)"
+															: "rgba(255, 149, 0, 0.12)",
+													borderColor:
+														entry.isHomeworkDone
+															? "#34C759"
+															: "#FF9500",
+												},
+											]}
+										>
+											<Ionicons
+												name={
+													entry.isHomeworkDone
+														? "checkmark-circle"
+														: "time-outline"
+												}
+												size={14}
+												color={
+													entry.isHomeworkDone
+														? "#34C759"
+														: "#FF9500"
+												}
+												style={{ marginRight: 6 }}
+											/>
+											<Text
+												style={[
+													styles.historyHomeworkText,
+													{
+														color: theme.text,
+														textDecorationLine:
+															entry.isHomeworkDone
+																? "line-through"
+																: "none",
+													},
+												]}
+												numberOfLines={2}
+											>
+												<Text
+													style={{
+														fontWeight: "700",
+													}}
+												>
+													Д/З:{" "}
+												</Text>
+												{entry.homework}
+											</Text>
+											<Text
+												style={[
+													styles.hwStatusMiniText,
+													{
+														color:
+															entry.isHomeworkDone
+																? "#34C759"
+																: "#FF9500",
+													},
+												]}
+											>
+												{entry.isHomeworkDone
+													? "СДАНО"
+													: "СДЕЛАТЬ"}
+											</Text>
+										</View>
+									) : null}
+
 									{entry.note ? (
 										<View
 											style={[
@@ -999,20 +1397,27 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 												{
 													backgroundColor:
 														theme.chipBackground,
-													borderColor: theme.border,
+													borderColor:
+														theme.border,
 												},
 											]}
 										>
 											<Ionicons
 												name="document-text"
 												size={12}
-												color={theme.accent}
-												style={{ marginRight: 6 }}
+												color={
+													theme.accent
+												}
+												style={{
+													marginRight: 6,
+												}}
 											/>
 											<Text
 												style={[
 													styles.historyNoteText,
-													{ color: theme.text },
+													{
+														color: theme.text,
+													},
 												]}
 											>
 												{entry.note}
@@ -1041,249 +1446,222 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
 					</View>
 				)}
 
-				{/* Карточка специальной папки и резервного копирования */}
-				<View
-					style={[
-						styles.storageCard,
-						{
-							backgroundColor: cardBg,
-							borderColor: cardBorder,
-						},
-					]}
-				>
-					<View style={styles.storageCardHeader}>
-						<View
-							style={[
-								styles.storageIconWrap,
-								{
-									backgroundColor:
-										theme.accentSubtle,
-								},
-							]}
-						>
-							<Ionicons
-								name="folder-outline"
-								size={20}
-								color={theme.accent}
-							/>
-						</View>
-						<View style={styles.storageHeaderTitles}>
-							<Text
-								style={[
-									styles.storageCardTitle,
-									{ color: theme.text },
-								]}
-							>
-								Специальная папка и резервные копии
-							</Text>
-							<Text
-								style={[
-									styles.storageCardSubtitle,
-									{ color: theme.textSecondary },
-								]}
-							>
-								Защита от потери данных при переустановках
-							</Text>
-						</View>
-					</View>
-
-					<Text
-						style={[
-							styles.storageDesc,
-							{ color: theme.textSecondary },
-						]}
-					>
-						Все оценки сохраняются в постоянный файл на устройстве.
-						Вы можете увидеть его в системном приложении «Файлы»:
-					</Text>
-
-					{/* Путь к файлу */}
-					<View
-						style={[
-							styles.pathBox,
-							{
-								backgroundColor: theme.chipBackground,
-								borderColor: theme.border,
-							},
-						]}
-					>
-						<Ionicons
-							name="phone-portrait-outline"
-							size={14}
-							color={theme.accent}
-							style={{ marginRight: 6 }}
-						/>
-						<Text
-							style={[styles.pathText, { color: theme.text }]}
-							numberOfLines={2}
-						>
-							Файлы › На моем iPhone › Apkify › Apkify_Grades ›
-							grades_and_notes.json
-						</Text>
-					</View>
-
-					{storageInfo && (
-						<View style={styles.storageStatsRow}>
-							<Text
-								style={[
-									styles.storageStatText,
-									{ color: theme.textSecondary },
-								]}
-							>
-								Статус файла:{" "}
-								<Text
-									style={{
-										color: storageInfo.fileExists
-											? "#34C759"
-											: theme.warning,
-										fontWeight: "700",
-									}}
+				{/* Вкладка «Домашка» */}
+				{viewMode === "homework" && (
+					<View style={styles.listContainer}>
+						{homeworkList.length > 0 ? (
+							homeworkList.map((entry) => (
+								<TouchableOpacity
+									key={entry.id}
+									style={[
+										styles.homeworkCard,
+										{
+											backgroundColor: cardBg,
+											borderColor: entry.isHomeworkDone
+												? cardBorder
+												: theme.warning + "60",
+										},
+									]}
+									activeOpacity={0.75}
+									onPress={() => onEditGrade(entry)}
 								>
-									{storageInfo.fileExists
-										? `Сохранён (${storageInfo.fileSizeFormatted})`
-										: "Будет создан при первой записи"}
+									<View
+										style={
+											styles.homeworkCardHeader
+										}
+									>
+										<View
+											style={
+												styles.homeworkHeaderLeft
+											}
+										>
+											<Text
+												style={[
+													styles.homeworkSubject,
+													{
+														color: theme.text,
+													},
+												]}
+												numberOfLines={1}
+											>
+												{entry.subject}
+											</Text>
+											<Text
+												style={[
+													styles.homeworkMeta,
+													{
+														color: theme.textSecondary,
+													},
+												]}
+											>
+												{entry.date}
+												{entry.pairIndex
+													? ` • ${entry.pairIndex} пара`
+													: ""}
+												{entry.room
+													? ` • каб. ${entry.room}`
+													: ""}
+											</Text>
+										</View>
+
+										<View
+											style={[
+												styles.hwStatusPill,
+												{
+													backgroundColor:
+														entry.isHomeworkDone
+															? "rgba(52, 199, 89, 0.15)"
+															: "rgba(255, 149, 0, 0.15)",
+													borderColor:
+														entry.isHomeworkDone
+															? "#34C759"
+															: "#FF9500",
+												},
+											]}
+										>
+											<Ionicons
+												name={
+													entry.isHomeworkDone
+														? "checkmark-circle"
+														: "time-outline"
+												}
+												size={13}
+												color={
+													entry.isHomeworkDone
+														? "#34C759"
+														: "#FF9500"
+												}
+												style={{
+													marginRight: 4,
+												}}
+											/>
+											<Text
+												style={[
+													styles.hwStatusPillText,
+													{
+														color:
+															entry.isHomeworkDone
+																? "#34C759"
+																: "#FF9500",
+													},
+												]}
+											>
+												{entry.isHomeworkDone
+													? "Сдано"
+													: "Сделать"}
+											</Text>
+										</View>
+									</View>
+
+									<View
+										style={[
+											styles.homeworkContentBox,
+											{
+												backgroundColor:
+													theme.chipBackground,
+												borderColor:
+													theme.border,
+											},
+										]}
+									>
+										<Ionicons
+											name="book-outline"
+											size={15}
+											color={
+												entry.isHomeworkDone
+													? "#34C759"
+													: theme.accent
+											}
+											style={{
+												marginRight: 8,
+												marginTop: 1,
+											}}
+										/>
+										<Text
+											style={[
+												styles.homeworkContentText,
+												{
+													color: theme.text,
+													textDecorationLine:
+														entry.isHomeworkDone
+															? "line-through"
+															: "none",
+													opacity:
+														entry.isHomeworkDone
+															? 0.75
+															: 1,
+												},
+											]}
+										>
+											{entry.homework}
+										</Text>
+									</View>
+
+									{entry.note ? (
+										<View
+											style={[
+												styles.historyNoteBox,
+												{
+													backgroundColor:
+														theme.chipBackground,
+													borderColor:
+														theme.border,
+												},
+											]}
+										>
+											<Ionicons
+												name="document-text"
+												size={12}
+												color={theme.accent}
+												style={{
+													marginRight: 6,
+												}}
+											/>
+											<Text
+												style={[
+													styles.historyNoteText,
+													{
+														color: theme.textSecondary,
+													},
+												]}
+											>
+												{entry.note}
+											</Text>
+										</View>
+									) : null}
+								</TouchableOpacity>
+							))
+						) : (
+							<View style={styles.emptyBox}>
+								<Ionicons
+									name="checkbox-outline"
+									size={48}
+									color={theme.textSecondary}
+								/>
+								<Text
+									style={[
+										styles.emptyTitle,
+										{ color: theme.text },
+									]}
+								>
+									{searchQuery.trim()
+										? "Ничего не найдено"
+										: "Нет домашних заданий"}
 								</Text>
-							</Text>
-							<Text
-								style={[
-									styles.storageStatText,
-									{ color: theme.textSecondary },
-								]}
-							>
-								Обновлено: {storageInfo.lastUpdatedFormatted}
-							</Text>
-						</View>
-					)}
-
-					{/* Кнопки экспорта и импорта */}
-					<View style={styles.storageActionsGrid}>
-						<TouchableOpacity
-							style={[
-								styles.storageActionBtn,
-								{
-									backgroundColor: theme.chipBackground,
-									borderColor: theme.border,
-								},
-							]}
-							activeOpacity={0.7}
-							onPress={async () => {
-								setIsLoadingAction(true);
-								try {
-									await onExportFile();
-								} finally {
-									setIsLoadingAction(false);
-								}
-							}}
-							disabled={isLoadingAction}
-						>
-							<Ionicons
-								name="share-outline"
-								size={16}
-								color={theme.accent}
-								style={{ marginRight: 6 }}
-							/>
-							<Text
-								style={[
-									styles.storageActionBtnText,
-									{ color: theme.text },
-								]}
-							>
-								Поделиться файлом
-							</Text>
-						</TouchableOpacity>
-
-						<TouchableOpacity
-							style={[
-								styles.storageActionBtn,
-								{
-									backgroundColor: theme.chipBackground,
-									borderColor: theme.border,
-								},
-							]}
-							activeOpacity={0.7}
-							onPress={async () => {
-								setIsLoadingAction(true);
-								try {
-									await onImportFile();
-								} finally {
-									setIsLoadingAction(false);
-								}
-							}}
-							disabled={isLoadingAction}
-						>
-							<Ionicons
-								name="download-outline"
-								size={16}
-								color={theme.accent}
-								style={{ marginRight: 6 }}
-							/>
-							<Text
-								style={[
-									styles.storageActionBtnText,
-									{ color: theme.text },
-								]}
-							>
-								Импорт из файла
-							</Text>
-						</TouchableOpacity>
-
-						<TouchableOpacity
-							style={[
-								styles.storageActionBtn,
-								{
-									backgroundColor: theme.chipBackground,
-									borderColor: theme.border,
-								},
-							]}
-							activeOpacity={0.7}
-							onPress={onExportClipboard}
-							disabled={isLoadingAction}
-						>
-							<Ionicons
-								name="copy-outline"
-								size={16}
-								color={theme.textSecondary}
-								style={{ marginRight: 6 }}
-							/>
-							<Text
-								style={[
-									styles.storageActionBtnText,
-									{ color: theme.text },
-								]}
-							>
-								Копировать JSON
-							</Text>
-						</TouchableOpacity>
-
-						<TouchableOpacity
-							style={[
-								styles.storageActionBtn,
-								{
-									backgroundColor: theme.chipBackground,
-									borderColor: theme.border,
-								},
-							]}
-							activeOpacity={0.7}
-							onPress={handleImportClipboardPrompt}
-							disabled={isLoadingAction}
-						>
-							<Ionicons
-								name="clipboard-outline"
-								size={16}
-								color={theme.textSecondary}
-								style={{ marginRight: 6 }}
-							/>
-							<Text
-								style={[
-									styles.storageActionBtnText,
-									{ color: theme.text },
-								]}
-							>
-								Вставить JSON
-							</Text>
-						</TouchableOpacity>
+								<Text
+									style={[
+										styles.emptySubtitle,
+										{ color: theme.textSecondary },
+									]}
+								>
+									{searchQuery.trim()
+										? "Попробуйте изменить поисковый запрос"
+										: "Нажмите на пару в расписании или кнопку «Запись», чтобы добавить Д/З"}
+								</Text>
+							</View>
+						)}
 					</View>
-				</View>
+				)}
 			</ScrollView>
 		</View>
 	);
@@ -1315,6 +1693,19 @@ const styles = StyleSheet.create({
 		fontSize: 12,
 		fontWeight: "500",
 		marginTop: 2,
+	},
+	headerRightActions: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 8,
+	},
+	headerBackupBtn: {
+		width: 36,
+		height: 36,
+		borderRadius: 18,
+		alignItems: "center",
+		justifyContent: "center",
+		borderWidth: StyleSheet.hairlineWidth,
 	},
 	headerAddBtn: {
 		flexDirection: "row",
@@ -1664,81 +2055,89 @@ const styles = StyleSheet.create({
 		fontSize: 14,
 		fontWeight: "700",
 	},
-	storageCard: {
-		borderRadius: RADIUS.card,
-		borderWidth: 1,
-		padding: 16,
-		marginTop: 8,
-	},
-	storageCardHeader: {
+	entryHomeworkPill: {
 		flexDirection: "row",
 		alignItems: "center",
-		marginBottom: 10,
+		marginTop: 4,
+		paddingHorizontal: 8,
+		paddingVertical: 3,
+		borderRadius: 6,
+		borderWidth: StyleSheet.hairlineWidth,
+		alignSelf: "flex-start",
+		maxWidth: "100%",
 	},
-	storageIconWrap: {
-		width: 38,
-		height: 38,
-		borderRadius: 12,
-		alignItems: "center",
-		justifyContent: "center",
-		marginRight: 12,
-	},
-	storageHeaderTitles: {
-		flex: 1,
-	},
-	storageCardTitle: {
-		fontSize: 15,
-		fontWeight: "700",
-	},
-	storageCardSubtitle: {
+	entryHomeworkPillText: {
 		fontSize: 11,
-		fontWeight: "500",
-		marginTop: 1,
+		fontWeight: "600",
+		flexShrink: 1,
 	},
-	storageDesc: {
+	historyHomeworkBox: {
+		flexDirection: "row",
+		alignItems: "center",
+		marginTop: 8,
+		padding: 8,
+		borderRadius: RADIUS.badge,
+		borderWidth: StyleSheet.hairlineWidth,
+	},
+	historyHomeworkText: {
 		fontSize: 12,
 		lineHeight: 16,
-		marginBottom: 10,
-	},
-	pathBox: {
-		flexDirection: "row",
-		alignItems: "center",
-		padding: 10,
-		borderRadius: RADIUS.input,
-		borderWidth: StyleSheet.hairlineWidth,
-		marginBottom: 10,
-	},
-	pathText: {
-		fontSize: 11,
-		fontWeight: "600",
 		flex: 1,
-		lineHeight: 15,
+		marginRight: 6,
 	},
-	storageStatsRow: {
+	hwStatusMiniText: {
+		fontSize: 10,
+		fontWeight: "800",
+		letterSpacing: 0.5,
+	},
+	homeworkCard: {
+		borderRadius: RADIUS.card,
+		borderWidth: 1,
+		padding: 14,
+		marginBottom: 10,
+	},
+	homeworkCardHeader: {
 		flexDirection: "row",
+		alignItems: "flex-start",
 		justifyContent: "space-between",
-		marginBottom: 12,
+		marginBottom: 8,
 	},
-	storageStatText: {
-		fontSize: 11,
+	homeworkHeaderLeft: {
+		flex: 1,
+		paddingRight: 8,
 	},
-	storageActionsGrid: {
-		flexDirection: "row",
-		flexWrap: "wrap",
-		gap: 8,
+	homeworkSubject: {
+		fontSize: 15,
+		fontWeight: "700",
+		lineHeight: 20,
+		marginBottom: 2,
 	},
-	storageActionBtn: {
-		width: "48%",
+	homeworkMeta: {
+		fontSize: 12,
+		fontWeight: "500",
+	},
+	hwStatusPill: {
 		flexDirection: "row",
 		alignItems: "center",
-		justifyContent: "center",
-		paddingVertical: 10,
 		paddingHorizontal: 8,
-		borderRadius: RADIUS.button,
+		paddingVertical: 4,
+		borderRadius: RADIUS.badge,
 		borderWidth: StyleSheet.hairlineWidth,
 	},
-	storageActionBtnText: {
-		fontSize: 12,
-		fontWeight: "600",
+	hwStatusPillText: {
+		fontSize: 11,
+		fontWeight: "700",
+	},
+	homeworkContentBox: {
+		flexDirection: "row",
+		alignItems: "flex-start",
+		padding: 10,
+		borderRadius: RADIUS.badge,
+		borderWidth: StyleSheet.hairlineWidth,
+	},
+	homeworkContentText: {
+		fontSize: 13,
+		lineHeight: 18,
+		flex: 1,
 	},
 });

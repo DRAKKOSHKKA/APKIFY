@@ -13,13 +13,18 @@ import * as Haptics from "expo-haptics";
 import {
 	CALLS_SCHEDULE,
 	SATURDAY_CALLS_SCHEDULE,
+	SHORTENED_CALLS_SCHEDULE,
 } from "../utils/timeUtils";
+import { DayCallMode } from "../types/schedule";
 import { ThemeColors } from "../theme/colors";
 
 interface CallsScheduleModalProps {
 	visible: boolean;
 	theme: ThemeColors;
-	initialScheduleType?: "weekday" | "saturday";
+	initialScheduleType?: DayCallMode | "weekday";
+	selectedDate?: string;
+	currentDayMode?: DayCallMode;
+	onSetDayCallMode?: (date: string, mode: DayCallMode) => void;
 	onClose: () => void;
 }
 
@@ -28,24 +33,50 @@ export const CallsScheduleModal: React.FC<
 > = ({
 	visible,
 	theme,
-	initialScheduleType = "weekday",
+	initialScheduleType = "standard",
+	selectedDate,
+	currentDayMode,
+	onSetDayCallMode,
 	onClose,
 }) => {
-	const [scheduleType, setScheduleType] = useState<
-		"weekday" | "saturday"
-	>(initialScheduleType);
+	const normalizeMode = (
+		mode?: DayCallMode | "weekday"
+	): DayCallMode => {
+		if (mode === "weekday") return "standard";
+		if (mode === "saturday" || mode === "shortened_45") return mode;
+		return "standard";
+	};
+
+	const [scheduleType, setScheduleType] = useState<DayCallMode>(() =>
+		normalizeMode(initialScheduleType)
+	);
 
 	React.useEffect(() => {
 		if (visible && initialScheduleType) {
-			setScheduleType(initialScheduleType);
+			setScheduleType(normalizeMode(initialScheduleType));
 		}
 	}, [visible, initialScheduleType]);
 
-	const isSaturday = scheduleType === "saturday";
-	const activeList = isSaturday
-		? SATURDAY_CALLS_SCHEDULE
-		: CALLS_SCHEDULE;
-	const durationLabel = isSaturday ? "1 час" : "1ч 20м";
+	const activeList =
+		scheduleType === "shortened_45"
+			? SHORTENED_CALLS_SCHEDULE
+			: scheduleType === "saturday"
+				? SATURDAY_CALLS_SCHEDULE
+				: CALLS_SCHEDULE;
+
+	const durationLabel =
+		scheduleType === "shortened_45"
+			? "45 мин"
+			: scheduleType === "saturday"
+				? "1 час"
+				: "1ч 20м";
+
+	const subtitleText =
+		scheduleType === "shortened_45"
+			? "Сокращённое расписание пар (45 минут) и перемены:"
+			: scheduleType === "saturday"
+				? "Особое субботнее расписание пар по 1 часу и перемены:"
+				: "Стандартное расписание пар (1 час 20 мин) и перемены:";
 
 	return (
 		<Modal
@@ -107,106 +138,178 @@ export const CallsScheduleModal: React.FC<
 				<ScrollView
 					contentContainerStyle={styles.content}
 				>
-					{/* Переключатель: Будни / Суббота */}
-					<View
-						style={[
-							styles.segmentedWrapper,
-							{
-								backgroundColor:
-									theme.chipBackground,
-							},
-						]}
-					>
-						<TouchableOpacity
+					{/* Баннер быстрой установки режима для конкретного дня */}
+					{selectedDate && onSetDayCallMode && (
+						<View
 							style={[
-								styles.segmentButton,
-								!isSaturday && [
-									styles.segmentButtonActive,
-									{
-										backgroundColor:
-											theme.card,
-									},
-								],
+								styles.applyDayCard,
+								{
+									backgroundColor:
+										theme.chipBackground,
+									borderColor: theme.border,
+								},
 							]}
-							activeOpacity={0.7}
-							onPress={() => {
-								try {
-									Haptics.selectionAsync();
-								} catch {}
-								setScheduleType("weekday");
-							}}
 						>
-							<Text
-								numberOfLines={1}
-								adjustsFontSizeToFit={true}
-								minimumFontScale={0.8}
-								style={[
-									styles.segmentText,
-									{
-										color: !isSaturday
-											? theme.text
-											: theme.textSecondary,
-										fontWeight: !isSaturday
-											? "700"
-											: "500",
-									},
-								]}
-							>
-								Будни (Пн — Пт)
-							</Text>
-						</TouchableOpacity>
+							<View style={styles.applyDayHeader}>
+								<Ionicons
+									name="calendar-outline"
+									size={15}
+									color={theme.accent}
+									style={{ marginRight: 6 }}
+								/>
+								<Text
+									style={[
+										styles.applyDayTitle,
+										{ color: theme.text },
+									]}
+								>
+									Режим пар на {selectedDate}:
+								</Text>
+							</View>
+							<View style={styles.applyDayModesRow}>
+								<TouchableOpacity
+									style={[
+										styles.applyDayModeBtn,
+										(currentDayMode || "standard") ===
+											"standard" && [
+											styles.applyDayModeBtnActive,
+											{
+												backgroundColor:
+													theme.accent,
+											},
+										],
+										{
+											borderColor: theme.border,
+										},
+									]}
+									onPress={() => {
+										try {
+											Haptics.impactAsync(
+												Haptics
+													.ImpactFeedbackStyle
+													.Light
+											);
+										} catch {}
+										onSetDayCallMode(
+											selectedDate,
+											"standard"
+										);
+										setScheduleType("standard");
+									}}
+								>
+									<Text
+										style={[
+											styles.applyDayModeBtnText,
+											{
+												color:
+													(currentDayMode ||
+														"standard") ===
+													"standard"
+														? "#FFFFFF"
+														: theme.text,
+											},
+										]}
+									>
+										80 мин
+									</Text>
+								</TouchableOpacity>
 
-						<TouchableOpacity
-							style={[
-								styles.segmentButton,
-								isSaturday && [
-									styles.segmentButtonActive,
-									{
-										backgroundColor:
-											theme.card,
-									},
-								],
-							]}
-							activeOpacity={0.7}
-							onPress={() => {
-								try {
-									Haptics.selectionAsync();
-								} catch {}
-								setScheduleType("saturday");
-							}}
-						>
-							<Text
-								numberOfLines={1}
-								adjustsFontSizeToFit={true}
-								minimumFontScale={0.8}
-								style={[
-									styles.segmentText,
-									{
-										color: isSaturday
-											? theme.text
-											: theme.textSecondary,
-										fontWeight: isSaturday
-											? "700"
-											: "500",
-									},
-								]}
-							>
-								Суббота (по 1 часу)
-							</Text>
-						</TouchableOpacity>
-					</View>
+								<TouchableOpacity
+									style={[
+										styles.applyDayModeBtn,
+										currentDayMode ===
+											"shortened_45" && [
+											styles.applyDayModeBtnActive,
+											{
+												backgroundColor:
+													"#FF9500",
+											},
+										],
+										{
+											borderColor: theme.border,
+										},
+									]}
+									onPress={() => {
+										try {
+											Haptics.impactAsync(
+												Haptics
+													.ImpactFeedbackStyle
+													.Light
+											);
+										} catch {}
+										onSetDayCallMode(
+											selectedDate,
+											"shortened_45"
+										);
+										setScheduleType(
+											"shortened_45"
+										);
+									}}
+								>
+									<Text
+										style={[
+											styles.applyDayModeBtnText,
+											{
+												color:
+													currentDayMode ===
+													"shortened_45"
+														? "#FFFFFF"
+														: theme.text,
+											},
+										]}
+									>
+										⚡ 45 мин
+									</Text>
+								</TouchableOpacity>
 
-					<Text
-						style={[
-							styles.subtitle,
-							{ color: theme.textSecondary },
-						]}
-					>
-						{isSaturday
-							? "Особое субботнее расписание пар по 1 часу и перемены:"
-							: "Стандартное расписание пар (1 час 20 мин) и перемены:"}
-					</Text>
-
+								<TouchableOpacity
+									style={[
+										styles.applyDayModeBtn,
+										currentDayMode ===
+											"saturday" && [
+											styles.applyDayModeBtnActive,
+											{
+												backgroundColor:
+													theme.accent,
+											},
+										],
+										{
+											borderColor: theme.border,
+										},
+									]}
+									onPress={() => {
+										try {
+											Haptics.impactAsync(
+												Haptics
+													.ImpactFeedbackStyle
+													.Light
+											);
+										} catch {}
+										onSetDayCallMode(
+											selectedDate,
+											"saturday"
+										);
+										setScheduleType("saturday");
+									}}
+								>
+									<Text
+										style={[
+											styles.applyDayModeBtnText,
+											{
+												color:
+													currentDayMode ===
+													"saturday"
+														? "#FFFFFF"
+														: theme.text,
+											},
+										]}
+									>
+										60 мин
+									</Text>
+								</TouchableOpacity>
+							</View>
+						</View>
+					)}
 					{activeList.map((item, index) => (
 						<View
 							key={item.pair}
@@ -379,6 +482,45 @@ const styles = StyleSheet.create({
 		maxWidth: 680,
 		width: "100%",
 		alignSelf: "center",
+	},
+	applyDayCard: {
+		borderRadius: 14,
+		borderWidth: StyleSheet.hairlineWidth,
+		padding: 12,
+		marginBottom: 16,
+	},
+	applyDayHeader: {
+		flexDirection: "row",
+		alignItems: "center",
+		marginBottom: 8,
+	},
+	applyDayTitle: {
+		fontSize: 13,
+		fontWeight: "700",
+	},
+	applyDayModesRow: {
+		flexDirection: "row",
+		gap: 8,
+	},
+	applyDayModeBtn: {
+		flex: 1,
+		paddingVertical: 8,
+		alignItems: "center",
+		justifyContent: "center",
+		borderRadius: 10,
+		borderWidth: StyleSheet.hairlineWidth,
+	},
+	applyDayModeBtnActive: {
+		borderWidth: 0,
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.12,
+		shadowRadius: 3,
+		elevation: 2,
+	},
+	applyDayModeBtnText: {
+		fontSize: 12,
+		fontWeight: "700",
 	},
 	segmentedWrapper: {
 		flexDirection: "row",

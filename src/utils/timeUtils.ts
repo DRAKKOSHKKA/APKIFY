@@ -1,4 +1,9 @@
-import { Lesson, ScheduleData } from "../types/schedule";
+import {
+	DayCallMode,
+	DaySchedule,
+	Lesson,
+	ScheduleData,
+} from "../types/schedule";
 
 export interface TimeRange {
 	startMinutes: number; // минуты от начала дня (0-1439)
@@ -94,6 +99,89 @@ export const SATURDAY_CALLS_SCHEDULE = [
 		breakText: "конец занятий",
 	},
 ];
+
+/**
+ * Сокращённое расписание звонков (пары по 45 минут в особых случаях)
+ */
+export const SHORTENED_CALLS_SCHEDULE = [
+	{
+		pair: 1,
+		start: "08:00",
+		end: "08:45",
+		breakText: "перемена 10 мин",
+	},
+	{
+		pair: 2,
+		start: "08:55",
+		end: "09:40",
+		breakText: "большая перемена 20 мин",
+	},
+	{
+		pair: 3,
+		start: "10:00",
+		end: "10:45",
+		breakText: "перемена 10 мин",
+	},
+	{
+		pair: 4,
+		start: "10:55",
+		end: "11:40",
+		breakText: "перемена 10 мин",
+	},
+	{
+		pair: 5,
+		start: "11:50",
+		end: "12:35",
+		breakText: "перемена 10 мин",
+	},
+	{
+		pair: 6,
+		start: "12:45",
+		end: "13:30",
+		breakText: "перемена 10 мин",
+	},
+	{
+		pair: 7,
+		start: "13:40",
+		end: "14:25",
+		breakText: "конец занятий",
+	},
+];
+
+export function getCallsScheduleForMode(mode: DayCallMode) {
+	switch (mode) {
+		case "shortened_45":
+			return SHORTENED_CALLS_SCHEDULE;
+		case "saturday":
+			return SATURDAY_CALLS_SCHEDULE;
+		case "standard":
+		default:
+			return CALLS_SCHEDULE;
+	}
+}
+
+export function applyDayCallModeToDay(
+	day: DaySchedule,
+	mode: DayCallMode
+): DaySchedule {
+	const calls = getCallsScheduleForMode(mode);
+	const updatedLessons = day.lessons.map((lesson) => {
+		const call =
+			calls.find((c) => c.pair === lesson.pairIndex) ||
+			calls[lesson.pairIndex - 1];
+		if (call) {
+			return {
+				...lesson,
+				time: `${call.start} - ${call.end}`,
+			};
+		}
+		return lesson;
+	});
+	return {
+		...day,
+		lessons: updatedLessons,
+	};
+}
 
 /**
  * Парсинг строки вида "8:00 - 9:20" в минуты
@@ -350,34 +438,24 @@ export function getCurrentDayLiveStatus(
  * или сервер прислал будничные слоты).
  */
 export function normalizeSaturdayTimes(
-	data: ScheduleData
+	data: ScheduleData,
+	dayOverrides?: Record<string, DayCallMode>
 ): ScheduleData {
 	if (!data || !data.days) return data;
 	const updatedDays = data.days.map((day, rowIdx) => {
+		const override = dayOverrides?.[day.dayDate];
+		if (override) {
+			return applyDayCallModeToDay(day, override);
+		}
+
 		const isSaturday =
 			day.dayName.toLowerCase().includes("суббот") ||
 			rowIdx === 5;
-		if (!isSaturday) return day;
+		if (isSaturday) {
+			return applyDayCallModeToDay(day, "saturday");
+		}
 
-		const updatedLessons = day.lessons.map((lesson) => {
-			const satCall =
-				SATURDAY_CALLS_SCHEDULE.find(
-					(s) => s.pair === lesson.pairIndex
-				) ||
-				SATURDAY_CALLS_SCHEDULE[lesson.pairIndex - 1];
-			if (satCall) {
-				return {
-					...lesson,
-					time: `${satCall.start} - ${satCall.end}`,
-				};
-			}
-			return lesson;
-		});
-
-		return {
-			...day,
-			lessons: updatedLessons,
-		};
+		return day;
 	});
 
 	return {

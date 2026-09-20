@@ -1,5 +1,10 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { StyleSheet, View, useColorScheme, Alert } from "react-native";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import {
+	StyleSheet,
+	View,
+	useColorScheme,
+	Alert,
+} from "react-native";
 import { StatusBar } from "expo-status-bar";
 import {
 	SafeAreaProvider,
@@ -13,8 +18,10 @@ import {
 	Lesson,
 	ScheduleData,
 	SearchResultItem,
+	DayCallMode,
 } from "./src/types/schedule";
 import { GradeEntry } from "./src/types/grades";
+import { normalizeSaturdayTimes } from "./src/utils/timeUtils";
 import {
 	fetchSchedule,
 	getCurrentWeekId,
@@ -272,7 +279,10 @@ export default function App() {
 				const store = await getGradesStore();
 				setGrades(store.entries);
 			} catch (err) {
-				console.warn("Ошибка загрузки оценок при старте:", err);
+				console.warn(
+					"Ошибка загрузки оценок при старте:",
+					err
+				);
 			}
 
 			await loadSchedule(initialEntity);
@@ -502,7 +512,10 @@ export default function App() {
 	/**
 	 * Открыть добавление/редактирование оценки для пары из расписания
 	 */
-	const handleOpenGradeForLesson = (lesson: Lesson, date: string) => {
+	const handleOpenGradeForLesson = (
+		lesson: Lesson,
+		date: string
+	) => {
 		const existing = grades.find(
 			(g) =>
 				g.subject.trim().toLowerCase() ===
@@ -549,7 +562,10 @@ export default function App() {
 	 * Сохранение оценки / заметки в специальную папку и кэш
 	 */
 	const handleSaveGrade = async (
-		entryData: Omit<GradeEntry, "id" | "createdAt" | "updatedAt"> & {
+		entryData: Omit<
+			GradeEntry,
+			"id" | "createdAt" | "updatedAt"
+		> & {
 			id?: string;
 		}
 	) => {
@@ -573,7 +589,10 @@ export default function App() {
 	const handleExportGradesFile = async () => {
 		const ok = await exportGradesFile();
 		if (!ok) {
-			Alert.alert("Экспорт", "Не удалось открыть диалог экспорта файла.");
+			Alert.alert(
+				"Экспорт",
+				"Не удалось открыть диалог экспорта файла."
+			);
 		}
 	};
 
@@ -586,7 +605,10 @@ export default function App() {
 			if (res) {
 				const updated = await getGradesStore();
 				setGrades(updated.entries);
-				Alert.alert("Успешно", `Импортировано записей: ${res.count}`);
+				Alert.alert(
+					"Успешно",
+					`Импортировано записей: ${res.count}`
+				);
 			}
 		} catch (err: any) {
 			Alert.alert(
@@ -608,19 +630,28 @@ export default function App() {
 				"JSON резервной копии успешно скопирован в буфер обмена."
 			);
 		} catch (err: any) {
-			Alert.alert("Ошибка", "Не удалось скопировать данные в буфер обмена.");
+			Alert.alert(
+				"Ошибка",
+				"Не удалось скопировать данные в буфер обмена."
+			);
 		}
 	};
 
 	/**
 	 * Импорт JSON из строки
 	 */
-	const handleImportGradesClipboard = async (jsonString: string) => {
+	const handleImportGradesClipboard = async (
+		jsonString: string
+	) => {
 		try {
-			const res = await importGradesFromJsonString(jsonString);
+			const res =
+				await importGradesFromJsonString(jsonString);
 			const updated = await getGradesStore();
 			setGrades(updated.entries);
-			Alert.alert("Успешно", `Импортировано записей: ${res.count}`);
+			Alert.alert(
+				"Успешно",
+				`Импортировано записей: ${res.count}`
+			);
 		} catch (err: any) {
 			Alert.alert(
 				"Ошибка импорта",
@@ -637,7 +668,23 @@ export default function App() {
 		setGrades(updated.entries);
 	};
 
-	const activeSchedule = customSchedule || schedule;
+	/**
+	 * Переключение режима звонков для конкретного дня (стандартные 80м / сокращённые 45м / суббота 60м)
+	 */
+	const handleSetDayCallMode = async (
+		date: string,
+		mode: DayCallMode
+	) => {
+		const currentModes = { ...(settings.dayCallModes || {}) };
+		currentModes[date] = mode;
+		await handleUpdateSettings({ dayCallModes: currentModes });
+	};
+
+	const activeSchedule = useMemo(() => {
+		const base = customSchedule || schedule;
+		if (!base) return null;
+		return normalizeSaturdayTimes(base, settings.dayCallModes);
+	}, [customSchedule, schedule, settings.dayCallModes]);
 
 	return (
 		<SafeAreaProvider>
@@ -668,7 +715,10 @@ export default function App() {
 						settings={settings}
 						theme={theme}
 						grades={grades}
-						onOpenGradeModal={handleOpenGradeForLesson}
+						onOpenGradeModal={
+							handleOpenGradeForLesson
+						}
+						onSetDayCallMode={handleSetDayCallMode}
 						onSelectDayIndex={setSelectedDayIndex}
 						onOpenSearch={() =>
 							setIsSearchOpen(true)
@@ -703,8 +753,12 @@ export default function App() {
 						onEditGrade={handleEditGrade}
 						onExportFile={handleExportGradesFile}
 						onImportFile={handleImportGradesFile}
-						onExportClipboard={handleExportGradesClipboard}
-						onImportClipboard={handleImportGradesClipboard}
+						onExportClipboard={
+							handleExportGradesClipboard
+						}
+						onImportClipboard={
+							handleImportGradesClipboard
+						}
 						onRefreshGrades={handleRefreshGrades}
 					/>
 				)}
@@ -762,16 +816,41 @@ export default function App() {
 				<CallsScheduleModal
 					visible={isCallsOpen}
 					theme={theme}
+					selectedDate={
+						activeSchedule?.days[selectedDayIndex]?.dayDate
+					}
+					currentDayMode={
+						activeSchedule?.days[selectedDayIndex]
+							? settings.dayCallModes?.[
+									activeSchedule.days[selectedDayIndex]
+										.dayDate
+							  ] ||
+							  (selectedDayIndex === 5 ||
+							  activeSchedule.days[
+									selectedDayIndex
+							  ].dayName
+									.toLowerCase()
+									.includes("суббот")
+									? "saturday"
+									: "standard")
+							: "standard"
+					}
+					onSetDayCallMode={handleSetDayCallMode}
 					initialScheduleType={
-						selectedDayIndex === 5 ||
-						(activeSchedule?.days[
-							selectedDayIndex
-						]?.dayName
-							.toLowerCase()
-							.includes("суббот") ??
-							false)
-							? "saturday"
-							: "weekday"
+						activeSchedule?.days[selectedDayIndex]
+							? settings.dayCallModes?.[
+									activeSchedule.days[selectedDayIndex]
+										.dayDate
+							  ] ||
+							  (selectedDayIndex === 5 ||
+							  activeSchedule.days[
+									selectedDayIndex
+							  ].dayName
+									.toLowerCase()
+									.includes("суббот")
+									? "saturday"
+									: "standard")
+							: "standard"
 					}
 					onClose={() => setIsCallsOpen(false)}
 				/>

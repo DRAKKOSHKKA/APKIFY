@@ -81,6 +81,15 @@ const EXTRA_GRADE_OPTIONS: {
 	{ label: "Н/А", value: "н/а", color: "#8E8E93" },
 ];
 
+const HOMEWORK_TAGS = [
+	"📖 Параграф",
+	"✍️ Задачи",
+	"💻 Лабораторная",
+	"📝 Конспект",
+	"🎯 Контрольная",
+	"📄 Доклад",
+];
+
 export const GradeModal: React.FC<GradeModalProps> = ({
 	visible,
 	entryToEdit,
@@ -95,6 +104,8 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 	const [selectedGrade, setSelectedGrade] = useState<GradeValue | undefined>(
 		undefined
 	);
+	const [homeworkText, setHomeworkText] = useState("");
+	const [isHomeworkDone, setIsHomeworkDone] = useState(false);
 	const [noteText, setNoteText] = useState("");
 	const [pairIndex, setPairIndex] = useState<number | undefined>(undefined);
 	const [time, setTime] = useState<string | undefined>(undefined);
@@ -108,6 +119,8 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 				setSubject(entryToEdit.subject || "");
 				setDate(entryToEdit.date || "");
 				setSelectedGrade(entryToEdit.grade);
+				setHomeworkText(entryToEdit.homework || "");
+				setIsHomeworkDone(entryToEdit.isHomeworkDone || false);
 				setNoteText(entryToEdit.note || "");
 				setPairIndex(entryToEdit.pairIndex);
 				setTime(entryToEdit.time);
@@ -117,6 +130,8 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 				setSubject(initialData.subject || "");
 				setDate(initialData.date || "");
 				setSelectedGrade(undefined);
+				setHomeworkText("");
+				setIsHomeworkDone(false);
 				setNoteText("");
 				setPairIndex(initialData.pairIndex);
 				setTime(initialData.time);
@@ -130,6 +145,8 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 				setSubject("");
 				setDate(`${d}.${m}.${y}`);
 				setSelectedGrade(undefined);
+				setHomeworkText("");
+				setIsHomeworkDone(false);
 				setNoteText("");
 				setPairIndex(undefined);
 				setTime(undefined);
@@ -148,6 +165,24 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 		} else {
 			setSelectedGrade(val);
 		}
+	};
+
+	const handleTagPress = (tag: string) => {
+		try {
+			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+		} catch {}
+		if (!homeworkText.trim()) {
+			setHomeworkText(tag + " ");
+		} else if (!homeworkText.includes(tag)) {
+			setHomeworkText((prev) => `${tag} • ${prev}`);
+		}
+	};
+
+	const handleToggleHomeworkDone = () => {
+		try {
+			Haptics.selectionAsync();
+		} catch {}
+		setIsHomeworkDone((prev) => !prev);
 	};
 
 	const handleSave = async () => {
@@ -172,6 +207,8 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 				room,
 				teacher,
 				grade: selectedGrade,
+				homework: homeworkText.trim() ? homeworkText.trim() : undefined,
+				isHomeworkDone: homeworkText.trim() ? isHomeworkDone : undefined,
 				note: noteText.trim() ? noteText.trim() : undefined,
 			});
 			onClose();
@@ -236,7 +273,7 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 									>
 										{isEditing
 											? "Редактировать запись"
-											: "Оценка и заметка"}
+											: "Оценка и задание"}
 									</Text>
 									<Text
 										style={[
@@ -345,7 +382,7 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 									)}
 								</View>
 
-								{/* Быстрый выбор оценки */}
+								{/* Быстрый выбор оценки (увеличенная высота плашек) */}
 								<View style={styles.fieldGroup}>
 									<View style={styles.gradeHeaderRow}>
 										<Text
@@ -375,7 +412,7 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 														},
 													]}
 												>
-													Очистить
+													Снять оценку
 												</Text>
 											</TouchableOpacity>
 										)}
@@ -474,16 +511,108 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 									</View>
 								</View>
 
-								{/* Поле заметки / домашнего задания */}
+								{/* УЛУЧШЕННЫЙ БЛОК ДОМАШНЕГО ЗАДАНИЯ (Д/З) */}
 								<View style={styles.fieldGroup}>
-									<Text
-										style={[
-											styles.fieldLabel,
-											{ color: theme.textSecondary },
-										]}
+									<View style={styles.hwHeaderRow}>
+										<Text
+											style={[
+												styles.fieldLabel,
+												{
+													color: theme.textSecondary,
+												},
+											]}
+										>
+											ДОМАШНЕЕ ЗАДАНИЕ (Д/З)
+										</Text>
+										{homeworkText.trim().length > 0 && (
+											<TouchableOpacity
+												style={[
+													styles.hwStatusToggle,
+													{
+														backgroundColor:
+															isHomeworkDone
+																? "rgba(52, 199, 89, 0.15)"
+																: theme.chipBackground,
+														borderColor:
+															isHomeworkDone
+																? "#34C759"
+																: theme.border,
+													},
+												]}
+												activeOpacity={0.75}
+												onPress={
+													handleToggleHomeworkDone
+												}
+											>
+												<Ionicons
+													name={
+														isHomeworkDone
+															? "checkmark-circle"
+															: "ellipse-outline"
+													}
+													size={14}
+													color={
+														isHomeworkDone
+															? "#34C759"
+															: theme.textSecondary
+													}
+													style={{ marginRight: 4 }}
+												/>
+												<Text
+													style={[
+														styles.hwStatusToggleText,
+														{
+															color: isHomeworkDone
+																? "#34C759"
+																: theme.textSecondary,
+														},
+													]}
+												>
+													{isHomeworkDone
+														? "Выполнено"
+														: "В процессе"}
+												</Text>
+											</TouchableOpacity>
+										)}
+									</View>
+
+									{/* Быстрые теги Д/З */}
+									<ScrollView
+										horizontal
+										showsHorizontalScrollIndicator={false}
+										contentContainerStyle={styles.hwTagsRow}
 									>
-										ЗАМЕТКА / ДОМАШНЕЕ ЗАДАНИЕ
-									</Text>
+										{HOMEWORK_TAGS.map((tag) => (
+											<TouchableOpacity
+												key={tag}
+												style={[
+													styles.hwTagChip,
+													{
+														backgroundColor:
+															theme.chipBackground,
+														borderColor:
+															theme.border,
+													},
+												]}
+												activeOpacity={0.7}
+												onPress={() =>
+													handleTagPress(tag)
+												}
+											>
+												<Text
+													style={[
+														styles.hwTagChipText,
+														{
+															color: theme.text,
+														},
+													]}
+												>
+													{tag}
+												</Text>
+											</TouchableOpacity>
+										))}
+									</ScrollView>
+
 									<TextInput
 										style={[
 											styles.noteInput,
@@ -494,12 +623,44 @@ export const GradeModal: React.FC<GradeModalProps> = ({
 												color: theme.text,
 											},
 										]}
-										placeholder="Например: Сдать лабораторную работу №2, подготовиться к тесту, конспект..."
+										placeholder="Например: Параграф 4, задачи №12-16, оформить отчет по лабе..."
 										placeholderTextColor={
 											theme.textSecondary
 										}
 										multiline
-										numberOfLines={4}
+										numberOfLines={3}
+										textAlignVertical="top"
+										value={homeworkText}
+										onChangeText={setHomeworkText}
+									/>
+								</View>
+
+								{/* Поле дополнительной заметки */}
+								<View style={styles.fieldGroup}>
+									<Text
+										style={[
+											styles.fieldLabel,
+											{ color: theme.textSecondary },
+										]}
+									>
+										ЗАМЕТКА К ПАРЕ (НЕОБЯЗАТЕЛЬНО)
+									</Text>
+									<TextInput
+										style={[
+											styles.smallNoteInput,
+											{
+												backgroundColor:
+													theme.chipBackground,
+												borderColor: theme.border,
+												color: theme.text,
+											},
+										]}
+										placeholder="Тема пары, вопросы преподавателю, комментарий..."
+										placeholderTextColor={
+											theme.textSecondary
+										}
+										multiline
+										numberOfLines={2}
 										textAlignVertical="top"
 										value={noteText}
 										onChangeText={setNoteText}
@@ -608,7 +769,7 @@ const styles = StyleSheet.create({
 		borderRadius: RADIUS.modal,
 		borderWidth: StyleSheet.hairlineWidth,
 		overflow: "hidden",
-		maxHeight: "85%",
+		maxHeight: "88%",
 		shadowColor: "#000",
 		shadowOffset: { width: 0, height: 10 },
 		shadowOpacity: 0.25,
@@ -645,7 +806,7 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 	},
 	scrollArea: {
-		maxHeight: 400,
+		maxHeight: 450,
 	},
 	scrollContent: {
 		paddingHorizontal: SPACING.cardPadding,
@@ -696,16 +857,17 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		gap: 10,
 	},
+	// Увеличенная высота плашек оценки
 	gradeBtn: {
 		flex: 1,
-		height: 50,
+		height: 64,
 		borderRadius: RADIUS.button,
 		alignItems: "center",
 		justifyContent: "center",
 		borderWidth: 2,
 	},
 	gradeBtnText: {
-		fontSize: 22,
+		fontSize: 28,
 		fontWeight: "800",
 	},
 	extraGradesRow: {
@@ -714,23 +876,63 @@ const styles = StyleSheet.create({
 	},
 	extraGradeBtn: {
 		flex: 1,
-		paddingVertical: 9,
+		paddingVertical: 12,
 		borderRadius: RADIUS.button,
 		alignItems: "center",
 		justifyContent: "center",
 		borderWidth: StyleSheet.hairlineWidth,
 	},
 	extraGradeBtnText: {
-		fontSize: 12,
+		fontSize: 13,
+		fontWeight: "700",
+	},
+	hwHeaderRow: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "center",
+	},
+	hwStatusToggle: {
+		flexDirection: "row",
+		alignItems: "center",
+		paddingHorizontal: 8,
+		paddingVertical: 4,
+		borderRadius: RADIUS.capsule,
+		borderWidth: StyleSheet.hairlineWidth,
+	},
+	hwStatusToggleText: {
+		fontSize: 11,
+		fontWeight: "700",
+	},
+	hwTagsRow: {
+		flexDirection: "row",
+		gap: 6,
+		paddingVertical: 2,
+	},
+	hwTagChip: {
+		paddingHorizontal: 10,
+		paddingVertical: 5,
+		borderRadius: RADIUS.capsule,
+		borderWidth: StyleSheet.hairlineWidth,
+	},
+	hwTagChipText: {
+		fontSize: 11,
 		fontWeight: "600",
 	},
 	noteInput: {
-		minHeight: 85,
+		minHeight: 70,
 		borderRadius: RADIUS.input,
 		borderWidth: StyleSheet.hairlineWidth,
 		padding: 12,
 		fontSize: 14,
 		lineHeight: 20,
+	},
+	smallNoteInput: {
+		minHeight: 50,
+		borderRadius: RADIUS.input,
+		borderWidth: StyleSheet.hairlineWidth,
+		padding: 10,
+		fontSize: 13,
+		lineHeight: 18,
 	},
 	actionsRow: {
 		flexDirection: "row",

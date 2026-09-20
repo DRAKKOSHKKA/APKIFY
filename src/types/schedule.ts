@@ -73,6 +73,8 @@ export type AccentColor =
 	| "teal";
 export type SubgroupFilter = "all" | "1" | "2";
 
+export type DayCallMode = "standard" | "saturday" | "shortened_45";
+
 export interface AppSettings {
 	themeMode: ThemeMode;
 	accentColor?: AccentColor;
@@ -81,4 +83,5 @@ export interface AppSettings {
 	glassEffect: boolean;
 	notificationsEnabled: boolean;
 	defaultEntity: SearchResultItem;
+	dayCallModes?: Record<string, DayCallMode>;
 }

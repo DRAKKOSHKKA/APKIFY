@@ -21,7 +21,10 @@ export interface GradeEntry {
 	room?: string; // Кабинет (например: "312а")
 	teacher?: string; // Преподаватель (например: "Хайруллин Р.М.")
 	grade?: GradeValue; // Выставленная оценка
-	note?: string; // Заметка / тема / Д/З / комментарий к сдаче
+	note?: string; // Заметка / тема / комментарий к сдаче
+	homework?: string; // Домашнее задание (выделенный текст задания)
+	isHomeworkDone?: boolean; // Статус выполнения Д/З (выполнено / сдано)
+	homeworkDeadline?: string; // Срок сдачи Д/З
 	createdAt: number; // Время создания (Unix timestamp ms)
 	updatedAt: number; // Время последнего изменения (Unix timestamp ms)
 }
@@ -36,6 +39,8 @@ export interface SubjectSummary {
 	count3: number;
 	count2: number;
 	notesCount: number;
+	homeworkCount: number;
+	pendingHomeworkCount: number;
 	entries: GradeEntry[];
 }
 
@@ -47,6 +52,8 @@ export interface GradesOverview {
 	count3: number;
 	count2: number;
 	totalNotesCount: number;
+	totalHomeworkCount: number;
+	pendingHomeworkCount: number;
 	subjectsCount: number;
 }
 

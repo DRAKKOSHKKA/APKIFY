@@ -223,47 +223,103 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 								style={[
 									styles.gradeBadge,
 									{
-										backgroundColor: getGradeColor(
-											gradeEntry.grade
-										),
+										backgroundColor:
+											getGradeColor(
+												gradeEntry.grade
+											),
 									},
 								]}
 							>
-								<Text style={styles.gradeBadgeText}>
+								<Text
+									style={styles.gradeBadgeText}
+								>
 									{gradeEntry.grade}
 								</Text>
 							</View>
 						)}
 
 						{/* Индикатор заметки без оценки */}
-						{gradeEntry?.note && !gradeEntry?.grade && (
-							<View
-								style={[
-									styles.noteBadge,
-									{
-										backgroundColor:
-											theme.chipBackground,
-									},
-								]}
-							>
-								<Ionicons
-									name="document-text-outline"
-									size={11}
-									color={theme.accent}
-									style={{ marginRight: 3 }}
-								/>
-								<Text
+						{gradeEntry?.note &&
+							!gradeEntry?.grade &&
+							!gradeEntry?.homework && (
+								<View
 									style={[
-										styles.noteBadgeText,
+										styles.noteBadge,
 										{
-											color: theme.textSecondary,
+											backgroundColor:
+												theme.chipBackground,
 										},
 									]}
 								>
-									Заметка
-								</Text>
-							</View>
-						)}
+									<Ionicons
+										name="document-text-outline"
+										size={11}
+										color={theme.accent}
+										style={{
+											marginRight: 3,
+										}}
+									/>
+									<Text
+										style={[
+											styles.noteBadgeText,
+											{
+												color: theme.textSecondary,
+											},
+										]}
+									>
+										Заметка
+									</Text>
+								</View>
+							)}
+
+						{/* Индикатор домашнего задания без оценки */}
+						{gradeEntry?.homework &&
+							!gradeEntry?.grade && (
+								<View
+									style={[
+										styles.hwBadge,
+										{
+											backgroundColor:
+												gradeEntry.isHomeworkDone
+													? "rgba(52, 199, 89, 0.15)"
+													: "rgba(255, 149, 0, 0.15)",
+											borderColor:
+												gradeEntry.isHomeworkDone
+													? "#34C759"
+													: "#FF9500",
+										},
+									]}
+								>
+									<Ionicons
+										name={
+											gradeEntry.isHomeworkDone
+												? "checkmark-circle"
+												: "time-outline"
+										}
+										size={11}
+										color={
+											gradeEntry.isHomeworkDone
+												? "#34C759"
+												: "#FF9500"
+										}
+										style={{
+											marginRight: 3,
+										}}
+									/>
+									<Text
+										style={[
+											styles.hwBadgeText,
+											{
+												color: gradeEntry.isHomeworkDone
+													? "#34C759"
+													: "#FF9500",
+											},
+										]}
+									>
+										Д/З
+									</Text>
+								</View>
+							)}
 					</View>
 
 					<View style={styles.headerRightRow}>
@@ -272,9 +328,10 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 								style={[
 									styles.statusBadge,
 									{
-										backgroundColor: theme.isDark
-											? "#0F3819"
-											: "#D1F2D9",
+										backgroundColor:
+											theme.isDark
+												? "#0F3819"
+												: "#D1F2D9",
 									},
 								]}
 							>
@@ -318,7 +375,8 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 								color={
 									gradeEntry
 										? theme.accent
-										: theme.textSecondary + "80"
+										: theme.textSecondary +
+											"80"
 								}
 							/>
 						</View>
@@ -432,13 +490,80 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 					) : null}
 				</View>
 
-				{/* Заметка или Д/З, если добавлена пользователем */}
+				{/* Домашнее задание, если задано пользователем */}
+				{gradeEntry?.homework ? (
+					<View
+						style={[
+							styles.homeworkPreviewBox,
+							{
+								backgroundColor:
+									gradeEntry.isHomeworkDone
+										? "rgba(52, 199, 89, 0.10)"
+										: "rgba(255, 149, 0, 0.12)",
+								borderColor:
+									gradeEntry.isHomeworkDone
+										? "#34C759"
+										: "#FF9500",
+							},
+						]}
+					>
+						<Ionicons
+							name={
+								gradeEntry.isHomeworkDone
+									? "checkmark-circle"
+									: "time-outline"
+							}
+							size={13}
+							color={
+								gradeEntry.isHomeworkDone
+									? "#34C759"
+									: "#FF9500"
+							}
+							style={{ marginRight: 6 }}
+						/>
+						<Text
+							style={[
+								styles.homeworkPreviewText,
+								{
+									color: theme.text,
+									textDecorationLine:
+										gradeEntry.isHomeworkDone
+											? "line-through"
+											: "none",
+								},
+							]}
+							numberOfLines={2}
+						>
+							<Text style={{ fontWeight: "700" }}>
+								Д/З:{" "}
+							</Text>
+							{gradeEntry.homework}
+						</Text>
+						<Text
+							style={{
+								fontSize: 10,
+								fontWeight: "800",
+								marginLeft: 6,
+								color: gradeEntry.isHomeworkDone
+									? "#34C759"
+									: "#FF9500",
+							}}
+						>
+							{gradeEntry.isHomeworkDone
+								? "СДАНО"
+								: "СДЕЛАТЬ"}
+						</Text>
+					</View>
+				) : null}
+
+				{/* Заметка, если добавлена пользователем */}
 				{gradeEntry?.note ? (
 					<View
 						style={[
 							styles.notePreviewBox,
 							{
-								backgroundColor: theme.chipBackground,
+								backgroundColor:
+									theme.chipBackground,
 								borderColor: theme.border,
 							},
 						]}
@@ -625,6 +750,33 @@ const styles = StyleSheet.create({
 		borderWidth: StyleSheet.hairlineWidth,
 	},
 	notePreviewText: {
+		fontSize: 12,
+		fontWeight: "500",
+		flex: 1,
+		lineHeight: 16,
+	},
+	hwBadge: {
+		flexDirection: "row",
+		alignItems: "center",
+		paddingHorizontal: 6,
+		paddingVertical: 2,
+		borderRadius: 6,
+		borderWidth: StyleSheet.hairlineWidth,
+	},
+	hwBadgeText: {
+		fontSize: 10,
+		fontWeight: "700",
+	},
+	homeworkPreviewBox: {
+		flexDirection: "row",
+		alignItems: "center",
+		marginTop: 8,
+		paddingHorizontal: 10,
+		paddingVertical: 6,
+		borderRadius: RADIUS.badge,
+		borderWidth: StyleSheet.hairlineWidth,
+	},
+	homeworkPreviewText: {
 		fontSize: 12,
 		fontWeight: "500",
 		flex: 1,

@@ -11,6 +11,7 @@ import {
 	Platform,
 	UIManager,
 	Share,
+	Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -18,6 +19,7 @@ import {
 	Lesson,
 	ScheduleData,
 	SearchResultItem,
+	DayCallMode,
 } from "../types/schedule";
 import { GradeEntry } from "../types/grades";
 import { findGradeForLesson } from "../services/gradesStorage";
@@ -69,6 +71,7 @@ interface ScheduleScreenProps {
 	onResetMockTime?: () => void;
 	grades?: GradeEntry[];
 	onOpenGradeModal?: (lesson: Lesson, date: string) => void;
+	onSetDayCallMode?: (date: string, mode: DayCallMode) => void;
 }
 
 export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
@@ -94,6 +97,7 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 	onResetMockTime,
 	grades = [],
 	onOpenGradeModal,
+	onSetDayCallMode,
 }) => {
 	const selectedDay = schedule?.days[selectedDayIndex];
 
@@ -120,6 +124,77 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 		? selectedDay.dayName.toLowerCase().includes("суббот") ||
 			selectedDayIndex === 5
 		: false;
+
+	const currentDayMode: DayCallMode = selectedDay
+		? settings.dayCallModes?.[selectedDay.dayDate] ||
+			(isSaturday ? "saturday" : "standard")
+		: "standard";
+
+	const handlePromptDayCallMode = () => {
+		if (!selectedDay) return;
+		Alert.alert(
+			`Режим звонков: ${selectedDay.dayDate}`,
+			`Текущее расписание: ${
+				currentDayMode === "shortened_45"
+					? "Сокращённое (45 мин)"
+					: currentDayMode === "saturday"
+						? "Субботнее (60 мин)"
+						: "Стандартное (80 мин)"
+			}\n\nВыберите расписание звонков для этого дня:`,
+			[
+				{
+					text: "🔔 Стандартное (80 мин)",
+					onPress: () => {
+						try {
+							Haptics.impactAsync(
+								Haptics.ImpactFeedbackStyle.Medium
+							);
+						} catch {}
+						onSetDayCallMode?.(
+							selectedDay.dayDate,
+							"standard"
+						);
+					},
+				},
+				{
+					text: "⚡ Сокращённое (45 мин)",
+					onPress: () => {
+						try {
+							Haptics.impactAsync(
+								Haptics.ImpactFeedbackStyle.Medium
+							);
+						} catch {}
+						onSetDayCallMode?.(
+							selectedDay.dayDate,
+							"shortened_45"
+						);
+					},
+				},
+				{
+					text: "🟡 Субботнее (60 мин)",
+					onPress: () => {
+						try {
+							Haptics.impactAsync(
+								Haptics.ImpactFeedbackStyle.Medium
+							);
+						} catch {}
+						onSetDayCallMode?.(
+							selectedDay.dayDate,
+							"saturday"
+						);
+					},
+				},
+				{
+					text: "Сетка всех звонков",
+					onPress: onOpenCalls,
+				},
+				{
+					text: "Отмена",
+					style: "cancel",
+				},
+			]
+		);
+	};
 
 	// Анимация при переключении дня
 	const handleSelectDay = (idx: number) => {
@@ -630,6 +705,83 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 										</TouchableOpacity>
 									)}
 
+								{/* Кнопка смены режима звонков дня */}
+								<TouchableOpacity
+									style={[
+										styles.callModeBtn,
+										currentDayMode === "shortened_45"
+											? {
+													backgroundColor:
+														theme.isDark
+															? "rgba(255, 149, 0, 0.2)"
+															: "rgba(255, 149, 0, 0.12)",
+													borderColor:
+														"#FF9500",
+											  }
+											: {
+													backgroundColor:
+														theme.chipBackground,
+													borderColor:
+														theme.border,
+											  },
+									]}
+									activeOpacity={0.7}
+									onPress={() => {
+										try {
+											Haptics.impactAsync(
+												Haptics
+													.ImpactFeedbackStyle
+													.Light
+											);
+										} catch {}
+										handlePromptDayCallMode();
+									}}
+									hitSlop={{
+										top: 8,
+										bottom: 8,
+										left: 8,
+										right: 8,
+									}}
+									accessibilityLabel="Режим звонков"
+								>
+									<Ionicons
+										name={
+											currentDayMode ===
+											"shortened_45"
+												? "flash"
+												: "time-outline"
+										}
+										size={13}
+										color={
+											currentDayMode ===
+											"shortened_45"
+												? "#FF9500"
+												: theme.accent
+										}
+										style={{ marginRight: 3 }}
+									/>
+									<Text
+										style={[
+											styles.callModeBtnText,
+											{
+												color:
+													currentDayMode ===
+													"shortened_45"
+														? "#FF9500"
+														: theme.text,
+											},
+										]}
+									>
+										{currentDayMode ===
+										"shortened_45"
+											? "45м"
+											: currentDayMode ===
+											  "saturday"
+											? "60м"
+											: "80м"}
+									</Text>
+								</TouchableOpacity>
+
 								{/* Компактная иконка Поделиться расписанием дня */}
 								<TouchableOpacity
 									style={[
@@ -662,8 +814,68 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 							</View>
 						</View>
 
+						{/* Пометка сокращённого графика звонков (45 минут) */}
+						{currentDayMode === "shortened_45" && (
+							<TouchableOpacity
+								style={[
+									styles.shortenedBadgeCompact,
+									{
+										backgroundColor:
+											theme.isDark
+												? "rgba(255, 149, 0, 0.16)"
+												: "#FFF8ED",
+										borderColor: "#FF9500",
+									},
+								]}
+								activeOpacity={0.75}
+								onPress={
+									handlePromptDayCallMode
+								}
+							>
+								<View
+									style={
+										styles.shortenedBadgeLeft
+									}
+								>
+									<Ionicons
+										name="flash"
+										size={14}
+										color="#FF9500"
+										style={{
+											marginRight: 6,
+										}}
+									/>
+									<Text
+										style={[
+											styles.shortenedBadgeText,
+											{
+												color: theme.isDark
+													? "#FFB340"
+													: "#C96800",
+											},
+										]}
+										numberOfLines={1}
+										adjustsFontSizeToFit
+										minimumFontScale={0.8}
+									>
+										Сокращённый день • по 45
+										мин (08:00 — 14:25)
+									</Text>
+								</View>
+								<Text
+									style={[
+										styles.shortenedBadgeAction,
+										{ color: "#FF9500" },
+									]}
+									numberOfLines={1}
+								>
+									Сменить ›
+								</Text>
+							</TouchableOpacity>
+						)}
+
 						{/* Компактная пометка субботнего графика звонков */}
-						{isSaturday && (
+						{currentDayMode === "saturday" && (
 							<TouchableOpacity
 								style={[
 									styles.saturdayBadgeCompact,
@@ -675,16 +887,9 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 									},
 								]}
 								activeOpacity={0.75}
-								onPress={() => {
-									try {
-										Haptics.impactAsync(
-											Haptics
-												.ImpactFeedbackStyle
-												.Light
-										);
-									} catch {}
-									onOpenCalls?.();
-								}}
+								onPress={
+									handlePromptDayCallMode
+								}
 							>
 								<Ionicons
 									name="time-outline"
@@ -711,7 +916,7 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 									]}
 									numberOfLines={1}
 								>
-									Звонки ›
+									Сменить ›
 								</Text>
 							</TouchableOpacity>
 						)}
@@ -1168,12 +1373,13 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 											selectedDayIndex
 										: selectedDay.isToday;
 
-								const lessonGrade = findGradeForLesson(
-									grades,
-									lesson.subject,
-									selectedDay.dayDate,
-									lesson.pairIndex
-								);
+								const lessonGrade =
+									findGradeForLesson(
+										grades,
+										lesson.subject,
+										selectedDay.dayDate,
+										lesson.pairIndex
+									);
 
 								return (
 									<LessonCard
@@ -1301,6 +1507,18 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		gap: 8,
 	},
+	callModeBtn: {
+		flexDirection: "row",
+		alignItems: "center",
+		paddingHorizontal: 8,
+		paddingVertical: 5,
+		borderRadius: 14,
+		borderWidth: 1,
+	},
+	callModeBtnText: {
+		fontSize: 12,
+		fontWeight: "700",
+	},
 	shareIconBtn: {
 		width: 32,
 		height: 32,
@@ -1313,6 +1531,34 @@ const styles = StyleSheet.create({
 		fontSize: 18,
 		fontWeight: "700",
 		letterSpacing: -0.3,
+	},
+	shortenedBadgeCompact: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		marginHorizontal: 18,
+		marginBottom: 12,
+		paddingVertical: 8,
+		paddingHorizontal: 12,
+		borderRadius: 12,
+		borderWidth: 1,
+	},
+	shortenedBadgeLeft: {
+		flexDirection: "row",
+		alignItems: "center",
+		flex: 1,
+		marginRight: 6,
+	},
+	shortenedBadgeText: {
+		fontSize: 12,
+		fontWeight: "600",
+		letterSpacing: -0.1,
+		flex: 1,
+	},
+	shortenedBadgeAction: {
+		fontSize: 12,
+		fontWeight: "700",
+		marginLeft: 6,
 	},
 	saturdayBadgeCompact: {
 		flexDirection: "row",

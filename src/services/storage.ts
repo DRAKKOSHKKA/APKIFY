@@ -33,6 +33,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	glassEffect: true,
 	notificationsEnabled: true,
 	defaultEntity: DEFAULT_ENTITY,
+	dayCallModes: {},
 };
 
 /**
