@@ -4,21 +4,61 @@ import {
 	AppStateStatus,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {
-	isSupported,
-	areActivitiesEnabled,
-	startLiveActivity,
-	updateLiveActivity,
-	endLiveActivity,
-	endAllLiveActivities,
-	getActiveLiveActivities,
-	LiveActivityState,
-} from "react-native-live-activity-kit";
+import type { LiveActivityState } from "react-native-live-activity-kit";
 import { Lesson } from "../types/schedule";
 import {
 	getCurrentDayLiveStatus,
 	parseTimeRange,
 } from "../utils/timeUtils";
+
+type LiveActivityKitModule = typeof import("react-native-live-activity-kit");
+
+let cachedKit: LiveActivityKitModule | null = null;
+let isNativeModuleChecked = false;
+let isNativeModuleAvailable = false;
+
+/**
+ * Безопасное получение нативного модуля LiveActivityKit.
+ * Если приложение запущено в Expo Go, без New Architecture или нативный Nitro-модуль
+ * ещё не скомпилирован в бинарник, метод безопасно возвращает null без краша рантайма.
+ */
+function getNativeKit(): LiveActivityKitModule | null {
+	if (Platform.OS !== "ios") return null;
+	if (isNativeModuleChecked) {
+		return isNativeModuleAvailable ? cachedKit : null;
+	}
+
+	try {
+		const { TurboModuleRegistry } = require("react-native");
+		// Проверяем наличие NitroModules в реестре TurboModules без выброса ошибки
+		const hasNitro = TurboModuleRegistry?.get
+			? TurboModuleRegistry.get("NitroModules")
+			: null;
+
+		if (!hasNitro) {
+			isNativeModuleChecked = true;
+			isNativeModuleAvailable = false;
+			return null;
+		}
+
+		// Загружаем сам модуль
+		const kit: LiveActivityKitModule = require("react-native-live-activity-kit");
+		if (kit && kit.isSupported) {
+			cachedKit = kit;
+			isNativeModuleChecked = true;
+			isNativeModuleAvailable = true;
+			return kit;
+		}
+	} catch {
+		isNativeModuleChecked = true;
+		isNativeModuleAvailable = false;
+		return null;
+	}
+
+	isNativeModuleChecked = true;
+	isNativeModuleAvailable = false;
+	return null;
+}
 
 const ACTIVE_ACTIVITY_KEY = "@apkify_live_activity_id";
 
@@ -41,16 +81,18 @@ let lastSyncParams: {
  * Проверка, поддерживаются ли Live Activities на текущей платформе (iOS 16.1+)
  */
 export function isNativeLiveActivitySupported(): boolean {
-	return Platform.OS === "ios" && isSupported;
+	const kit = getNativeKit();
+	return Boolean(kit && kit.isSupported);
 }
 
 /**
  * Проверка, разрешены ли Live Activities пользователем в системных настройках iOS
  */
 export function checkActivitiesEnabled(): boolean {
-	if (!isNativeLiveActivitySupported()) return false;
+	const kit = getNativeKit();
+	if (!kit) return false;
 	try {
-		return areActivitiesEnabled();
+		return kit.areActivitiesEnabled();
 	} catch {
 		return false;
 	}
@@ -297,13 +339,18 @@ export async function syncScheduleLiveActivity(params: {
 		return null;
 	}
 
+	const kit = getNativeKit();
+	if (!kit) {
+		return null;
+	}
+
 	try {
 		const existingId = await getStoredActiveActivityId();
 
 		if (existingId) {
 			// Обновляем существующий эфир
 			try {
-				await updateLiveActivity(existingId, {
+				await kit.updateLiveActivity(existingId, {
 					state: built.state,
 				});
 				return existingId;
@@ -317,7 +364,7 @@ export async function syncScheduleLiveActivity(params: {
 		}
 
 		// Запуск нового системного Live Activity
-		const activity = await startLiveActivity({
+		const activity = await kit.startLiveActivity({
 			attributes: {
 				name: "ApkifySchedule",
 			},
@@ -343,18 +390,23 @@ export async function syncScheduleLiveActivity(params: {
  * Завершить все запущенные системные Live Activities
  */
 export async function stopAllScheduleLiveActivities(): Promise<void> {
-	if (!isNativeLiveActivitySupported()) return;
+	const kit = getNativeKit();
+	if (!kit) {
+		activeActivityId = null;
+		await AsyncStorage.removeItem(ACTIVE_ACTIVITY_KEY);
+		return;
+	}
 
 	try {
 		const existingId = await getStoredActiveActivityId();
 		if (existingId) {
 			try {
-				await endLiveActivity(existingId, {
+				await kit.endLiveActivity(existingId, {
 					dismissalPolicy: "immediate",
 				});
 			} catch {}
 		}
-		await endAllLiveActivities({
+		await kit.endAllLiveActivities({
 			dismissalPolicy: "immediate",
 		});
 	} catch (err) {
@@ -372,9 +424,10 @@ export async function testLaunchNativeLiveActivity(
 	scenario: "lesson" | "break" | "before_start" | "day_ended",
 	tintColorHex: string = "#007AFF"
 ): Promise<string | null> {
-	if (!isNativeLiveActivitySupported()) {
+	const kit = getNativeKit();
+	if (!kit) {
 		throw new Error(
-			"Live Activities поддерживаются только на iOS 16.1+ на физическом устройстве."
+			"Системный ActivityKit недоступен в этом приложении (требуется свежий нативный билд IPA с расширением WidgetKit на реальном iPhone)."
 		);
 	}
 
@@ -442,7 +495,7 @@ export async function testLaunchNativeLiveActivity(
 	try {
 		await stopAllScheduleLiveActivities();
 
-		const activity = await startLiveActivity({
+		const activity = await kit.startLiveActivity({
 			attributes: {
 				name: "ApkifyScheduleTest",
 			},
