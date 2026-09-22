@@ -21,6 +21,11 @@ import { clearScheduleCache } from "../services/storage";
 import { ThemeColors, ACCENT_PALETTES } from "../theme/colors";
 import { RADIUS } from "../theme/tokens";
 import { APP_CONFIG } from "../constants/appInfo";
+import {
+	isNativeLiveActivitySupported,
+	checkActivitiesEnabled,
+	stopAllScheduleLiveActivities,
+} from "../services/liveActivityManager";
 
 interface ProfileScreenProps {
 	settings: AppSettings;
@@ -452,7 +457,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 					</View>
 				</View>
 
-				{/* СЕКЦИЯ: ЭФИР АКТИВНОСТИ (LIVE ACTIVITIES) */}
+				{/* СЕКЦИЯ: ЭФИР АКТИВНОСТИ (LOCK SCREEN & DYNAMIC ISLAND) */}
 				<View style={styles.section}>
 					<Text
 						style={[
@@ -460,7 +465,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 							{ color: theme.textSecondary },
 						]}
 					>
-						ЭФИР АКТИВНОСТИ (LIVE ACTIVITIES)
+						ЭФИР АКТИВНОСТИ (LOCK SCREEN & DYNAMIC
+						ISLAND)
 					</Text>
 					<View
 						style={[
@@ -499,7 +505,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 											},
 										]}
 									>
-										Эфир Активности
+										Системный Эфир Активности
 									</Text>
 									<Text
 										style={[
@@ -509,8 +515,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 											},
 										]}
 									>
-										Виджет текущей пары в
-										стиле Dynamic Island
+										Отображение на экране
+										блокировки iOS и в
+										Dynamic Island
 									</Text>
 								</View>
 							</View>
@@ -523,6 +530,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 									try {
 										Haptics.selectionAsync();
 									} catch {}
+									if (!val) {
+										stopAllScheduleLiveActivities().catch(
+											() => {}
+										);
+									}
 									onUpdateSettings({
 										liveActivity: {
 											...(settings.liveActivity || {

@@ -38,6 +38,12 @@ import {
 	getEventsStore,
 	saveEventsStore,
 } from "../services/eventsStorage";
+import {
+	testLaunchNativeLiveActivity,
+	stopAllScheduleLiveActivities,
+	isNativeLiveActivitySupported,
+	checkActivitiesEnabled,
+} from "../services/liveActivityManager";
 
 interface DebugModalProps {
 	visible: boolean;
@@ -214,6 +220,45 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 				...patch,
 			},
 		});
+	};
+
+	const handleTestNativeActivity = async (
+		scenario: "lesson" | "break" | "before_start"
+	) => {
+		try {
+			Haptics.notificationAsync(
+				Haptics.NotificationFeedbackType.Success
+			);
+		} catch {}
+		try {
+			await testLaunchNativeLiveActivity(
+				scenario,
+				theme.accent
+			);
+			Alert.alert(
+				"Системный Live Activity запущен!",
+				"Сверните приложение или заблокируйте экран — карточка отображается на Lock Screen и в Dynamic Island."
+			);
+		} catch (err: any) {
+			Alert.alert(
+				"ActivityKit",
+				err?.message ||
+					"Ошибка запуска системного Live Activity"
+			);
+		}
+	};
+
+	const handleStopNativeActivities = async () => {
+		try {
+			Haptics.notificationAsync(
+				Haptics.NotificationFeedbackType.Warning
+			);
+		} catch {}
+		await stopAllScheduleLiveActivities();
+		Alert.alert(
+			"ActivityKit",
+			"Все системные Live Activities завершены."
+		);
 	};
 
 	const handleGenerateTestGrades = async () => {
@@ -1485,6 +1530,187 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 										>
 											🎉 16:30 (Пары
 											окончены)
+										</Text>
+									</TouchableOpacity>
+								</View>
+							</View>
+
+							<View
+								style={[
+									styles.divider,
+									{
+										backgroundColor:
+											theme.separator,
+									},
+								]}
+							/>
+
+							{/* Настоящий ActivityKit (Lock Screen & Dynamic Island) */}
+							<View style={styles.presetSection}>
+								<Text
+									style={[
+										styles.presetTitle,
+										{
+											color: theme.textSecondary,
+											fontWeight: "700",
+										},
+									]}
+								>
+									⚡ НАСТОЯЩИЙ СИСТЕМНЫЙ LIVE
+									ACTIVITY (ACTIVITYKIT):
+								</Text>
+								<Text
+									style={{
+										fontSize: 12,
+										color: theme.textSecondary,
+										marginBottom: 10,
+										lineHeight: 16,
+									}}
+								>
+									{isNativeLiveActivitySupported()
+										? checkActivitiesEnabled()
+											? "✅ Системный ActivityKit поддерживается и активен в iOS"
+											: "⚠️ Live Activities отключены в Настройках iOS"
+										: "ℹ️ Настоящие Live Activities запускаются на реальном iPhone (iOS 16.1+)"}
+								</Text>
+
+								<View style={{ gap: 8 }}>
+									<TouchableOpacity
+										style={[
+											styles.generatorBtn,
+											{
+												backgroundColor:
+													theme.accent,
+												marginBottom: 0,
+											},
+										]}
+										onPress={() =>
+											handleTestNativeActivity(
+												"lesson"
+											)
+										}
+									>
+										<Ionicons
+											name="play"
+											size={15}
+											color="#FFFFFF"
+											style={{
+												marginRight: 6,
+											}}
+										/>
+										<Text
+											style={
+												styles.generatorBtnText
+											}
+										>
+											Запустить системный
+											эфир: 1 пара
+										</Text>
+									</TouchableOpacity>
+
+									<TouchableOpacity
+										style={[
+											styles.generatorBtn,
+											{
+												backgroundColor:
+													"#FF9500",
+												marginBottom: 0,
+											},
+										]}
+										onPress={() =>
+											handleTestNativeActivity(
+												"break"
+											)
+										}
+									>
+										<Ionicons
+											name="cafe"
+											size={15}
+											color="#FFFFFF"
+											style={{
+												marginRight: 6,
+											}}
+										/>
+										<Text
+											style={
+												styles.generatorBtnText
+											}
+										>
+											Запустить системный
+											эфир: Перемена
+										</Text>
+									</TouchableOpacity>
+
+									<TouchableOpacity
+										style={[
+											styles.generatorBtn,
+											{
+												backgroundColor:
+													"#5856D6",
+												marginBottom: 0,
+											},
+										]}
+										onPress={() =>
+											handleTestNativeActivity(
+												"before_start"
+											)
+										}
+									>
+										<Ionicons
+											name="alarm"
+											size={15}
+											color="#FFFFFF"
+											style={{
+												marginRight: 6,
+											}}
+										/>
+										<Text
+											style={
+												styles.generatorBtnText
+											}
+										>
+											Запустить системный
+											эфир: До пар
+										</Text>
+									</TouchableOpacity>
+
+									<TouchableOpacity
+										style={[
+											styles.generatorBtn,
+											{
+												backgroundColor:
+													theme.isDark
+														? "rgba(255, 69, 58, 0.15)"
+														: "rgba(255, 59, 48, 0.1)",
+												borderColor:
+													theme.danger,
+												borderWidth:
+													StyleSheet.hairlineWidth,
+												marginBottom: 0,
+											},
+										]}
+										onPress={
+											handleStopNativeActivities
+										}
+									>
+										<Ionicons
+											name="stop-circle-outline"
+											size={16}
+											color={theme.danger}
+											style={{
+												marginRight: 6,
+											}}
+										/>
+										<Text
+											style={[
+												styles.generatorBtnText,
+												{
+													color: theme.danger,
+												},
+											]}
+										>
+											Завершить системный
+											эфир
 										</Text>
 									</TouchableOpacity>
 								</View>
