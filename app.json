@@ -12,7 +12,6 @@
 			"resizeMode": "contain",
 			"backgroundColor": "#0F94DF"
 		},
-		"newArchEnabled": true,
 		"ios": {
 			"buildNumber": "6",
 			"supportsTablet": true,
@@ -20,9 +19,7 @@
 			"infoPlist": {
 				"ITSAppUsesNonExemptEncryption": false,
 				"UIFileSharingEnabled": true,
-				"LSSupportsOpeningDocumentsInPlace": true,
-				"NSSupportsLiveActivities": true,
-				"NSSupportsLiveActivitiesFrequentUpdates": true
+				"LSSupportsOpeningDocumentsInPlace": true
 			}
 		},
 		"android": {
@@ -47,13 +44,6 @@
 				{
 					"supportsOpeningDocumentsInPlace": true,
 					"enableFileSharing": true
-				}
-			],
-			[
-				"react-native-live-activity-kit",
-				{
-					"enablePush": false,
-					"frequentUpdates": true
 				}
 			]
 		],

@@ -38,7 +38,6 @@ import { EmptyDay } from "../components/EmptyDay";
 import { CustomEvent } from "../types/events";
 import { getEventsForDate } from "../services/eventsStorage";
 import { CustomEventCard } from "../components/CustomEventCard";
-import { LiveActivityBanner } from "../components/LiveActivityBanner";
 
 if (
 	Platform.OS === "android" &&
@@ -653,15 +652,6 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 					</View>
 				) : selectedDay ? (
 					<View>
-						{/* Эфир Активности (Live Activity / Dynamic Island) */}
-						<LiveActivityBanner
-							lessons={displayedLessons}
-							isToday={isDayCurrentlyToday}
-							mockDate={mockDate}
-							theme={theme}
-							settings={settings.liveActivity}
-						/>
-
 						{/* Дата выбранного дня */}
 						<View style={styles.dayHeader}>
 							<View style={styles.dayHeaderLeft}>

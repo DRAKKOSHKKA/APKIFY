@@ -62,11 +62,6 @@ import {
 	deleteCustomEvent,
 } from "./src/services/eventsStorage";
 import { getActiveTheme } from "./src/theme/colors";
-import {
-	initLiveActivityLifecycle,
-	syncScheduleLiveActivity,
-	stopAllScheduleLiveActivities,
-} from "./src/services/liveActivityManager";
 
 import { TabBar, TabType } from "./src/components/TabBar";
 import { ScheduleScreen } from "./src/screens/ScheduleScreen";
@@ -169,11 +164,7 @@ export default function App() {
 		return () => clearInterval(timer);
 	}, []);
 
-	// Инициализация фонового жизненного цикла системного ActivityKit
-	useEffect(() => {
-		const cleanup = initLiveActivityLifecycle();
-		return cleanup;
-	}, []);
+
 
 	/**
 	 * Выбор сегодняшнего дня недели в массиве дней
@@ -784,30 +775,7 @@ export default function App() {
 		);
 	}, [customSchedule, schedule, settings.dayCallModes]);
 
-	// Автоматическая синхронизация системного Live Activity с расписанием
-	useEffect(() => {
-		if (!activeSchedule) return;
-		const day = activeSchedule.days[selectedDayIndex];
-		const isToday = Boolean(day?.isToday);
-		const lessons = day?.lessons || [];
 
-		syncScheduleLiveActivity({
-			lessons,
-			isToday,
-			mockDate,
-			enabled: settings.liveActivity?.enabled ?? true,
-			tintColorHex: theme.accent,
-			showNextLesson:
-				settings.liveActivity?.showNextLesson ?? true,
-		}).catch(() => {});
-	}, [
-		activeSchedule,
-		selectedDayIndex,
-		mockDate,
-		settings.liveActivity?.enabled,
-		settings.liveActivity?.showNextLesson,
-		theme.accent,
-	]);
 
 	return (
 		<SafeAreaProvider>
