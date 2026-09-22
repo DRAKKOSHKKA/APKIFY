@@ -452,7 +452,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 					</View>
 				</View>
 
-{/* СЕКЦИЯ 3: СПРАВОЧНИК И ЗВОНКИ */}
+				{/* СЕКЦИЯ 3: СПРАВОЧНИК И ЗВОНКИ */}
 				<View style={styles.section}>
 					<Text
 						style={[

@@ -88,15 +88,26 @@ export const TabBar: React.FC<TabBarProps> = ({
 							}
 						}}
 					>
-						<Ionicons
-							name={
-								isActive
-									? tab.activeIcon
-									: tab.inactiveIcon
-							}
-							size={24}
-							color={color}
-						/>
+						<View
+							style={[
+								styles.iconPill,
+								isActive && {
+									backgroundColor: theme.isDark
+										? "rgba(255, 255, 255, 0.10)"
+										: "rgba(0, 122, 255, 0.08)",
+								},
+							]}
+						>
+							<Ionicons
+								name={
+									isActive
+										? tab.activeIcon
+										: tab.inactiveIcon
+								}
+								size={22}
+								color={color}
+							/>
+						</View>
 						<Text
 							style={[
 								styles.tabLabel,
@@ -157,6 +168,13 @@ const styles = StyleSheet.create({
 	},
 	tabButton: {
 		flex: 1,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	iconPill: {
+		paddingHorizontal: 16,
+		paddingVertical: 3,
+		borderRadius: 14,
 		alignItems: "center",
 		justifyContent: "center",
 	},

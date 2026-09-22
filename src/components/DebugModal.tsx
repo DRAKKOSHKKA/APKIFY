@@ -12,6 +12,7 @@ import {
 	Alert,
 	ActivityIndicator,
 	Switch,
+	TextInput,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -124,6 +125,12 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 		]
 	);
 
+	const [searchQuery, setSearchQuery] = useState("");
+	const [statsCounts, setStatsCounts] = useState({
+		events: 0,
+		grades: 0,
+	});
+
 	useEffect(() => {
 		if (visible) {
 			AsyncStorage.getAllKeys().then(async (keys) => {
@@ -133,6 +140,20 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 					if (v) obj[k] = v;
 				});
 				setStorageDump(obj);
+			});
+
+			getEventsStore().then((s) => {
+				setStatsCounts((prev) => ({
+					...prev,
+					events: s.events.length,
+				}));
+			});
+
+			getGradesStore().then((g) => {
+				setStatsCounts((prev) => ({
+					...prev,
+					grades: g.entries.length,
+				}));
 			});
 		}
 	}, [visible]);
@@ -192,8 +213,6 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 			`Установлено время: ${label}\nРасписание и статус занятий переключены на этот момент.`
 		);
 	};
-
-
 
 	const handleGenerateTestGrades = async () => {
 		try {
@@ -365,7 +384,11 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 				room: "каб. 312а",
 				teacher: "Хайруллин Р.М.",
 				category: "club" as const,
-				color: "#34C759",
+				color: "#007AFF",
+				icon: "code-slash-outline",
+				repeatType: "weekly" as const,
+				priority: "normal" as const,
+				subgroup: "all" as const,
 				note: "Программирование микроконтроллеров STM32 и машинное зрение",
 			},
 			{
@@ -378,7 +401,27 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 				teacher: "Соколов Д.В.",
 				category: "section" as const,
 				color: "#FF9500",
-				note: "Товарищеский матч между курсами, иметь спортивную форму",
+				icon: "fitness-outline",
+				repeatType: "weekdays" as const,
+				priority: "normal" as const,
+				subgroup: "all" as const,
+				note: "Тренировка и подготовка к межколледжным соревнованиям",
+			},
+			{
+				title: "Консультация к экзамену по БД",
+				date: todayStr,
+				startTime: "11:20",
+				endTime: "12:40",
+				time: "11:20 - 12:40",
+				room: "каб. 108",
+				teacher: "Закиров И.Р.",
+				category: "consultation" as const,
+				color: "#FF3B30",
+				icon: "chatbubbles-outline",
+				repeatType: "none" as const,
+				priority: "high" as const,
+				subgroup: "1" as const,
+				note: "Разбор практических задач по проектированию баз данных",
 			},
 		];
 
@@ -386,9 +429,14 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 			await upsertCustomEvent(ev);
 		}
 		await onRefreshEvents?.();
+		const store = await getEventsStore();
+		setStatsCounts((prev) => ({
+			...prev,
+			events: store.events.length,
+		}));
 		Alert.alert(
 			"Тестовые события созданы",
-			"Добавлены 2 кастомных события (кружок и секция). Они отображаются внизу списка занятий выбранного дня."
+			"Добавлено 3 события:\n• Еженедельный кружок робототехники (код)\n• Секция по будням (спорт)\n• Важная консультация для 1 подгруппы (с проверкой наложений)"
 		);
 	};
 
@@ -563,6 +611,12 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 		screenTier = "Большой экран (Plus / Pro Max / iPad)";
 	}
 
+	const matchesSearch = (keywords: string[]) => {
+		if (!searchQuery.trim()) return true;
+		const q = searchQuery.toLowerCase().trim();
+		return keywords.some((k) => k.toLowerCase().includes(q));
+	};
+
 	return (
 		<Modal
 			visible={visible}
@@ -630,7 +684,179 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 					contentContainerStyle={styles.scrollContent}
 					showsVerticalScrollIndicator={false}
 				>
+					{/* Системный HUD (iOS 18 Telemetry Cards) */}
+					<View style={styles.hudContainer}>
+						<View
+							style={[
+								styles.hudCard,
+								{
+									backgroundColor: theme.groupedCell,
+									borderColor: theme.border,
+								},
+							]}
+						>
+							<Ionicons
+								name="rocket"
+								size={15}
+								color={theme.accent}
+							/>
+							<Text
+								style={[
+									styles.hudValue,
+									{ color: theme.text },
+								]}
+							>
+								v{APP_CONFIG.version}
+							</Text>
+							<Text
+								style={[
+									styles.hudLabel,
+									{ color: theme.textSecondary },
+								]}
+							>
+								Сборка #{APP_CONFIG.buildNumber}
+							</Text>
+						</View>
+
+						<View
+							style={[
+								styles.hudCard,
+								{
+									backgroundColor: theme.groupedCell,
+									borderColor: theme.border,
+								},
+							]}
+						>
+							<Ionicons
+								name="calendar"
+								size={15}
+								color="#34C759"
+							/>
+							<Text
+								style={[
+									styles.hudValue,
+									{ color: theme.text },
+								]}
+							>
+								{statsCounts.events}
+							</Text>
+							<Text
+								style={[
+									styles.hudLabel,
+									{ color: theme.textSecondary },
+								]}
+							>
+								Событий
+							</Text>
+						</View>
+
+						<View
+							style={[
+								styles.hudCard,
+								{
+									backgroundColor: theme.groupedCell,
+									borderColor: theme.border,
+								},
+							]}
+						>
+							<Ionicons
+								name="star"
+								size={15}
+								color="#FF9500"
+							/>
+							<Text
+								style={[
+									styles.hudValue,
+									{ color: theme.text },
+								]}
+							>
+								{statsCounts.grades}
+							</Text>
+							<Text
+								style={[
+									styles.hudLabel,
+									{ color: theme.textSecondary },
+								]}
+							>
+								Оценок / ДЗ
+							</Text>
+						</View>
+
+						<View
+							style={[
+								styles.hudCard,
+								{
+									backgroundColor: theme.groupedCell,
+									borderColor: theme.border,
+								},
+							]}
+						>
+							<Ionicons
+								name="server"
+								size={15}
+								color="#AF52DE"
+							/>
+							<Text
+								style={[
+									styles.hudValue,
+									{ color: theme.text },
+								]}
+							>
+								{Object.keys(storageDump).length}
+							</Text>
+							<Text
+								style={[
+									styles.hudLabel,
+									{ color: theme.textSecondary },
+								]}
+							>
+								Ключей БД
+							</Text>
+						</View>
+					</View>
+
+					{/* Поисковая строка инструментов */}
+					<View
+						style={[
+							styles.searchBarBox,
+							{
+								backgroundColor: theme.chipBackground,
+								borderColor: theme.border,
+							},
+						]}
+					>
+						<Ionicons
+							name="search"
+							size={16}
+							color={theme.textSecondary}
+							style={{ marginRight: 8 }}
+						/>
+						<TextInput
+							style={[
+								styles.searchInput,
+								{ color: theme.text },
+							]}
+							placeholder="Поиск инструмента (оценки, кружки, время, сброс...)"
+							placeholderTextColor={theme.textSecondary}
+							value={searchQuery}
+							onChangeText={setSearchQuery}
+						/>
+						{searchQuery.length > 0 && (
+							<TouchableOpacity
+								onPress={() => setSearchQuery("")}
+								hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+							>
+								<Ionicons
+									name="close-circle"
+									size={16}
+									color={theme.textSecondary}
+								/>
+							</TouchableOpacity>
+						)}
+					</View>
+
 					{/* 1. СЕКЦИЯ: ТЕСТИРОВАНИЕ СИСТЕМЫ (SELF-TEST) */}
+					{matchesSearch(["диагностика", "тест", "сервер", "парсер", "память", "self-test", "проверка", "ping", "адаптивность"]) && (
 					<View style={styles.section}>
 						<Text
 							style={[
@@ -798,8 +1024,10 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 							))}
 						</View>
 					</View>
+					)}
 
-{/* 2. СЕКЦИЯ: ГЕНЕРАТОР ТЕСТОВЫХ ДАННЫХ ДЛЯ ПРОВЕРКИ UI */}
+					{/* 2. СЕКЦИЯ: ГЕНЕРАТОР ТЕСТОВЫХ ДАННЫХ ДЛЯ ПРОВЕРКИ UI */}
+					{matchesSearch(["генератор", "тест", "оценки", "д/з", "домашние", "события", "кружки", "очистить", "удалить", "данные"]) && (
 					<View style={styles.section}>
 						<Text
 							style={[
@@ -969,8 +1197,10 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 							</View>
 						</View>
 					</View>
+					)}
 
 					{/* 4. СЕКЦИЯ: ТЕСТИРОВАНИЕ ВРЕМЕНИ (TIME TRAVEL) */}
+					{matchesSearch(["время", "time", "travel", "пресет", "понедельник", "суббота", "перемена", "сдвиг", "часы", "симуляция", "эмуляция"]) && (
 					<View style={styles.section}>
 						<Text
 							style={[
@@ -1452,8 +1682,10 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 							</View>
 						</View>
 					</View>
+					)}
 
 					{/* 3. СЕКЦИЯ: ТЕСТИРОВАНИЕ ПОДГРУПП И КАСТОМИЗАЦИЯ */}
+					{matchesSearch(["подгруппы", "стресс", "1 п/г", "2 п/г", "сброс", "расписание", "нагрузка"]) && (
 					<View style={styles.section}>
 						<Text
 							style={[
@@ -1630,8 +1862,10 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 							</View>
 						</View>
 					</View>
+					)}
 
 					{/* 4. СЕКЦИЯ: ТЕСТИРОВАНИЕ ТЕМ И АКЦЕНТОВ */}
+					{matchesSearch(["тема", "акцент", "светлая", "темная", "oled", "серая", "синий", "фиолетовый", "цвет", "theme", "оформление"]) && (
 					<View style={styles.section}>
 						<Text
 							style={[
@@ -1813,8 +2047,10 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 							</View>
 						</View>
 					</View>
+					)}
 
 					{/* 4. СЕКЦИЯ: АДАПТАЦИЯ ПОД ЭКРАНЫ */}
+					{matchesSearch(["адаптация", "экран", "разрешение", "safe area", "пиксели", "шрифт", "dynamic type", "glass", "стекло"]) && (
 					<View style={styles.section}>
 						<Text
 							style={[
@@ -2039,8 +2275,10 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 							</View>
 						</View>
 					</View>
+					)}
 
 					{/* 5. СЕКЦИЯ: СЕТЕВОЙ ЗАПРОС & ПАРСЕР */}
+					{matchesSearch(["сеть", "запрос", "парсер", "http", "задержка", "html", "url", "it-institut", "интернет"]) && (
 					<View style={styles.section}>
 						<Text
 							style={[
@@ -2214,8 +2452,10 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 							</View>
 						</View>
 					</View>
+					)}
 
 					{/* 6. СЕКЦИЯ: ХРАНИЛИЩЕ ASYNCSTORAGE */}
+					{matchesSearch(["хранилище", "asyncstorage", "ключи", "память", "база", "базы", "кб"]) && (
 					<View style={styles.section}>
 						<Text
 							style={[
@@ -2293,6 +2533,45 @@ export const DebugModal: React.FC<DebugModalProps> = ({
 							)}
 						</View>
 					</View>
+					)}
+
+					{/* Ничего не найдено */}
+					{searchQuery.trim().length > 0 &&
+						![
+							["диагностика", "тест", "сервер", "парсер", "память", "self-test", "проверка", "ping", "адаптивность"],
+							["генератор", "тест", "оценки", "д/з", "домашние", "события", "кружки", "очистить", "удалить", "данные"],
+							["время", "time", "travel", "пресет", "понедельник", "суббота", "перемена", "сдвиг", "часы", "симуляция", "эмуляция"],
+							["подгруппы", "стресс", "1 п/г", "2 п/г", "сброс", "расписание", "нагрузка"],
+							["тема", "акцент", "светлая", "темная", "oled", "серая", "синий", "фиолетовый", "цвет", "theme", "оформление"],
+							["адаптация", "экран", "разрешение", "safe area", "пиксели", "шрифт", "dynamic type", "glass", "стекло"],
+							["сеть", "запрос", "парсер", "http", "задержка", "html", "url", "it-institut", "интернет"],
+							["хранилище", "asyncstorage", "ключи", "память", "база", "базы", "кб"],
+						].some((list) => matchesSearch(list)) && (
+							<View style={styles.emptySearchBox}>
+								<Ionicons
+									name="search-outline"
+									size={40}
+									color={theme.textSecondary}
+									style={{ marginBottom: 10 }}
+								/>
+								<Text
+									style={[
+										styles.emptySearchTitle,
+										{ color: theme.text },
+									]}
+								>
+									Ничего не найдено
+								</Text>
+								<Text
+									style={[
+										styles.emptySearchDesc,
+										{ color: theme.textSecondary },
+									]}
+								>
+									По запросу «{searchQuery}» нет совпадений. Попробуйте «время», «оценки», «кружки» или «тема».
+								</Text>
+							</View>
+						)}
 				</ScrollView>
 			</SafeAreaView>
 		</Modal>
@@ -2570,5 +2849,60 @@ const styles = StyleSheet.create({
 		color: "#FFFFFF",
 		fontSize: 13,
 		fontWeight: "700",
+	},
+	hudContainer: {
+		flexDirection: "row",
+		gap: 8,
+		marginBottom: 12,
+	},
+	hudCard: {
+		flex: 1,
+		paddingVertical: 10,
+		paddingHorizontal: 6,
+		borderRadius: 14,
+		borderWidth: StyleSheet.hairlineWidth,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	hudValue: {
+		fontSize: 13,
+		fontWeight: "800",
+		marginTop: 4,
+		marginBottom: 1,
+	},
+	hudLabel: {
+		fontSize: 10,
+		fontWeight: "500",
+		textAlign: "center",
+	},
+	searchBarBox: {
+		flexDirection: "row",
+		alignItems: "center",
+		paddingHorizontal: 12,
+		paddingVertical: 9,
+		borderRadius: 12,
+		borderWidth: StyleSheet.hairlineWidth,
+		marginBottom: 16,
+	},
+	searchInput: {
+		flex: 1,
+		fontSize: 14,
+		paddingVertical: 0,
+	},
+	emptySearchBox: {
+		paddingVertical: 48,
+		paddingHorizontal: 24,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	emptySearchTitle: {
+		fontSize: 17,
+		fontWeight: "700",
+		marginBottom: 6,
+	},
+	emptySearchDesc: {
+		fontSize: 13,
+		textAlign: "center",
+		lineHeight: 18,
 	},
 });

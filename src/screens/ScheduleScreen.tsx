@@ -80,6 +80,8 @@ interface ScheduleScreenProps {
 		event?: CustomEvent,
 		date?: string
 	) => void;
+	onDuplicateEvent?: (id: string, date?: string) => Promise<void>;
+	onDeleteEvent?: (id: string) => Promise<void>;
 }
 
 export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
@@ -94,20 +96,23 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 	errorMessage,
 	settings,
 	theme,
+	grades = [],
+	customEvents = [],
 	onSelectDayIndex,
 	onOpenSearch,
 	onOpenWeeks,
 	onOpenCalls,
+	onToggleFav,
 	onRefresh,
 	onRetry,
 	onLoadDemo,
 	onDismissUpdateNotice,
 	onResetMockTime,
-	grades = [],
 	onOpenGradeModal,
 	onSetDayCallMode,
-	customEvents = [],
 	onOpenEventModal,
+	onDuplicateEvent,
+	onDeleteEvent,
 }) => {
 	const selectedDay = schedule?.days[selectedDayIndex];
 
@@ -1337,10 +1342,24 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 											glassEffect={
 												settings.glassEffect
 											}
+											dayLessons={displayedLessons}
+											isToday={isDayCurrentlyToday}
+											mockDate={mockDate}
 											onPress={() =>
 												onOpenEventModal?.(
 													event,
 													selectedDay.dayDate
+												)
+											}
+											onDuplicate={() =>
+												onDuplicateEvent?.(
+													event.id,
+													selectedDay.dayDate
+												)
+											}
+											onDelete={() =>
+												onDeleteEvent?.(
+													event.id
 												)
 											}
 										/>

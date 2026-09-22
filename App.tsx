@@ -60,6 +60,7 @@ import {
 	getCustomEventsStore,
 	upsertCustomEvent,
 	deleteCustomEvent,
+	duplicateCustomEvent,
 } from "./src/services/eventsStorage";
 import { getActiveTheme } from "./src/theme/colors";
 
@@ -163,8 +164,6 @@ export default function App() {
 		);
 		return () => clearInterval(timer);
 	}, []);
-
-
 
 	/**
 	 * Выбор сегодняшнего дня недели в массиве дней
@@ -766,6 +765,15 @@ export default function App() {
 		setCustomEvents(updated.events);
 	};
 
+	/**
+	 * Дублирование кастомного события
+	 */
+	const handleDuplicateCustomEvent = async (id: string, date?: string) => {
+		await duplicateCustomEvent(id, date);
+		const updated = await getCustomEventsStore();
+		setCustomEvents(updated.events);
+	};
+
 	const activeSchedule = useMemo(() => {
 		const base = customSchedule || schedule;
 		if (!base) return null;
@@ -774,8 +782,6 @@ export default function App() {
 			settings.dayCallModes
 		);
 	}, [customSchedule, schedule, settings.dayCallModes]);
-
-
 
 	return (
 		<SafeAreaProvider>
@@ -814,6 +820,8 @@ export default function App() {
 						onOpenEventModal={
 							handleOpenCustomEventModal
 						}
+						onDuplicateEvent={handleDuplicateCustomEvent}
+						onDeleteEvent={handleDeleteCustomEvent}
 						onSelectDayIndex={setSelectedDayIndex}
 						onOpenSearch={() =>
 							setIsSearchOpen(true)

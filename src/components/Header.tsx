@@ -70,6 +70,7 @@ export const Header: React.FC<HeaderProps> = ({
 							{
 								backgroundColor:
 									theme.chipBackground,
+								borderColor: theme.border,
 							},
 						]}
 						activeOpacity={0.7}
@@ -99,6 +100,7 @@ export const Header: React.FC<HeaderProps> = ({
 						{
 							backgroundColor:
 								theme.chipBackground,
+							borderColor: theme.border,
 						},
 					]}
 					activeOpacity={0.7}
@@ -111,6 +113,12 @@ export const Header: React.FC<HeaderProps> = ({
 						onOpenWeeks();
 					}}
 				>
+					<Ionicons
+						name="calendar-outline"
+						size={13}
+						color={theme.accent}
+						style={{ marginRight: 5 }}
+					/>
 					<Text
 						style={[
 							styles.weekPillText,
@@ -157,16 +165,20 @@ const styles = StyleSheet.create({
 		gap: 8,
 	},
 	callsBtn: {
-		width: 34,
-		height: 34,
-		borderRadius: 17,
+		width: 36,
+		height: 36,
+		borderRadius: 18,
 		alignItems: "center",
 		justifyContent: "center",
+		borderWidth: StyleSheet.hairlineWidth,
 	},
 	weekPill: {
 		paddingHorizontal: 13,
 		paddingVertical: 7,
 		borderRadius: 18,
+		borderWidth: StyleSheet.hairlineWidth,
+		flexDirection: "row",
+		alignItems: "center",
 	},
 	weekPillText: {
 		fontSize: 13,

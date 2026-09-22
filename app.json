@@ -2,7 +2,7 @@
 	"expo": {
 		"name": "Apkify",
 		"slug": "apkify",
-		"version": "1.0.6",
+		"version": "1.0.8",
 		"scheme": "apkify",
 		"orientation": "portrait",
 		"icon": "./assets/icon.png",
@@ -13,7 +13,7 @@
 			"backgroundColor": "#0F94DF"
 		},
 		"ios": {
-			"buildNumber": "6",
+			"buildNumber": "8",
 			"supportsTablet": true,
 			"bundleIdentifier": "ru.apk.schedule",
 			"infoPlist": {

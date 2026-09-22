@@ -260,14 +260,121 @@ export async function deleteCustomEvent(
 }
 
 /**
- * Получить отсортированные события для конкретной даты
+ * Дублировать событие
+ */
+export async function duplicateCustomEvent(
+	id: string,
+	newDate?: string
+): Promise<CustomEvent | null> {
+	const store = await getEventsStore();
+	const original = store.events.find((e) => e.id === id);
+	if (!original) return null;
+	const now = Date.now();
+	const duplicated: CustomEvent = {
+		...original,
+		id: `evt_${now}_${Math.random().toString(36).substring(2, 7)}`,
+		title: `${original.title} (копия)`,
+		date: newDate || original.date,
+		createdAt: now,
+		updatedAt: now,
+	};
+	store.events.push(duplicated);
+	await saveEventsStore(store);
+	return duplicated;
+}
+
+/**
+ * Парсинг строки даты "ДД.ММ.ГГГГ" в объект Date
+ */
+function parseEventDate(str: string): Date | null {
+	if (!str) return null;
+	const parts = str.split(".");
+	if (parts.length !== 3) return null;
+	const day = parseInt(parts[0], 10);
+	const month = parseInt(parts[1], 10) - 1;
+	const year = parseInt(parts[2], 10);
+	if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
+	return new Date(year, month, day, 12, 0, 0, 0);
+}
+
+/**
+ * Проверка, попадает ли событие на целевую дату с учетом правил повторения
+ */
+export function isEventOccurringOnDate(
+	event: CustomEvent,
+	targetDateStr: string
+): boolean {
+	if (event.date === targetDateStr) {
+		return true;
+	}
+
+	const repeatType = event.repeatType;
+	if (!repeatType || repeatType === "none") {
+		return false;
+	}
+
+	const origDate = parseEventDate(event.date);
+	const targetDate = parseEventDate(targetDateStr);
+	if (!origDate || !targetDate) return false;
+
+	// Повторение не действует до даты начала события
+	if (targetDate.getTime() < origDate.getTime()) {
+		return false;
+	}
+
+	// Проверка даты окончания повторений
+	if (event.repeatUntil) {
+		const untilDate = parseEventDate(event.repeatUntil);
+		if (untilDate && targetDate.getTime() > untilDate.getTime()) {
+			return false;
+		}
+	}
+
+	const targetDayOfWeek = targetDate.getDay(); // 0=Вс, 1=Пн, ..., 6=Сб
+	const origDayOfWeek = origDate.getDay();
+
+	switch (repeatType) {
+		case "daily":
+			return true;
+		case "weekdays":
+			return targetDayOfWeek >= 1 && targetDayOfWeek <= 5;
+		case "weekly":
+			return targetDayOfWeek === origDayOfWeek;
+		case "biweekly": {
+			if (targetDayOfWeek !== origDayOfWeek) return false;
+			const diffDays = Math.round(
+				(targetDate.getTime() - origDate.getTime()) /
+					(1000 * 60 * 60 * 24)
+			);
+			const diffWeeks = Math.floor(diffDays / 7);
+			return diffWeeks % 2 === 0;
+		}
+		case "custom_days":
+			return (
+				Array.isArray(event.repeatDays) &&
+				event.repeatDays.includes(targetDayOfWeek)
+			);
+		default:
+			return false;
+	}
+}
+
+/**
+ * Получить отсортированные события для конкретной даты (с учетом повторений)
  */
 export function getEventsForDate(
 	events: CustomEvent[],
 	date: string
 ): CustomEvent[] {
 	return events
-		.filter((e) => e.date === date)
+		.filter((e) => isEventOccurringOnDate(e, date))
+		.map((e) => {
+			// Если событие повторяющееся и это не оригинальный день — проставляем текущую дату
+			if (e.date !== date) {
+				return { ...e, date };
+			}
+			return e;
+		})
 		.sort((a, b) => {
 			const timeA = a.startTime || a.time || "";
 			const timeB = b.startTime || b.time || "";
